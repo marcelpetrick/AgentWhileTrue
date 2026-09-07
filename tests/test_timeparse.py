@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -45,6 +45,15 @@ def test_relative_minutes_only() -> None:
 def test_codex_try_again_at() -> None:
     parsed = parse_reset("You've hit your usage limit. Try again at 8:10 PM.", NOW)
     assert parsed == datetime(2026, 9, 5, 20, 10, tzinfo=BERLIN)
+
+
+def test_zone_less_codex_time_uses_local_zone_when_supervisor_clock_is_utc(monkeypatch) -> None:
+    monkeypatch.setattr("agent_watch.providers.timeparse._local_zone", lambda: BERLIN)
+    now = datetime(2026, 9, 7, 13, 16, tzinfo=UTC)
+
+    parsed = parse_reset("try again at 3:36 PM", now)
+
+    assert parsed == datetime(2026, 9, 7, 13, 36, tzinfo=UTC)
 
 
 @pytest.mark.parametrize(

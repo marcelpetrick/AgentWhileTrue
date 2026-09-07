@@ -7,6 +7,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.30.1] - 2026-09-07
+
+### Fixed
+
+- Zone-less provider reset times are interpreted in the machine's local IANA
+  timezone even though the supervisor keeps its internal clock in UTC. A Codex
+  `3:36 PM` reset in Europe/Berlin therefore remains `15:36`, rather than being
+  shifted to `17:36` after display conversion.
+
 ## [0.30.0] - 2026-09-07
 
 ### Added

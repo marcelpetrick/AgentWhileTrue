@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime, timedelta
+from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 #: "resets 8:10pm (Europe/Berlin)" / "Try again at 8:10 PM"
@@ -47,9 +48,24 @@ HOURS_PER_DAY = 24
 MINUTES_PER_HOUR = 60
 
 
+def _local_zone() -> ZoneInfo | None:
+    """Resolve the host's IANA zone without adding a runtime dependency."""
+    try:
+        target = Path("/etc/localtime").resolve()
+        parts = target.parts
+        marker = parts.index("zoneinfo")
+        return ZoneInfo("/".join(parts[marker + 1 :]))
+    except (OSError, ValueError, ZoneInfoNotFoundError):
+        return None
+
+
 def _zone(name: str | None, fallback: datetime) -> ZoneInfo | None:
     if not name:
-        return fallback.tzinfo if isinstance(fallback.tzinfo, ZoneInfo) else None
+        # The supervisor intentionally keeps its internal clock in UTC. Provider
+        # prompts without a zone, however, display the user's local wall clock.
+        # Preserve an explicitly supplied IANA zone in tests/callers and resolve
+        # the machine zone when the caller uses datetime.UTC.
+        return fallback.tzinfo if isinstance(fallback.tzinfo, ZoneInfo) else _local_zone()
     try:
         return ZoneInfo(name)
     except (ZoneInfoNotFoundError, ValueError):
