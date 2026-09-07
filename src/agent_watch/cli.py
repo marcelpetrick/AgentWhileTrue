@@ -392,6 +392,11 @@ def command_quota(config: Config, stream) -> int:
         return EXIT_OK
     sources = default_sources(config.resolved_state_dir())
     now = datetime.now(UTC)
+    # First visit every process so account-bound sources can learn the freshest
+    # observation regardless of Konsole enumeration order. The second pass then
+    # renders a consistent account view for every session.
+    for candidate in candidates:
+        sources[candidate.provider or ""].snapshot(pid=candidate.session.foreground_pid)
     for index, candidate in enumerate(candidates):
         if index:
             stream.write("\n")

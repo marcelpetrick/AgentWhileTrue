@@ -9,11 +9,13 @@ from __future__ import annotations
 
 import io
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from agent_watch import cli
 from agent_watch.cli import EXIT_ERROR, EXIT_OK, main
+from agent_watch.quota import Availability, QuotaSnapshot
 from agent_watch.terminal.fake import FakeAdapter
 from agent_watch.version import __version__
 from tests import harness as harness_module
@@ -218,6 +220,42 @@ def test_quota_reports_source_failure(sandbox: Path, out: io.StringIO, monkeypat
     assert "Claude pts/3" in out.getvalue()
     assert "UNKNOWN" in out.getvalue()
     assert "no-statusline-file" in out.getvalue()
+
+
+def test_quota_warms_all_sessions_before_rendering(
+    sandbox: Path, out: io.StringIO, monkeypatch
+) -> None:
+    terminal = FakeAdapter()
+    monkeypatch.setattr(cli, "KonsoleAdapter", lambda: terminal)
+    candidates = [
+        SimpleNamespace(
+            eligible=True,
+            provider="codex",
+            tty=f"pts/{pid}",
+            session=SimpleNamespace(foreground_pid=pid),
+        )
+        for pid in (1, 2)
+    ]
+    monkeypatch.setattr(cli, "discover", lambda adapter, inspector: candidates)
+
+    class RecordingSource:
+        def __init__(self) -> None:
+            self.calls: list[int] = []
+
+        def snapshot(self, *, pid=None):
+            self.calls.append(pid)
+            return QuotaSnapshot(
+                provider="codex",
+                availability=Availability.AVAILABLE,
+                source="test",
+                observed_at=cli.datetime.now(cli.UTC),
+            )
+
+    source = RecordingSource()
+    monkeypatch.setattr(cli, "default_sources", lambda state_dir: {"codex": source})
+
+    assert main(["quota"], stream=out) == EXIT_OK
+    assert source.calls == [1, 2, 1, 2]
 
 
 def test_bare_invocation_runs(sandbox: Path, out: io.StringIO, monkeypatch) -> None:

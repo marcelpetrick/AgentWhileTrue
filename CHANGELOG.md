@@ -7,6 +7,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.30.5] - 2026-09-07
+
+### Fixed
+
+- The one-shot `quota` command warms every live session before rendering, so a
+  fresh account-bound Codex observation is shown consistently regardless of
+  Konsole enumeration order.
+
 ## [0.30.4] - 2026-09-07
 
 ### Fixed
