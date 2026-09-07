@@ -1,6 +1,6 @@
 # Agent While True contributor instructions
 
-These instructions apply to every file below `AgentWhileTrue/`.
+These instructions apply to the entire repository.
 
 ## Purpose and priorities
 
@@ -15,11 +15,9 @@ when recognizer behavior changes.
 
 ## Scope
 
-- Work only on this subproject.
-- GitHub Actions must live at the monorepo root `.github/workflows/`; those
-  workflows must be path-filtered to `AgentWhileTrue/**` and package or release
-  only this subproject.
-- Preserve unrelated changes elsewhere in the monorepo.
+- GitHub Actions live in `.github/workflows/` and run from the repository root.
+- Keep the package, tests, scripts, documentation, and workflows independently
+  usable as a standalone repository.
 - Do not change terminal, provider, account, subscription, or paid settings as
   a side effect of development.
 

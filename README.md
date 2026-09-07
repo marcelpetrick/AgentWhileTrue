@@ -1,9 +1,9 @@
 # Agent While True
 
-[![Quality](https://github.com/marcelpetrick/codingWithGPT/actions/workflows/agentwhiletrue-quality.yml/badge.svg?branch=master)](https://github.com/marcelpetrick/codingWithGPT/actions/workflows/agentwhiletrue-quality.yml)
-[![Release](https://github.com/marcelpetrick/codingWithGPT/actions/workflows/agentwhiletrue-release.yml/badge.svg)](https://github.com/marcelpetrick/codingWithGPT/actions/workflows/agentwhiletrue-release.yml)
+[![Quality](https://github.com/marcelpetrick/AgentWhileTrue/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/marcelpetrick/AgentWhileTrue/actions/workflows/quality.yml)
+[![Release](https://github.com/marcelpetrick/AgentWhileTrue/actions/workflows/release.yml/badge.svg)](https://github.com/marcelpetrick/AgentWhileTrue/actions/workflows/release.yml)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB.svg)](https://www.python.org/)
-[![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg)](../LICENSE)
+[![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
 
 **Agent While True** is an agent budget watch and babysitter for Codex CLI and
 Claude Code sessions in KDE Konsole. It reports provider quota health and can
@@ -26,18 +26,20 @@ plan.” Any different menu, cursor position, or unknown quota fails closed.
 
 ## Install
 
-From this directory, use `pipx` so the CLI is isolated while remaining available
-at `~/.local/bin/agent-while-true`:
+Install the current release from GitHub with `pipx` so the CLI is isolated while
+remaining available at `~/.local/bin/agent-while-true`:
 
 ```bash
-pipx install .
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.27.4'
 agent-while-true --version
 agent-while-true doctor
 ```
 
-For development:
+For development, clone the standalone repository:
 
 ```bash
+git clone https://github.com/marcelpetrick/AgentWhileTrue.git
+cd AgentWhileTrue
 python3 -m pip install --user -e '.[dev]'
 ./localPipeline.sh
 ```
@@ -290,14 +292,17 @@ lint and formatting, every tracked shell script with ShellCheck, pytest with an
 and an isolated install using both `agent-while-true` and the compatibility
 alias. GitHub Actions runs this same script on Python 3.12, 3.13, and 3.14.
 
-Pushes and pull requests that touch `AgentWhileTrue/**` run the quality
-workflow. A tag named `agentwhiletrue-vX.Y.Z` additionally verifies the tag
-against the package version and changelog, reruns the pipeline, and publishes
-the built wheel and source distribution as a GitHub release.
+Pushes to `master` and pull requests run the quality workflow. A tag named
+`agentwhiletrue-vX.Y.Z` additionally verifies the tag against the package
+version and changelog, reruns the pipeline, and publishes the built wheel and
+source distribution as a GitHub release.
 
 Release tags use `agentwhiletrue-vX.Y.Z`. The project follows semantic
 versioning while major version zero denotes an alpha interface.
 
 ## License
 
-This subproject is covered by the repository's GNU General Public License v3.
+Agent While True is licensed under the
+[GNU General Public License v3.0 only](LICENSE). The package metadata declares
+the `GPL-3.0-only` SPDX expression and includes the license in built
+distributions.

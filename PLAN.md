@@ -40,6 +40,9 @@ without reconstructing history.
 - [x] v0.27.3: validate every TUI control live, deploy persistent auto-mode
   babysitting with the explicit Codex opt-in, and prevent qdbus locale-warning
   journal spam from the user service; publish the verified wheel and sdist.
+- [x] v0.27.4: preserve the project history in its own repository; adapt the
+  README, GPLv3 licensing, package metadata, and root-level GitHub Actions; then
+  publish the first standalone-repository release.
 
 ## 0. Evidence gathered before planning
 
@@ -194,9 +197,9 @@ source, nested terminal, SSH, container ⇒ log and do nothing.
 ## 5. Versioning
 
 Semver in `agent_watch/version.py`, consumed dynamically by `pyproject.toml`.
-Every commit bumps the version and adds a `CHANGELOG.md` entry; a test asserts
-the newest changelog heading equals `__version__`, so the two cannot drift.
-Release tags are `agentwhiletrue-vX.Y.Z` (this project lives inside a monorepo).
+Every release change bumps the version and adds a `CHANGELOG.md` entry; a test
+asserts the newest changelog heading equals `__version__`, so the two cannot
+drift. Release tags are `agentwhiletrue-vX.Y.Z`.
 
 ## 6. Quality gate
 
@@ -209,11 +212,10 @@ Release tags are `agentwhiletrue-vX.Y.Z` (this project lives inside a monorepo).
 
 ## 7. CI/CD
 
-Workflows live at the repository root (GitHub Actions requires that) and are
-path-filtered to `AgentWhileTrue/**`:
+Workflows live at the repository root:
 
-- `agentwhiletrue-quality.yml` — push/PR, Python 3.12–3.14 matrix, runs the gate.
-- `agentwhiletrue-release.yml` — on `agentwhiletrue-v*` tags: re-runs the gate,
+- `quality.yml` — push/PR, Python 3.12–3.14 matrix, runs the gate.
+- `release.yml` — on `agentwhiletrue-v*` tags: re-runs the gate,
   verifies the tag matches `__version__`, builds sdist+wheel, publishes a GitHub
   release with the matching changelog section.
 

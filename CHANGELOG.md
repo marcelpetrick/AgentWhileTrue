@@ -7,6 +7,18 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.27.4] - 2026-09-07
+
+### Changed
+
+- Agent While True now lives in its own repository with its complete project
+  history preserved and the package at the repository root.
+- README links, badges, package metadata, and contributor guidance now target
+  the standalone repository.
+- Quality and release workflows now run from the standalone repository root.
+- GPLv3-only licensing is declared in package metadata, linked from the README,
+  and included in source and wheel distributions.
+
 ## [0.27.3] - 2026-09-07
 
 ### Fixed

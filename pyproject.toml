@@ -8,6 +8,7 @@ description = "Agent budget watch and babysitter for Codex and Claude Code sessi
 readme = "README.md"
 requires-python = ">=3.12"
 license = "GPL-3.0-only"
+license-files = ["LICENSE"]
 authors = [{ name = "Marcel Petrick", email = "mail@marcelpetrick.it" }]
 keywords = ["konsole", "kde", "claude-code", "codex", "rate-limit", "automation"]
 classifiers = [
@@ -31,8 +32,9 @@ agent-while-true = "agent_watch.cli:main"
 agent-watch = "agent_watch.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/marcelpetrick/codingWithGPT/tree/master/AgentWhileTrue"
-Source = "https://github.com/marcelpetrick/codingWithGPT/tree/master/AgentWhileTrue"
+Homepage = "https://github.com/marcelpetrick/AgentWhileTrue"
+Source = "https://github.com/marcelpetrick/AgentWhileTrue"
+Issues = "https://github.com/marcelpetrick/AgentWhileTrue/issues"
 
 [tool.setuptools.dynamic]
 version = { attr = "agent_watch.version.__version__" }
