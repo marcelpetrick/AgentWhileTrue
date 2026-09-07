@@ -40,6 +40,7 @@ from agent_watch.logging_setup import read_history, setup
 from agent_watch.picker import Candidate, NumberedPicker, discover, pick_with_fzf
 from agent_watch.policy import Decision
 from agent_watch.quota import default_sources
+from agent_watch.service_health import HealthMonitor
 from agent_watch.state_store import StateStore
 from agent_watch.terminal.konsole import KonsoleAdapter
 from agent_watch.tui import DashboardState, TerminalKeys
@@ -283,6 +284,9 @@ def _loop(supervisor: Supervisor, config: Config, args: argparse.Namespace, stre
     color = interactive and not args.no_color and "NO_COLOR" not in os.environ
     last_event = ""
     event_history: list[str] = []
+    health = HealthMonitor(interval=config.status_poll_interval)
+    if not args.once:
+        health.start()
     if interactive:
         stream.write(HIDE_CURSOR)
     try:
@@ -315,6 +319,11 @@ def _loop(supervisor: Supervisor, config: Config, args: argparse.Namespace, stre
                         events=event_history,
                         show_events=dashboard.show_events,
                         history_length=dashboard.history_length,
+                        service_health=health.snapshot(),
+                        peak_hours={
+                            "openai": config.openai_peak_hours,
+                            "anthropic": config.anthropic_peak_hours,
+                        },
                     )
                     + "\n"
                 )
@@ -333,6 +342,7 @@ def _loop(supervisor: Supervisor, config: Config, args: argparse.Namespace, stre
                 time.sleep(dashboard.interval)
         return EXIT_INTERRUPTED
     finally:
+        health.stop()
         if interactive:
             stream.write(SHOW_CURSOR + "\n")
             stream.flush()
@@ -432,6 +442,15 @@ MODE=ask
 
 SCAN_INTERVAL=2s
 USAGE_POLL_INTERVAL=60s
+
+# Public status summaries are cached off the supervisor thread. The TUI still
+# refreshes their age every second when its display interval is 1s.
+STATUS_POLL_INTERVAL=1s
+
+# Providers do not publish predictive peak-load hours. Optional local display
+# hints may be configured explicitly, for example "15:00-19:00 Europe/Berlin".
+OPENAI_PEAK_HOURS=not published
+ANTHROPIC_PEAK_HOURS=not published
 
 # Extra wait after the provider's nominal reset, because a reset timestamp can
 # pass while usage is not yet actually available.

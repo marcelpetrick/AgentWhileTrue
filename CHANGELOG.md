@@ -7,6 +7,24 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.32.0] - 2026-09-08
+
+### Added
+
+- The dashboard shows cached health for OpenAI Responses/Login and Anthropic
+  Claude Code/API using the providers' public Statuspage summaries.
+- Health age updates with the TUI refresh while network polling runs in a
+  background thread once per second, with a configurable interval.
+- Optional provider peak-hour display hints are supported. Defaults explicitly
+  say `not published` because neither provider publishes predictive peak-load
+  windows suitable for an authoritative built-in schedule.
+
+### Safety
+
+- Status checks never call a model, use account credentials, authorize resume,
+  or block the supervisor loop. Missing, malformed, or unreachable status data
+  is displayed as `UNKNOWN`.
+
 ## [0.31.0] - 2026-09-08
 
 ### Added

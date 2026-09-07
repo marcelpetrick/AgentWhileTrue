@@ -8,6 +8,7 @@ from agent_watch.config import Config, Mode
 from agent_watch.fsm import SupervisedSession
 from agent_watch.proc import ProcessIdentity
 from agent_watch.quota import Availability, QuotaSnapshot, QuotaWindow
+from agent_watch.service_health import HealthState, ProviderHealth
 from agent_watch.states import SessionState
 from agent_watch.terminal.base import SessionRef
 from agent_watch.ui import format_reset, render_line, render_quota, render_status
@@ -115,6 +116,42 @@ def test_dashboard_shows_per_session_account_and_usage_meters() -> None:
     assert "84/16" in text
     assert "77/23" in text
     assert "[████░]" in text
+
+
+def test_dashboard_shows_cached_service_health_and_peak_disclosure() -> None:
+    health = {
+        "openai": ProviderHealth("openai", HealthState.ONLINE, "ok", NOW),
+        "anthropic": ProviderHealth("anthropic", HealthState.DEGRADED, "incident", NOW),
+    }
+    text = render_status(
+        [_session()],
+        now=NOW + timedelta(seconds=1),
+        config=Config(),
+        service_health=health,
+        peak_hours={"openai": "not published", "anthropic": "16:00-20:00 local"},
+    )
+    assert "OpenAI: ONLINE (1s ago)" in text
+    assert "Anthropic: DEGRADED" in text
+    assert "incident" in text
+    assert "OpenAI: not published" in text
+    assert "Anthropic: 16:00-20:00 local" in text
+
+
+def test_dashboard_explains_service_errors_and_refuses_stale_online_state() -> None:
+    health = {
+        "openai": ProviderHealth("openai", HealthState.ONLINE, "ok", NOW),
+        "anthropic": ProviderHealth(
+            "anthropic", HealthState.DEGRADED, "Claude Code=degraded_performance", NOW
+        ),
+    }
+    text = render_status(
+        [],
+        now=NOW + timedelta(minutes=3),
+        config=Config(status_poll_interval=60),
+        service_health=health,
+    )
+    assert "OpenAI: UNKNOWN (180s ago; stale-status)" in text
+    assert "Anthropic: UNKNOWN (180s ago; stale-status)" in text
 
 
 def test_colored_dashboard_and_help_are_optional() -> None:

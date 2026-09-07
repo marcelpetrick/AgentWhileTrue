@@ -111,6 +111,9 @@ class Config:
     mode: Mode = Mode.ASK
     scan_interval: float = 2.0
     usage_poll_interval: float = 60.0
+    status_poll_interval: float = 1.0
+    openai_peak_hours: str = "not published"
+    anthropic_peak_hours: str = "not published"
     reset_grace: float = 60.0
     max_resume_attempts: int = 3
     retry_delays: tuple[float, ...] = (5.0, 30.0, 60.0)
@@ -145,6 +148,9 @@ _KEYS: dict[str, tuple[str, str]] = {
     "MODE": ("mode", "mode"),
     "SCAN_INTERVAL": ("scan_interval", "duration"),
     "USAGE_POLL_INTERVAL": ("usage_poll_interval", "duration"),
+    "STATUS_POLL_INTERVAL": ("status_poll_interval", "duration"),
+    "OPENAI_PEAK_HOURS": ("openai_peak_hours", "text"),
+    "ANTHROPIC_PEAK_HOURS": ("anthropic_peak_hours", "text"),
     "RESET_GRACE": ("reset_grace", "duration"),
     "MAX_RESUME_ATTEMPTS": ("max_resume_attempts", "int"),
     "RETRY_DELAYS": ("retry_delays", "durations"),
@@ -178,6 +184,11 @@ def _coerce(kind: str, raw: str, key: str):
             raise ConfigError(f"{key}: cannot parse integer {raw!r}") from exc
     if kind == "path":
         return Path(os.path.expandvars(raw.strip())).expanduser()
+    if kind == "text":
+        value = raw.strip()
+        if not value or len(value) > 80:
+            raise ConfigError(f"{key}: expected 1-80 display characters")
+        return value
     if kind == "mode":
         try:
             return Mode(raw.strip().lower())

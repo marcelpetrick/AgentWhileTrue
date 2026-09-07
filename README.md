@@ -37,6 +37,20 @@ profile label and read its matching account email safely.
 Every session row also includes five-hour and weekly meters in `used/left`
 percent form. For example, `[████░] 84/16` means 84% used and 16% remaining.
 
+The header reports public service health for OpenAI Responses/Login and
+Anthropic Claude Code/API. These are cached status-page observations, not paid
+model calls, and `UNKNOWN` is shown when the network or status data is unusable.
+The observation age refreshes with the dashboard; the public endpoints are
+polled once per second in the background by default (`STATUS_POLL_INTERVAL=1s`).
+One second is the enforced lower bound; increase it if you prefer less network
+traffic.
+
+Neither provider publishes reliable predictive peak-load hours. The dashboard
+therefore says `not published` instead of presenting speculation. If you have a
+known local operations window, set `OPENAI_PEAK_HOURS` or
+`ANTHROPIC_PEAK_HOURS` to a display hint such as
+`15:00-19:00 Europe/Berlin`; these hints never affect automation policy.
+
 The primary command is `agent-while-true`. The shorter `agent-watch` command is
 kept as a compatible alias, so existing scripts and the examples below continue
 to work.

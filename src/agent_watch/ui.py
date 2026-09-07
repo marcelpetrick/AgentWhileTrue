@@ -13,6 +13,7 @@ from datetime import datetime
 from agent_watch.config import Config
 from agent_watch.fsm import SupervisedSession
 from agent_watch.quota import Availability, QuotaSnapshot
+from agent_watch.service_health import HealthState, ProviderHealth
 from agent_watch.states import SessionState
 from agent_watch.version import __version__
 
@@ -137,6 +138,23 @@ def quota_meter(snapshot: QuotaSnapshot, scope: str) -> str:
     return f"[{'█' * filled}{'░' * (5 - filled)}] {used:>3}/{left:<3}"
 
 
+def _health_age(health: ProviderHealth, now: datetime) -> str:
+    if health.checked_at is None:
+        return "never"
+    seconds = max(0, round((now - health.checked_at).total_seconds()))
+    return f"{seconds}s ago"
+
+
+def _health_text(health: ProviderHealth, now: datetime, max_age: float) -> str:
+    state = health.state
+    detail = health.detail
+    if health.checked_at is not None and (now - health.checked_at).total_seconds() > max_age:
+        state = HealthState.UNKNOWN
+        detail = "stale-status"
+    suffix = f"; {detail}" if state is not HealthState.ONLINE and detail else ""
+    return f"{state.value} ({_health_age(health, now)}{suffix})"
+
+
 def render_quota(snapshot: QuotaSnapshot, *, now: datetime, identity: str = "") -> str:
     """Render a provider snapshot for the ``quota`` query command."""
     lines = [
@@ -171,6 +189,8 @@ def render_status(
     events: Sequence[str] = (),
     show_events: bool = True,
     history_length: int = 5,
+    service_health: dict[str, ProviderHealth] | None = None,
+    peak_hours: dict[str, str] | None = None,
 ) -> str:
     """Render the running watcher's status table."""
     listed = list(sessions)
@@ -187,6 +207,19 @@ def render_status(
         ),
         (f"  mode={config.mode.value}   watching {len(listed)} session(s)   theme={theme}"),
     ]
+    if service_health:
+        status_parts = []
+        health_max_age = max(10.0, config.status_poll_interval * 2)
+        for provider, label in (("openai", "OpenAI"), ("anthropic", "Anthropic")):
+            health = service_health.get(provider, ProviderHealth(provider, HealthState.UNKNOWN, ""))
+            status_parts.append(f"{label}: {_health_text(health, now, health_max_age)}")
+        lines.append("  services=" + "   ".join(status_parts))
+        if peak_hours:
+            lines.append(
+                "  peak-hours="
+                f"OpenAI: {peak_hours.get('openai', 'not published')}   "
+                f"Anthropic: {peak_hours.get('anthropic', 'not published')}"
+            )
     lines.extend(
         (
             "",
