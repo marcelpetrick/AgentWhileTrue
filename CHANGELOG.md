@@ -7,6 +7,21 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.30.3] - 2026-09-07
+
+### Fixed
+
+- A blocked Codex session can use a newer quota observation from another live
+  session only when both rollouts are positively bound to the same authenticated
+  account and rate-limit identity. This breaks the stale-rollout deadlock after
+  reset while keeping different or unidentified accounts isolated.
+
+### Safety
+
+- Codex account IDs are reduced to memory-only SHA-256 keys and are never
+  displayed, logged, persisted, or inferred when the owner-private auth file
+  cannot be validated.
+
 ## [0.30.2] - 2026-09-07
 
 ### Fixed

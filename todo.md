@@ -17,6 +17,11 @@ them because they require a real Konsole session and provider reset.
   `AGENT_WATCH_ALLOW_CODEX_AUTO_RESUME=true`.
 - The owner-only event log passed a scan for known prompt and credential text.
 - Still required: observe one real eligible reset/continuation lifecycle.
+- The 2026-09-07 Codex reset did not continue: its zone-less clock was treated
+  as UTC, passive purchase links vetoed the separate composer, and its idle
+  rollout stayed stale despite fresh same-account quota in another session.
+  Versions 0.30.1 through 0.30.3 add regressions and fixes; live continuation
+  remains unchecked until the next genuine eligible reset.
 
 ## 1. Restart Konsole safely
 

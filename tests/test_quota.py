@@ -53,6 +53,17 @@ def _write_rollout(tmp_path: Path, *events: dict) -> Path:
     return path
 
 
+def _write_account_rollout(root: Path, account_id: str, event: dict) -> Path:
+    root.mkdir()
+    auth = root / "auth.json"
+    auth.write_text(json.dumps({"tokens": {"account_id": account_id}}))
+    auth.chmod(0o600)
+    path = root / "sessions/2026/09/05/rollout-live.jsonl"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps(event) + "\n")
+    return path
+
+
 def test_codex_rollout_is_parsed_into_windows(tmp_path: Path, monkeypatch) -> None:
     path = _write_rollout(tmp_path, CODEX_EVENT)
     monkeypatch.setattr(quota, "find_codex_rollout", lambda pid: path)
@@ -112,6 +123,63 @@ def test_codex_reached_type_forces_exhausted(tmp_path: Path, monkeypatch) -> Non
     path = _write_rollout(tmp_path, event)
     monkeypatch.setattr(quota, "find_codex_rollout", lambda pid: path)
     assert CodexRolloutSource().snapshot(pid=123).availability is Availability.EXHAUSTED
+
+
+def test_codex_uses_fresh_quota_from_the_same_account(tmp_path: Path, monkeypatch) -> None:
+    stale_event = json.loads(json.dumps(CODEX_EVENT))
+    stale_event["timestamp"] = "2026-09-05T18:00:00Z"
+    stale_event["payload"]["rate_limits"]["primary"]["used_percent"] = 98.0
+    fresh_event = json.loads(json.dumps(CODEX_EVENT))
+    fresh_event["timestamp"] = "2026-09-05T20:55:00Z"
+    fresh_event["payload"]["rate_limits"]["primary"]["used_percent"] = 4.0
+    stale = _write_account_rollout(tmp_path / "codex-a", "same-account", stale_event)
+    fresh = _write_account_rollout(tmp_path / "codex-b", "same-account", fresh_event)
+    paths = {1: stale, 2: fresh}
+    monkeypatch.setattr(quota, "find_codex_rollout", paths.get)
+    source = CodexRolloutSource()
+
+    assert source.snapshot(pid=1).observed_at == datetime(2026, 9, 5, 18, 0, tzinfo=UTC)
+    assert source.snapshot(pid=2).availability is Availability.AVAILABLE
+    shared = source.snapshot(pid=1)
+
+    assert shared.availability is Availability.AVAILABLE
+    assert shared.observed_at == datetime(2026, 9, 5, 20, 55, tzinfo=UTC)
+
+
+def test_codex_never_shares_quota_between_accounts(tmp_path: Path, monkeypatch) -> None:
+    stale_event = json.loads(json.dumps(CODEX_EVENT))
+    stale_event["timestamp"] = "2026-09-05T18:00:00Z"
+    fresh_event = json.loads(json.dumps(CODEX_EVENT))
+    fresh_event["timestamp"] = "2026-09-05T20:55:00Z"
+    stale = _write_account_rollout(tmp_path / "codex-a", "account-a", stale_event)
+    fresh = _write_account_rollout(tmp_path / "codex-b", "account-b", fresh_event)
+    paths = {1: stale, 2: fresh}
+    monkeypatch.setattr(quota, "find_codex_rollout", paths.get)
+    source = CodexRolloutSource()
+
+    first = source.snapshot(pid=1)
+    source.snapshot(pid=2)
+
+    assert source.snapshot(pid=1) == first
+
+
+def test_codex_never_shares_quota_between_rate_limit_identities(
+    tmp_path: Path, monkeypatch
+) -> None:
+    first_event = json.loads(json.dumps(CODEX_EVENT))
+    second_event = json.loads(json.dumps(CODEX_EVENT))
+    second_event["timestamp"] = "2026-09-05T20:55:00Z"
+    second_event["payload"]["rate_limits"]["limit_id"] = "different-model"
+    first = _write_account_rollout(tmp_path / "codex-a", "same-account", first_event)
+    second = _write_account_rollout(tmp_path / "codex-b", "same-account", second_event)
+    paths = {1: first, 2: second}
+    monkeypatch.setattr(quota, "find_codex_rollout", paths.get)
+    source = CodexRolloutSource()
+
+    original = source.snapshot(pid=1)
+    source.snapshot(pid=2)
+
+    assert source.snapshot(pid=1) == original
 
 
 def test_codex_partial_first_line_after_a_tail_seek_is_tolerated(

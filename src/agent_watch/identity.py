@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import hashlib
 import json
 import os
 import re
@@ -43,8 +44,8 @@ def _decode_jwt_payload(token: object) -> dict[str, object] | None:
     return payload if isinstance(payload, dict) else None
 
 
-def codex_email(*, auth_file: Path | None = None) -> str | None:
-    """Read only the email claim from Codex's owner-private OAuth ID token."""
+def _codex_auth(auth_file: Path | None = None) -> dict[str, object] | None:
+    """Read an owner-private Codex auth document without exposing its values."""
     path = auth_file or Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "auth.json"
     try:
         stat = path.stat()
@@ -55,11 +56,33 @@ def codex_email(*, auth_file: Path | None = None) -> str | None:
         return None
     if not isinstance(document, dict):
         return None
+    return document
+
+
+def codex_email(*, auth_file: Path | None = None) -> str | None:
+    """Read only the email claim from Codex's owner-private OAuth ID token."""
+    document = _codex_auth(auth_file)
+    if document is None:
+        return None
     tokens = document.get("tokens")
     if not isinstance(tokens, dict):
         return None
     payload = _decode_jwt_payload(tokens.get("id_token"))
     return _valid_email(payload.get("email")) if payload else None
+
+
+def codex_account_key(*, auth_file: Path) -> str | None:
+    """Return a memory-only opaque key for a positively identified account."""
+    document = _codex_auth(auth_file)
+    if document is None:
+        return None
+    tokens = document.get("tokens")
+    if not isinstance(tokens, dict):
+        return None
+    account_id = tokens.get("account_id")
+    if not isinstance(account_id, str) or not account_id.strip():
+        return None
+    return hashlib.sha256(f"codex-account\0{account_id}".encode()).hexdigest()
 
 
 def claude_email() -> str | None:

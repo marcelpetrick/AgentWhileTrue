@@ -103,6 +103,10 @@ Claude pts/4 PID 769257
 Provider state and terminal state are intentionally separate. A quota may be
 available while a terminal is active, or a terminal may show an old limit while
 provider data is unavailable. Unknown or stale quota data never authorizes input.
+For Codex, a process whose rollout stopped updating may use a fresher observation
+from another live process only when both rollouts resolve to the same validated
+local account and rate-limit identity. Unidentified and different accounts are
+never combined; the opaque binding remains in memory and is not logged.
 
 ## Watch sessions
 

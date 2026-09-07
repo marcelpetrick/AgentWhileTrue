@@ -30,10 +30,11 @@ from __future__ import annotations
 import enum
 import json
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
+from agent_watch.identity import codex_account_key
 from agent_watch.proc import PROC
 
 #: A window at or above this percentage is treated as exhausted.
@@ -247,12 +248,34 @@ def _codex_windows(limits: dict) -> list[QuotaWindow]:
     return windows
 
 
+def _codex_auth_file(rollout: Path) -> Path | None:
+    """Find the auth file belonging to the exact home that owns a rollout."""
+    for parent in rollout.parents:
+        if parent.name == "sessions":
+            return parent.parent / "auth.json"
+    return None
+
+
+def _newer_snapshot(first: QuotaSnapshot, second: QuotaSnapshot) -> QuotaSnapshot:
+    """Choose the newest provider observation; missing time never wins."""
+    first_at = first.observed_at
+    second_at = second.observed_at
+    if first_at is None:
+        return second
+    if second_at is None:
+        return first
+    return first if first_at >= second_at else second
+
+
 @dataclass(slots=True)
 class CodexRolloutSource(QuotaSource):
     """Read Codex's own rate-limit reporting out of its session rollout."""
 
     provider: str = "codex"
     name: str = "codex-rollout"
+    _account_snapshots: dict[tuple[str, str], QuotaSnapshot] = field(
+        default_factory=dict, init=False, repr=False
+    )
 
     def snapshot(self, *, pid: int | None = None) -> QuotaSnapshot:
         if pid is None:
@@ -272,7 +295,7 @@ class CodexRolloutSource(QuotaSource):
             availability = _availability(windows)
             if reached:
                 availability = Availability.EXHAUSTED
-            return QuotaSnapshot(
+            snapshot = QuotaSnapshot(
                 provider=self.provider,
                 availability=availability,
                 source=self.name,
@@ -280,6 +303,15 @@ class CodexRolloutSource(QuotaSource):
                 windows=tuple(windows),
                 note=str(reached) if reached else "",
             )
+            auth_file = _codex_auth_file(path)
+            account = codex_account_key(auth_file=auth_file) if auth_file is not None else None
+            limit_id = limits.get("limit_id")
+            if account is None or not isinstance(limit_id, str) or not limit_id:
+                return snapshot
+            cache_key = (account, limit_id)
+            freshest = _newer_snapshot(snapshot, self._account_snapshots.get(cache_key, snapshot))
+            self._account_snapshots[cache_key] = freshest
+            return freshest
         except Exception as exc:  # a source must never break the supervision loop
             return unknown(self.provider, self.name, f"error:{type(exc).__name__}")
 
