@@ -7,6 +7,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.30.7] - 2026-09-07
+
+### Fixed
+
+- Codex prompt recognition is restricted to its immediate eight-line composer
+  area. A historical limit banner left visible above a completed continuation
+  can no longer trigger bounded retries as the screen fingerprint changes.
+
 ## [0.30.6] - 2026-09-07
 
 ### Fixed

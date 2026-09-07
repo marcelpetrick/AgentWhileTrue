@@ -126,6 +126,18 @@ CODEX_USAGE_LIMIT_WITH_PURCHASE_LINKS = [
     "› Ask Codex to do anything",
 ]
 
+CODEX_COMPLETED_TURN_BELOW_OLD_LIMIT = [
+    *CODEX_USAGE_LIMIT_WITH_PURCHASE_LINKS,
+    "continue",
+    "• Explored",
+    "  └ Read controller.py",
+    "• Ran tests",
+    "  └ all checks passed",
+    "• Finished the requested work",
+    "",
+    "› Ask Codex to do anything",
+]
+
 CODEX_ACTIVE = [
     "• Ran cargo test",
     "",

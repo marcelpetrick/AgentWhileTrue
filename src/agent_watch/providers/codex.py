@@ -15,6 +15,7 @@ user opts in, even though the rest of the machinery is identical.
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from typing import Final
 
 from agent_watch.providers.base import (
@@ -22,12 +23,18 @@ from agent_watch.providers.base import (
     PromptKind,
     PromptPattern,
     ProviderAdapter,
+    Recognition,
     ResumeAction,
 )
 
 NAME: Final = "codex"
-PATTERNS_VERSION: Final = "codex-0.153.x/1"
-VERIFIED_AGAINST: Final = "Codex CLI 0.153.2"
+PATTERNS_VERSION: Final = "codex-0.153.x/2"
+VERIFIED_AGAINST: Final = "Codex CLI 0.153.2 and 0.153.4"
+
+# Codex's compact blocking composer fits inside eight rows, including the
+# wrapped purchase links seen in 0.153.4. A wider generic window retained the
+# old banner after a continued turn and could propose duplicate input.
+CODEX_LIVE_LINES: Final = 8
 
 #: What is typed into the composer to pick the work back up. Deliberately a
 #: plain instruction with no slash command: a slash command that has been
@@ -150,3 +157,13 @@ class CodexAdapter(ProviderAdapter):
 
     def executable_names(self) -> frozenset[str]:
         return frozenset({"codex"})
+
+    def recognise(
+        self,
+        lines: list[str],
+        *,
+        now: datetime,
+        live_lines: int = CODEX_LIVE_LINES,
+    ) -> Recognition:
+        """Restrict Codex decisions to its immediate prompt area."""
+        return super().recognise(lines, now=now, live_lines=live_lines)

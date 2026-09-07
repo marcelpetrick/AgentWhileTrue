@@ -159,6 +159,14 @@ def test_real_codex_mixed_limit_banner_is_recognised_without_losing_paid_evidenc
     assert result.vetoes == ("paid-action-required:codex/purchase-offer",)
 
 
+def test_codex_old_limit_above_a_completed_turn_is_not_actionable() -> None:
+    result = providers.CODEX.recognise(screens.CODEX_COMPLETED_TURN_BELOW_OLD_LIMIT, now=NOW)
+
+    assert result.state is SessionState.ACTIVE
+    assert result.matches == ()
+    assert result.action is None
+
+
 def test_codex_active_screen_proposes_nothing() -> None:
     result = providers.CODEX.recognise(screens.CODEX_ACTIVE, now=NOW)
     assert result.state is SessionState.ACTIVE
