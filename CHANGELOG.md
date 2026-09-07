@@ -7,6 +7,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.30.4] - 2026-09-07
+
+### Fixed
+
+- The canonical local/GitHub pipeline now fails when ShellCheck is unavailable,
+  runs `git diff --check`, and smoke-tests installed-wheel `doctor`, `status`,
+  and `quota` commands alongside both CLI names and every safety simulation.
+
 ## [0.30.3] - 2026-09-07
 
 ### Fixed

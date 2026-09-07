@@ -13,6 +13,8 @@ PROXY = ROOT / "scripts" / "claude-statusline-proxy.sh"
 BRIDGE_INSTALLER = ROOT / "scripts" / "install-claude-bridge.sh"
 USER_SERVICE = ROOT / "systemd" / "agent-watch.service"
 FULL_AUTO = ROOT / "fullAutoMode.sh"
+LOCAL_PIPELINE = ROOT / "localPipeline.sh"
+QUALITY = ROOT / "scripts" / "quality.sh"
 
 
 def _run_proxy(
@@ -131,3 +133,14 @@ def test_full_auto_launcher_orders_checks_before_auto_mode() -> None:
     assert 'UV_VENV_CLEAR=1 pipx install --force "$wheel"' in script
     assert "run --observe --all --no-fzf" in script
     assert "systemctl --user stop" not in script
+
+
+def test_canonical_pipeline_covers_required_release_smokes() -> None:
+    pipeline = LOCAL_PIPELINE.read_text(encoding="utf-8")
+    quality = QUALITY.read_text(encoding="utf-8")
+
+    for command in ("doctor", "status", "quota", "simulate --all"):
+        assert command in pipeline
+    assert 'agent-watch" --version' in pipeline
+    assert "git diff --check" in quality
+    assert 'fail "shellcheck (not installed)"' in quality

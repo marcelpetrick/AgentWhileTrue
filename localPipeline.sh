@@ -16,7 +16,7 @@ Runs the same complete gate used by GitHub Actions:
   3. Run every safety simulation
   4. Build the source distribution and wheel
   5. Install the wheel in an isolated environment
-  6. Smoke-test both command names and all simulations
+  6. Smoke-test both command names, doctor, status, quota, and all simulations
 
 --noRun is accepted for consistency with this repository's other local
 pipelines. Agent While True has no final interactive launch, so it is a no-op.
@@ -41,6 +41,18 @@ done
 cleanup() {
     if [[ -n "$TEMP_ROOT" && -d "$TEMP_ROOT" ]]; then
         rm -rf -- "$TEMP_ROOT"
+    fi
+}
+
+smoke_command() {
+    local output status
+    set +e
+    output="$("$@" 2>&1)"
+    status=$?
+    set -e
+    if [[ "$status" -gt 1 || "$output" == *Traceback* ]]; then
+        printf '%s\n' "$output" >&2
+        return 1
     fi
 }
 
@@ -93,4 +105,7 @@ expected_version="$(PYTHONPATH=src "$PYTHON_BIN" -c 'from agent_watch.version im
 [[ "$("$TEMP_ROOT/smoke/bin/agent-while-true" --version)" == *"$expected_version"* ]]
 [[ "$("$TEMP_ROOT/smoke/bin/agent-watch" --version)" == *"$expected_version"* ]]
 "$TEMP_ROOT/smoke/bin/agent-while-true" simulate --all
-PIPELINE_RESULTS+=("Installed wheel  : PASS (both commands and simulations)")
+smoke_command "$TEMP_ROOT/smoke/bin/agent-while-true" doctor
+smoke_command "$TEMP_ROOT/smoke/bin/agent-while-true" status
+smoke_command "$TEMP_ROOT/smoke/bin/agent-while-true" quota
+PIPELINE_RESULTS+=("Installed wheel  : PASS (commands, diagnostics, simulations)")

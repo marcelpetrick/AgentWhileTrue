@@ -336,10 +336,11 @@ python3 -m pytest -m konsole  # set AGENT_WATCH_LIVE_KONSOLE=1 for the live test
 ```
 
 The local pipeline is the canonical release gate. It checks Python 3.12+, Ruff
-lint and formatting, every tracked shell script with ShellCheck, pytest with an
-85% coverage floor, all built-in danger simulations, sdist/wheel construction,
-and an isolated install using both `agent-while-true` and the compatibility
-alias. GitHub Actions runs this same script on Python 3.12, 3.13, and 3.14.
+lint and formatting, every tracked shell script with mandatory ShellCheck,
+`git diff --check`, pytest with an 85% coverage floor, all built-in danger
+simulations, sdist/wheel construction, and an isolated install exercising
+`doctor`, `status`, `quota`, simulations, and both command names. GitHub Actions
+runs this same script on Python 3.12, 3.13, and 3.14.
 
 Pushes to `master` and pull requests run the quality workflow. A tag named
 `agentwhiletrue-vX.Y.Z` additionally verifies the tag against the package

@@ -82,8 +82,11 @@ if command -v shellcheck > /dev/null 2>&1; then
         printf 'no shell scripts tracked yet\n'
     fi
 else
-    printf 'shellcheck not installed; skipping\n' >&2
+    fail "shellcheck (not installed)"
 fi
+
+step "git diff --check"
+git diff --check || fail "git diff --check"
 
 step "pytest"
 if [ "$COVERAGE" -eq 1 ]; then

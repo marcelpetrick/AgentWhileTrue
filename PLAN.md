@@ -59,6 +59,9 @@ without reconstructing history.
   and allow only its separate composer continuation after fresh quota proof.
 - [x] v0.30.3: reuse the freshest Codex quota across sessions only after
   memory-only authenticated-account and rate-limit binding.
+- [x] v0.30.4: bring the canonical pipeline in line with the contributor and
+  release contract, including mandatory ShellCheck, diff checks, and installed
+  diagnostic-command smoke tests.
 - [x] Re-run the machine acceptance checks: `doctor` reports `Konsole input OK`
   and `Auto mode OK`; live discovery and both provider quota sources work.
 - [ ] Observe one real eligible quota reset, verify exactly one continuation,
