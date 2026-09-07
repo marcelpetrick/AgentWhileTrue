@@ -30,7 +30,12 @@ def _session(**overrides) -> SupervisedSession:
 
 
 def test_status_lists_each_session() -> None:
-    text = render_status([_session()], now=NOW, config=Config(mode=Mode.AUTO))
+    text = render_status(
+        [_session()],
+        now=NOW,
+        config=Config(mode=Mode.AUTO),
+        accounts={"codex": "codex@example.com", "claude": "claude@example.com"},
+    )
     assert "WAITING_FOR_RESET" in text
     assert "15102" in text
     assert "mode=auto" in text
@@ -38,6 +43,8 @@ def test_status_lists_each_session() -> None:
     assert "QUOTA" in text
     assert "Agent While True" in text
     assert "h help" in text
+    assert "Codex: codex@example.com" in text
+    assert "Claude: claude@example.com" in text
 
 
 def test_status_handles_nothing_selected() -> None:

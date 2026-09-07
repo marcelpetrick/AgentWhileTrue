@@ -23,6 +23,14 @@ terminal, process identity, prompt, quota source, and policy all agree.
 The main interface keeps independently recognized terminal state and provider
 quota visible for every selected Codex and Claude session. Red or unknown data
 does not authorize terminal input; the supervisor continues to fail closed.
+Interactive dashboards also identify the authenticated account email for each
+provider. This display-only identity is read once at startup and is never
+written to Agent While True's log, state, or non-interactive service output.
+
+Shell aliases themselves cannot normally be recovered after Zsh expands them:
+the child process receives the expanded command, not the alias name. Konsole's
+session title and the positively classified executable remain the reliable
+launch labels shown by the dashboard.
 
 The primary command is `agent-while-true`. The shorter `agent-watch` command is
 kept as a compatible alias, so existing scripts and the examples below continue
@@ -44,7 +52,7 @@ Install the current release from GitHub with `pipx` so the CLI is isolated while
 remaining available at `~/.local/bin/agent-while-true`:
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.28.1'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.29.0'
 agent-while-true --version
 agent-while-true doctor
 ```

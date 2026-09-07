@@ -34,6 +34,7 @@ from agent_watch.config import (
     load,
 )
 from agent_watch.fsm import Observation, Supervisor, SystemInspector
+from agent_watch.identity import provider_accounts
 from agent_watch.lock import LockHeldError, SingleInstanceLock
 from agent_watch.logging_setup import read_history, setup
 from agent_watch.picker import Candidate, NumberedPicker, discover, pick_with_fzf
@@ -269,6 +270,7 @@ def _loop(supervisor: Supervisor, config: Config, args: argparse.Namespace, stre
     interactive = bool(
         not args.once and hasattr(stream, "isatty") and stream.isatty() and sys.stdin.isatty()
     )
+    accounts = provider_accounts() if interactive else {}
     dashboard = DashboardState.from_interval(config.scan_interval)
     keys = TerminalKeys(interactive)
     color = interactive and not args.no_color and "NO_COLOR" not in os.environ
@@ -306,6 +308,7 @@ def _loop(supervisor: Supervisor, config: Config, args: argparse.Namespace, stre
                         events=event_history,
                         show_events=dashboard.show_events,
                         history_length=dashboard.history_length,
+                        accounts=accounts,
                     )
                     + "\n"
                 )

@@ -129,6 +129,7 @@ def render_status(
     events: Sequence[str] = (),
     show_events: bool = True,
     history_length: int = 5,
+    accounts: dict[str, str] | None = None,
 ) -> str:
     """Render the running watcher's status table."""
     listed = list(sessions)
@@ -144,11 +145,23 @@ def render_status(
             "t theme  h help  q quit]"
         ),
         (f"  mode={config.mode.value}   watching {len(listed)} session(s)   theme={theme}"),
-        "",
-        _paint("  SESSIONS", "structure", color=color, theme=theme),
-        _paint(_row(_HEADERS), "dim", color=color, theme=theme),
-        _paint("─" * min(width, 100), "structure", color=color, theme=theme),
     ]
+    if accounts:
+        lines.append(
+            "  accounts="
+            + "   ".join(
+                f"{provider.title()}: {accounts.get(provider, 'unavailable')}"
+                for provider in ("codex", "claude")
+            )
+        )
+    lines.extend(
+        (
+            "",
+            _paint("  SESSIONS", "structure", color=color, theme=theme),
+            _paint(_row(_HEADERS), "dim", color=color, theme=theme),
+            _paint("─" * min(width, 100), "structure", color=color, theme=theme),
+        )
+    )
     for index, session in enumerate(listed, start=1):
         row = _row(
             (

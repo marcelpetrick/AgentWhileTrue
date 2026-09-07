@@ -7,6 +7,20 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.29.0] - 2026-09-07
+
+### Added
+
+- Interactive dashboards show the authenticated Codex and Claude account email
+  when provider-owned local identity data makes it available.
+
+### Safety
+
+- Account identity is read once for interactive presentation only. Emails are
+  never logged, persisted, or rendered by non-interactive/service dashboards;
+  malformed, unavailable, or insecurely permissioned identity data is shown as
+  unavailable.
+
 ## [0.28.1] - 2026-09-07
 
 ### Fixed

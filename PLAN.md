@@ -48,6 +48,9 @@ without reconstructing history.
   with an existing controller.
 - [x] v0.28.1: make a clean signal-driven user-service restart successful in
   systemd as well as in the CLI.
+- [x] v0.29.0: identify provider accounts in interactive dashboards without
+  logging or persisting email addresses; document why expanded shell aliases
+  cannot be reconstructed reliably.
 - [x] Re-run the machine acceptance checks: `doctor` reports `Konsole input OK`
   and `Auto mode OK`; live discovery and both provider quota sources work.
 - [ ] Observe one real eligible quota reset, verify exactly one continuation,
