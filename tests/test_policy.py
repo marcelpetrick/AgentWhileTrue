@@ -145,7 +145,7 @@ def test_codex_resume_needs_its_own_opt_in() -> None:
     allowed = evaluate(replace(request, config=opted_in))
     assert allowed.allowed
     assert allowed.action is not None
-    assert allowed.action.keystrokes() == "continue\r"
+    assert allowed.action.keystrokes() == "\x1b[200~continue\x1b[201~\r"
 
 
 def test_codex_paid_links_are_passive_only_on_exact_usage_limit_banner() -> None:
@@ -156,7 +156,7 @@ def test_codex_paid_links_are_passive_only_on_exact_usage_limit_banner() -> None
 
     assert allowed.allowed
     assert allowed.action is not None
-    assert allowed.action.keystrokes() == "continue\r"
+    assert allowed.action.keystrokes() == "\x1b[200~continue\x1b[201~\r"
 
     stale = replace(QUOTA_AVAILABLE, provider="codex", observed_at=NOW - timedelta(hours=3))
     refused = evaluate(_codex_request(recognition=recognition, quota=stale))

@@ -522,11 +522,16 @@ The action depends on the exact provider prompt.
 Possible actions:
 
 ```text
-"continue" + Enter
+bracketed paste of "continue" + Enter
 Enter
 "1" + Enter
 specific arrow-key/menu sequence
 ```
+
+Codex's unbracketed-paste detector converts Enter into a newline for 120 ms
+after a rapid character burst. Text actions must therefore use explicit
+bracketed-paste markers before Enter; a raw `"continue\r"` stream can leave an
+unsubmitted multiline draft.
 
 The implementation must never assume that all prompts accept the literal word `continue`.
 

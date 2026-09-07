@@ -29,6 +29,15 @@ from agent_watch.states import SessionState
 #: cheap half of the defence against acting on an old banner (DANGER 3).
 DEFAULT_LIVE_LINES = 30
 
+# Codex detects very fast character streams as unbracketed paste bursts. An
+# Enter arriving in the following 120 ms is deliberately inserted as a newline
+# instead of submitting the composer. Marking typed continuation text as an
+# explicit bracketed paste makes Codex clear that suppression window before it
+# receives the final Enter, while keeping the whole action in one revalidated
+# terminal write.
+BRACKETED_PASTE_START = "\x1b[200~"
+BRACKETED_PASTE_END = "\x1b[201~"
+
 
 class PromptKind(enum.StrEnum):
     """What a matched pattern means."""
@@ -78,7 +87,7 @@ class ResumeAction:
             return "\r"
         if self.kind is ActionKind.ARROW_DOWN_THEN_ENTER:
             return "\x1b[B\r"
-        return f"{self.text}\r"
+        return f"{BRACKETED_PASTE_START}{self.text}{BRACKETED_PASTE_END}\r"
 
 
 @dataclass(frozen=True, slots=True)

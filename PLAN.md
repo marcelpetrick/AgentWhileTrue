@@ -68,6 +68,8 @@ without reconstructing history.
   session enumeration order cannot preserve a stale Codex schedule.
 - [x] v0.30.7: constrain Codex recognition to the immediate composer so a
   completed turn below an old banner verifies instead of retrying it.
+- [x] v0.30.8: send Codex continuation as a bracketed paste plus Enter so its
+  unbracketed-paste detector cannot convert submission into a newline.
 - [x] Re-run the machine acceptance checks: `doctor` reports `Konsole input OK`
   and `Auto mode OK`; live discovery and both provider quota sources work.
 - [ ] Observe one real eligible quota reset, verify exactly one continuation,

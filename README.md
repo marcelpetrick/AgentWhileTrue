@@ -52,7 +52,7 @@ Install the current release from GitHub with `pipx` so the CLI is isolated while
 remaining available at `~/.local/bin/agent-while-true`:
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.30.7'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.30.8'
 agent-while-true --version
 agent-while-true doctor
 ```
@@ -178,6 +178,12 @@ Agent While True may type its configured continuation into that composer only
 after the exact tested limit/reset message and fresh provider availability both
 agree. It never follows or selects a paid link, and any additional paid,
 reset-credit, or model-changing prompt still vetoes the action.
+
+Codex treats a rapid text-and-Enter stream as a paste and turns that Enter into
+a newline. Agent While True therefore wraps its continuation in the terminal's
+bracketed-paste markers and follows it with Enter in the same revalidated D-Bus
+write. This preserves a genuine submit event instead of leaving `continue` in
+the composer.
 
 Create and inspect the default configuration with:
 

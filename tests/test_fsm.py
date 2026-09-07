@@ -270,7 +270,7 @@ def test_codex_is_resumed_once_the_user_opts_in(tmp_path: Path) -> None:
     )
     kit.supervisor.select(ref, info.identity, "codex", "codex")
     kit.supervisor.tick()
-    assert kit.sent == [("/Sessions/7", "continue\r")]
+    assert kit.sent == [("/Sessions/7", "\x1b[200~continue\x1b[201~\r")]
 
 
 def test_tick_warms_same_account_quota_before_the_first_decision(tmp_path: Path) -> None:
@@ -317,7 +317,7 @@ def test_tick_warms_same_account_quota_before_the_first_decision(tmp_path: Path)
     decisions = kit.supervisor.tick()
 
     assert decisions[0].allowed
-    assert kit.sent == [("/Sessions/7", "continue\r")]
+    assert kit.sent == [("/Sessions/7", "\x1b[200~continue\x1b[201~\r")]
 
 
 def test_prune_removes_a_selection_whose_tab_is_gone(tmp_path: Path) -> None:

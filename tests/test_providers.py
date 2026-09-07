@@ -122,7 +122,7 @@ def test_codex_resume_action_is_typing_and_needs_an_opt_in() -> None:
     action = result.action
     assert action is not None
     assert action.kind is ActionKind.TEXT_THEN_ENTER
-    assert action.keystrokes() == "continue\r"
+    assert action.keystrokes() == "\x1b[200~continue\x1b[201~\r"
     assert action.requires_policy == "allow_codex_auto_resume"
 
 

@@ -7,6 +7,23 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.30.8] - 2026-09-07
+
+### Fixed
+
+- Codex continuation text is now sent as an explicit bracketed paste followed
+  by Enter. This prevents Codex's 120 ms unbracketed-paste detector from
+  swallowing the submit as a composer newline when D-Bus delivers the text as
+  a rapid key stream.
+
+### Validation
+
+- Recovered the exact pending `myLastFmPlayer` Codex session by sending a bare
+  Enter only after service/session/PID, process identity, TTY, classification,
+  policy, same-account quota, and continuation-only draft revalidation.
+- Proved the new sequence against Codex CLI 0.153.4 in a disposable live
+  session; the bracketed continuation and Enter submitted as one turn.
+
 ## [0.30.7] - 2026-09-07
 
 ### Fixed
