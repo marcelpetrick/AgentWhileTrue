@@ -20,8 +20,12 @@ them because they require a real Konsole session and provider reset.
 - The 2026-09-07 Codex reset did not continue: its zone-less clock was treated
   as UTC, passive purchase links vetoed the separate composer, and its idle
   rollout stayed stale despite fresh same-account quota in another session.
-  Versions 0.30.1 through 0.30.3 add regressions and fixes; live continuation
-  remains unchecked until the next genuine eligible reset.
+  Versions 0.30.1 through 0.30.7 add regressions and fixes. The corrected
+  service sent a provider-confirmed continuation at 17:03; Codex continued and
+  the session became active, but version 0.30.6 still misread the historical
+  banner and recorded bounded failed retries. Version 0.30.7 fixes that final
+  verification gap. A clean `SENT -> VERIFIED` live lifecycle remains unchecked
+  until the next genuine eligible reset.
 
 ## 1. Restart Konsole safely
 
