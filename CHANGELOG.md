@@ -7,6 +7,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.30.6] - 2026-09-07
+
+### Fixed
+
+- Each supervisor tick now warms quota for every selected session before making
+  its first decision. A blocked Codex tab enumerated before a fresh same-account
+  tab can therefore resume on the initial post-start scan instead of scheduling
+  itself from its stale rollout.
+
 ## [0.30.5] - 2026-09-07
 
 ### Fixed

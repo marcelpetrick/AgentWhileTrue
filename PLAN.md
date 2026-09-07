@@ -64,6 +64,8 @@ without reconstructing history.
   diagnostic-command smoke tests.
 - [x] v0.30.5: make one-shot quota diagnostics settle account-bound observations
   before rendering every session.
+- [x] v0.30.6: warm all selected quota sources before each decision pass so
+  session enumeration order cannot preserve a stale Codex schedule.
 - [x] Re-run the machine acceptance checks: `doctor` reports `Konsole input OK`
   and `Auto mode OK`; live discovery and both provider quota sources work.
 - [ ] Observe one real eligible quota reset, verify exactly one continuation,

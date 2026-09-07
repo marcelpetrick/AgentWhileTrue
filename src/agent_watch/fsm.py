@@ -262,7 +262,21 @@ class Supervisor:
         now = self.now_fn()
         if self._detect_time_jump(now):
             self._invalidate_schedules(now)
+        self._warm_quota_sources()
         return [self._advance(session, now) for session in list(self.sessions.values())]
+
+    def _warm_quota_sources(self) -> None:
+        """Observe every selected account before any session decision is made."""
+        for session in self.sessions.values():
+            source = self.quota_sources.get(session.provider_name)
+            if source is None:
+                continue
+            try:
+                pid = self.terminal.foreground_pid(session.ref)
+            except TerminalError:
+                continue
+            if pid > 0:
+                source.snapshot(pid=pid)
 
     def _detect_time_jump(self, now: datetime) -> bool:
         monotonic = self.monotonic_fn()

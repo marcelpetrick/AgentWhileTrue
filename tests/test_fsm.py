@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
 
 from agent_watch.config import Config, Mode, Policy
-from agent_watch.quota import Availability
+from agent_watch.quota import Availability, QuotaSnapshot
 from agent_watch.states import ActionState, SessionState
 from tests import harness as harness_module
 from tests import screens
@@ -269,6 +270,53 @@ def test_codex_is_resumed_once_the_user_opts_in(tmp_path: Path) -> None:
     )
     kit.supervisor.select(ref, info.identity, "codex", "codex")
     kit.supervisor.tick()
+    assert kit.sent == [("/Sessions/7", "continue\r")]
+
+
+def test_tick_warms_same_account_quota_before_the_first_decision(tmp_path: Path) -> None:
+    config = Config(mode=Mode.AUTO, policy=Policy(allow_codex_auto_resume=True))
+    kit = harness_module.build(tmp_path, config=config)
+    blocked_pid, fresh_pid = 30000, 30001
+    blocked_info = kit.inspector.add_codex(blocked_pid)
+    fresh_info = kit.inspector.add_codex(fresh_pid, start_time=333, tty="pts/6")
+    blocked_ref = kit.terminal.add(
+        "/Sessions/7",
+        shell_pid=300,
+        foreground_pid=blocked_pid,
+        screen=list(screens.CODEX_USAGE_LIMIT_WITH_PURCHASE_LINKS),
+    )
+    fresh_ref = kit.terminal.add(
+        "/Sessions/8",
+        shell_pid=301,
+        foreground_pid=fresh_pid,
+        screen=list(screens.CODEX_ACTIVE),
+    )
+
+    class SameAccountQuota:
+        def __init__(self) -> None:
+            self.freshest: QuotaSnapshot | None = None
+
+        def snapshot(self, *, pid=None):
+            observed_at = kit.clock.wall
+            if pid == blocked_pid:
+                observed_at -= timedelta(hours=1)
+            current = QuotaSnapshot(
+                provider="codex",
+                availability=Availability.AVAILABLE,
+                source="same-account",
+                observed_at=observed_at,
+            )
+            if self.freshest is None or observed_at > self.freshest.observed_at:
+                self.freshest = current
+            return self.freshest
+
+    kit.supervisor.quota_sources["codex"] = SameAccountQuota()
+    kit.supervisor.select(blocked_ref, blocked_info.identity, "codex", "blocked")
+    kit.supervisor.select(fresh_ref, fresh_info.identity, "codex", "fresh")
+
+    decisions = kit.supervisor.tick()
+
+    assert decisions[0].allowed
     assert kit.sent == [("/Sessions/7", "continue\r")]
 
 
