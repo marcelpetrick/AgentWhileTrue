@@ -59,8 +59,20 @@ _AMBER = {
 _PALETTES = {"dark": _DARK, "vivid": _VIVID, "cga": _CGA, "amber": _AMBER}
 _RESET = "\x1b[0m"
 
-_HEADERS = ("ID", "TYPE", "STATE", "PROMPT", "QUOTA", "Q.RESET", "PID", "SESSION")
-_WIDTHS = (4, 8, 20, 8, 10, 8, 8, 0)
+_HEADERS = (
+    "ID",
+    "TYPE",
+    "ACCOUNT",
+    "STATE",
+    "PROMPT",
+    "5H USED/LEFT",
+    "WEEK USED/LEFT",
+    "QUOTA",
+    "Q.RESET",
+    "PID",
+    "SESSION",
+)
+_WIDTHS = (4, 8, 34, 20, 8, 15, 15, 10, 8, 8, 0)
 
 
 def format_reset(reset_at: datetime | None, now: datetime) -> str:
@@ -114,6 +126,17 @@ def quota_state(snapshot: QuotaSnapshot, now: datetime) -> str:
     return snapshot.availability.value
 
 
+def quota_meter(snapshot: QuotaSnapshot, scope: str) -> str:
+    """Render a compact btop-style percentage meter with used and left values."""
+    window = next((item for item in snapshot.windows if item.scope == scope), None)
+    if window is None:
+        return "-"
+    used = max(0, min(100, round(window.used_percent)))
+    left = 100 - used
+    filled = min(5, round(used / 20))
+    return f"[{'█' * filled}{'░' * (5 - filled)}] {used:>3}/{left:<3}"
+
+
 def render_quota(snapshot: QuotaSnapshot, *, now: datetime, identity: str = "") -> str:
     """Render a provider snapshot for the ``quota`` query command."""
     lines = [
@@ -148,7 +171,6 @@ def render_status(
     events: Sequence[str] = (),
     show_events: bool = True,
     history_length: int = 5,
-    accounts: dict[str, str] | None = None,
 ) -> str:
     """Render the running watcher's status table."""
     listed = list(sessions)
@@ -165,14 +187,6 @@ def render_status(
         ),
         (f"  mode={config.mode.value}   watching {len(listed)} session(s)   theme={theme}"),
     ]
-    if accounts:
-        lines.append(
-            "  accounts="
-            + "   ".join(
-                f"{provider.title()}: {accounts.get(provider, 'unavailable')}"
-                for provider in ("codex", "claude")
-            )
-        )
     lines.extend(
         (
             "",
@@ -186,8 +200,11 @@ def render_status(
             (
                 str(index),
                 session.provider_name.title(),
+                session.account_label,
                 session.state.value,
                 format_reset(session.reset_at, now),
+                quota_meter(session.quota, "session"),
+                quota_meter(session.quota, "weekly"),
                 quota_state(session.quota, now),
                 format_reset(session.quota.next_reset, now),
                 str(session.identity.pid),

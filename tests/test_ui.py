@@ -34,7 +34,6 @@ def test_status_lists_each_session() -> None:
         [_session()],
         now=NOW,
         config=Config(mode=Mode.AUTO),
-        accounts={"codex": "codex@example.com", "claude": "claude@example.com"},
     )
     assert "WAITING_FOR_RESET" in text
     assert "15102" in text
@@ -43,8 +42,7 @@ def test_status_lists_each_session() -> None:
     assert "QUOTA" in text
     assert "Agent While True" in text
     assert "h help" in text
-    assert "Codex: codex@example.com" in text
-    assert "Claude: claude@example.com" in text
+    assert "ACCOUNT" in text
 
 
 def test_status_handles_nothing_selected() -> None:
@@ -92,6 +90,31 @@ def test_quota_view_shows_usage_reset_and_errors() -> None:
     assert "100.0%" in text
     assert (NOW + timedelta(hours=1)).astimezone().strftime("%H:%M") in text
     assert "limit-reached" in text
+
+
+def test_dashboard_shows_per_session_account_and_usage_meters() -> None:
+    quota = QuotaSnapshot(
+        provider="codex",
+        availability=Availability.AVAILABLE,
+        source="rollout",
+        observed_at=NOW,
+        windows=(
+            QuotaWindow("session", 84.0, NOW + timedelta(hours=1)),
+            QuotaWindow("weekly", 77.0, NOW + timedelta(days=3)),
+        ),
+    )
+    session = _session(
+        provider_name="codex",
+        account_label="codex-dmo · work@example.com",
+        quota=quota,
+    )
+
+    text = render_status([session], now=NOW, config=Config())
+
+    assert "codex-dmo · work@example.com" in text
+    assert "84/16" in text
+    assert "77/23" in text
+    assert "[████░]" in text
 
 
 def test_colored_dashboard_and_help_are_optional() -> None:

@@ -16,11 +16,26 @@ import os
 import re
 import shutil
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 
 _EMAIL = re.compile(r"[^\s@]+@[^\s@]+\.[^\s@]+")
 _MAX_AUTH_BYTES = 1024 * 1024
 _AUTH_TIMEOUT_SECONDS = 5.0
+_PROFILE = re.compile(r"[A-Za-z0-9._-]{1,64}")
+
+
+@dataclass(frozen=True, slots=True)
+class SessionAccount:
+    """Display-only account identity for one live provider process."""
+
+    profile: str
+    email: str
+
+    def label(self) -> str:
+        if self.email == "unavailable":
+            return self.profile
+        return f"{self.profile} · {self.email}"
 
 
 def _valid_email(value: object) -> str | None:
@@ -83,6 +98,47 @@ def codex_account_key(*, auth_file: Path) -> str | None:
     if not isinstance(account_id, str) or not account_id.strip():
         return None
     return hashlib.sha256(f"codex-account\0{account_id}".encode()).hexdigest()
+
+
+def _process_environment_value(pid: int, key: str) -> str | None:
+    """Read one named value for display discovery without retaining the rest."""
+    try:
+        raw = (Path("/proc") / str(pid) / "environ").read_bytes()
+    except OSError:
+        return None
+    prefix = f"{key}=".encode()
+    for entry in raw.split(b"\0"):
+        if entry.startswith(prefix):
+            return entry[len(prefix) :].decode(errors="replace")
+    return None
+
+
+def codex_session_account(pid: int) -> SessionAccount:
+    """Resolve the Codex home, profile label, and email for one process.
+
+    Zsh expands functions and aliases before spawning Codex, so their names are
+    unavailable afterward. A profile-selecting ``CODEX_HOME`` does survive and
+    is the reliable distinction between the default and ``codex-dmo`` logins.
+    """
+    configured = _process_environment_value(pid, "CODEX_HOME")
+    home = Path(configured).expanduser() if configured else Path.home() / ".codex"
+    name = home.name
+    if name == ".codex":
+        profile = "codex"
+    elif name.startswith(".codex-") and _PROFILE.fullmatch(name):
+        profile = f"codex-{name.removeprefix('.codex-')}"
+    else:
+        profile = "codex-profile"
+    return SessionAccount(profile, codex_email(auth_file=home / "auth.json") or "unavailable")
+
+
+def session_account(provider: str, pid: int) -> SessionAccount:
+    """Return a per-process display identity without logging or persistence."""
+    if provider == "codex":
+        return codex_session_account(pid)
+    if provider == "claude":
+        return SessionAccount("claude", claude_email() or "unavailable")
+    return SessionAccount(provider, "unavailable")
 
 
 def claude_email() -> str | None:

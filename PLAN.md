@@ -70,6 +70,8 @@ without reconstructing history.
   completed turn below an old banner verifies instead of retrying it.
 - [x] v0.30.8: send Codex continuation as a bracketed paste plus Enter so its
   unbracketed-paste detector cannot convert submission into a newline.
+- [x] v0.31.0: show account identity per terminal from its exact Codex profile,
+  plus five-hour and weekly used/left quota meters.
 - [x] Re-run the machine acceptance checks: `doctor` reports `Konsole input OK`
   and `Auto mode OK`; live discovery and both provider quota sources work.
 - [ ] Observe one real eligible quota reset, verify exactly one continuation,

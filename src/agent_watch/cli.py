@@ -34,7 +34,7 @@ from agent_watch.config import (
     load,
 )
 from agent_watch.fsm import Observation, Supervisor, SystemInspector
-from agent_watch.identity import provider_accounts
+from agent_watch.identity import session_account
 from agent_watch.lock import LockHeldError, SingleInstanceLock
 from agent_watch.logging_setup import read_history, setup
 from agent_watch.picker import Candidate, NumberedPicker, discover, pick_with_fzf
@@ -226,6 +226,9 @@ def command_run(
     if chosen is None:
         stream.write("Nothing selected.\n")
         return EXIT_OK
+    display_accounts = bool(
+        not args.once and hasattr(stream, "isatty") and stream.isatty() and sys.stdin.isatty()
+    )
     for candidate in chosen:
         if candidate.info is None or candidate.provider is None:  # pragma: no cover - guarded
             continue
@@ -234,6 +237,11 @@ def command_run(
             candidate.info.identity,
             candidate.provider,
             candidate.session.title,
+            (
+                session_account(candidate.provider, candidate.info.pid).label()
+                if display_accounts
+                else "unavailable"
+            ),
         )
     if not supervisor.sessions and not args.all:
         stream.write("Nothing selected.\n")
@@ -270,7 +278,6 @@ def _loop(supervisor: Supervisor, config: Config, args: argparse.Namespace, stre
     interactive = bool(
         not args.once and hasattr(stream, "isatty") and stream.isatty() and sys.stdin.isatty()
     )
-    accounts = provider_accounts() if interactive else {}
     dashboard = DashboardState.from_interval(config.scan_interval)
     keys = TerminalKeys(interactive)
     color = interactive and not args.no_color and "NO_COLOR" not in os.environ
@@ -283,7 +290,7 @@ def _loop(supervisor: Supervisor, config: Config, args: argparse.Namespace, stre
             if not dashboard.paused:
                 supervisor.prune_and_rebind()
                 if args.all:
-                    _sync_all_sessions(supervisor)
+                    _sync_all_sessions(supervisor, show_accounts=interactive)
                 decisions = supervisor.tick()
                 last_event = _summarise(supervisor.sessions.values(), decisions) or last_event
                 event_history = read_history(
@@ -308,7 +315,6 @@ def _loop(supervisor: Supervisor, config: Config, args: argparse.Namespace, stre
                         events=event_history,
                         show_events=dashboard.show_events,
                         history_length=dashboard.history_length,
-                        accounts=accounts,
                     )
                     + "\n"
                 )
@@ -332,7 +338,7 @@ def _loop(supervisor: Supervisor, config: Config, args: argparse.Namespace, stre
             stream.flush()
 
 
-def _sync_all_sessions(supervisor: Supervisor) -> None:
+def _sync_all_sessions(supervisor: Supervisor, *, show_accounts: bool = False) -> None:
     """Select newly discovered agents when the user explicitly chose ``--all``.
 
     Replacing a changed process identity is limited to this explicit mode. An
@@ -350,6 +356,11 @@ def _sync_all_sessions(supervisor: Supervisor) -> None:
             candidate.info.identity,
             candidate.provider,
             candidate.session.title,
+            (
+                session_account(candidate.provider, candidate.info.pid).label()
+                if show_accounts
+                else "unavailable"
+            ),
         )
 
 

@@ -7,6 +7,21 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.31.0] - 2026-09-08
+
+### Added
+
+- Each dashboard row now shows the account tied to that exact process. Codex
+  profile homes distinguish the default login from launchers such as
+  `codex-dmo`, and the owner-private ID token supplies its display-only email.
+- Compact btop-style meters show both used and remaining percentages for the
+  five-hour and weekly quota windows.
+
+### Safety
+
+- Account emails and selected profile paths remain memory-only presentation
+  data and are never written to logs or persistent state.
+
 ## [0.30.8] - 2026-09-07
 
 ### Fixed

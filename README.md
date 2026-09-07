@@ -23,14 +23,19 @@ terminal, process identity, prompt, quota source, and policy all agree.
 The main interface keeps independently recognized terminal state and provider
 quota visible for every selected Codex and Claude session. Red or unknown data
 does not authorize terminal input; the supervisor continues to fail closed.
-Interactive dashboards also identify the authenticated account email for each
-provider. This display-only identity is read once at startup and is never
-written to Agent While True's log, state, or non-interactive service output.
+Interactive dashboards identify the authenticated account for each individual
+session. A Codex profile home such as `~/.codex-dmo` is rendered as
+`codex-dmo · business@example.com`, while the default is rendered as
+`codex · private@example.com`. This display-only identity is never written to
+Agent While True's log or persistent state.
 
-Shell aliases themselves cannot normally be recovered after Zsh expands them:
-the child process receives the expanded command, not the alias name. Konsole's
-session title and the positively classified executable remain the reliable
-launch labels shown by the dashboard.
+Shell aliases themselves cannot normally be recovered after Zsh expands them.
+However, an alias such as `codex-dmo` that selects a distinct `CODEX_HOME` leaves
+that profile identity on the child process, allowing the dashboard to infer the
+profile label and read its matching account email safely.
+
+Every session row also includes five-hour and weekly meters in `used/left`
+percent form. For example, `[████░] 84/16` means 84% used and 16% remaining.
 
 The primary command is `agent-while-true`. The shorter `agent-watch` command is
 kept as a compatible alias, so existing scripts and the examples below continue

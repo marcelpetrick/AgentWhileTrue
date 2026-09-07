@@ -75,3 +75,18 @@ def test_provider_accounts_marks_unknown_identity(monkeypatch) -> None:
         "codex": "unavailable",
         "claude": "claude@example.com",
     }
+
+
+def test_codex_session_account_distinguishes_profile_home(tmp_path: Path, monkeypatch) -> None:
+    profile = tmp_path / ".codex-dmo"
+    profile.mkdir()
+    auth = profile / "auth.json"
+    auth.write_text(json.dumps({"tokens": {"id_token": _jwt({"email": "work@example.com"})}}))
+    auth.chmod(0o600)
+    monkeypatch.setattr(identity, "_process_environment_value", lambda pid, key: str(profile))
+
+    account = identity.codex_session_account(123)
+
+    assert account.profile == "codex-dmo"
+    assert account.email == "work@example.com"
+    assert account.label() == "codex-dmo · work@example.com"

@@ -105,6 +105,7 @@ class SupervisedSession:
     identity: ProcessIdentity
     provider_name: str
     title: str = ""
+    account_label: str = "unavailable"
     state: SessionState = SessionState.DISCOVERED
     reset_at: datetime | None = None
     next_check_at: datetime | None = None
@@ -167,7 +168,14 @@ class Supervisor:
 
     # -- selection ---------------------------------------------------------
 
-    def select(self, ref: SessionRef, identity: ProcessIdentity, provider: str, title: str) -> None:
+    def select(
+        self,
+        ref: SessionRef,
+        identity: ProcessIdentity,
+        provider: str,
+        title: str,
+        account_label: str = "unavailable",
+    ) -> None:
         """Bind a user selection to a concrete identity.
 
         The binding is to the identity, never to the tab's numeric label, so a
@@ -175,7 +183,11 @@ class Supervisor:
         inherit the selection (vision DANGER 20).
         """
         self.sessions[ref.key()] = SupervisedSession(
-            ref=ref, identity=identity, provider_name=provider, title=title
+            ref=ref,
+            identity=identity,
+            provider_name=provider,
+            title=title,
+            account_label=account_label,
         )
         self.log.info(
             "session_selected",
