@@ -11,6 +11,9 @@ Type=simple
 ExecStart=%h/.local/bin/agent-while-true run --observe --all --no-fzf
 Restart=on-failure
 RestartSec=5s
+# The CLI returns 130 after handling SIGINT/SIGTERM and releasing its lock.
+# Treat that deliberate, clean shutdown as successful during stop/restart.
+SuccessExitStatus=130
 Environment=PYTHONUNBUFFERED=1
 # qdbus6 requires a UTF-8 process locale and otherwise emits a warning for
 # every D-Bus call, which can flood the user journal during frequent scans.

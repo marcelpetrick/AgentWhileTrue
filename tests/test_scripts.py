@@ -104,6 +104,11 @@ def test_user_service_forces_a_utf8_locale_for_qdbus() -> None:
     assert "Environment=LC_ALL=C.UTF-8" in unit
 
 
+def test_user_service_accepts_the_cli_clean_signal_exit() -> None:
+    unit = USER_SERVICE.read_text(encoding="utf-8")
+    assert "SuccessExitStatus=130" in unit
+
+
 def test_full_auto_launcher_help_is_safe_and_describes_the_gate() -> None:
     result = subprocess.run([str(FULL_AUTO), "--help"], text=True, capture_output=True, timeout=5)
     assert result.returncode == 0

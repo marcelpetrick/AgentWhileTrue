@@ -7,6 +7,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.28.1] - 2026-09-07
+
+### Fixed
+
+- The systemd user service now treats the CLI's deliberate signal-handling exit
+  code `130` as successful, so an ordinary stop or restart no longer records a
+  transient failed result after the lock is released cleanly.
+
 ## [0.28.0] - 2026-09-07
 
 ### Added
