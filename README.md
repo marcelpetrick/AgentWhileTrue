@@ -168,6 +168,13 @@ no equivalent affordance, so Codex auto-resume remains disabled unless
 paid credits, purchases, upgrades, and reset-credit redemption are never enabled
 by the supplied configuration.
 
+Current Codex versions may append Pro and credit-purchase links to the ordinary
+usage-limit message. Those links are passive text above a separate composer:
+Agent While True may type its configured continuation into that composer only
+after the exact tested limit/reset message and fresh provider availability both
+agree. It never follows or selects a paid link, and any additional paid,
+reset-credit, or model-changing prompt still vetoes the action.
+
 Create and inspect the default configuration with:
 
 ```bash

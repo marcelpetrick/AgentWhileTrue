@@ -165,6 +165,24 @@ def _check_no_veto(request: ResumeRequest) -> str | None:
         vetoes = tuple(
             veto for veto in vetoes if veto != "paid-action-required:claude/upgrade-plan-offer"
         )
+    if (
+        request.recognition.provider == "codex"
+        and action is not None
+        and action.kind is ActionKind.TEXT_THEN_ENTER
+        and {
+            "codex/limit-usage",
+            "codex/try-again-at",
+            "codex/purchase-offer",
+        }.issubset(request.recognition.matched_ids)
+    ):
+        # Current Codex appends upgrade and credit links to its ordinary usage
+        # limit banner. The proposed action types only into the composer; it
+        # cannot activate either paid path. Suppress only that advertisement's
+        # veto for this exact tested prompt. Out-of-credit, reset-credit,
+        # downgrade, and every other veto remain unconditional.
+        vetoes = tuple(
+            veto for veto in vetoes if veto != "paid-action-required:codex/purchase-offer"
+        )
     if vetoes:
         return vetoes[0]
     return None

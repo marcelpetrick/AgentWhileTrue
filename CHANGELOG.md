@@ -7,6 +7,20 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.30.2] - 2026-09-07
+
+### Fixed
+
+- Codex's tested usage-limit banner may advertise Pro and paid credits beside
+  its free reset time without blocking safe composer continuation after fresh
+  provider quota confirmation. The exception applies only to that exact mixed
+  banner and cannot activate either paid link.
+
+### Safety
+
+- Out-of-credit, reset-credit, purchase-only, model-downgrade, unknown, and
+  stale-quota screens remain fail-closed.
+
 ## [0.30.1] - 2026-09-07
 
 ### Fixed

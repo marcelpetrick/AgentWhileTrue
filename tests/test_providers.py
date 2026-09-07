@@ -146,6 +146,19 @@ def test_codex_reset_credit_offer_is_vetoed() -> None:
     assert any(veto.startswith("paid-action-required") for veto in result.vetoes)
 
 
+def test_real_codex_mixed_limit_banner_is_recognised_without_losing_paid_evidence() -> None:
+    result = providers.CODEX.recognise(screens.CODEX_USAGE_LIMIT_WITH_PURCHASE_LINKS, now=NOW)
+
+    assert result.matched_ids == (
+        "codex/limit-usage",
+        "codex/try-again-at",
+        "codex/purchase-offer",
+    )
+    assert result.action is not None
+    assert result.action.kind is ActionKind.TEXT_THEN_ENTER
+    assert result.vetoes == ("paid-action-required:codex/purchase-offer",)
+
+
 def test_codex_active_screen_proposes_nothing() -> None:
     result = providers.CODEX.recognise(screens.CODEX_ACTIVE, now=NOW)
     assert result.state is SessionState.ACTIVE

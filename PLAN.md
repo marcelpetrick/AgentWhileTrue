@@ -55,6 +55,8 @@ without reconstructing history.
   magenta, white and black plus an amber terminal theme.
 - [x] v0.30.1: interpret zone-less provider clocks in the desktop timezone,
   rather than treating them as UTC and shifting their TUI display.
+- [x] v0.30.2: transcribe the real Codex 0.153.4 mixed limit/paid-links prompt
+  and allow only its separate composer continuation after fresh quota proof.
 - [x] Re-run the machine acceptance checks: `doctor` reports `Konsole input OK`
   and `Auto mode OK`; live discovery and both provider quota sources work.
 - [ ] Observe one real eligible quota reset, verify exactly one continuation,

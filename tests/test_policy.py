@@ -148,6 +148,33 @@ def test_codex_resume_needs_its_own_opt_in() -> None:
     assert allowed.action.keystrokes() == "continue\r"
 
 
+def test_codex_paid_links_are_passive_only_on_exact_usage_limit_banner() -> None:
+    recognition = providers.CODEX.recognise(screens.CODEX_USAGE_LIMIT_WITH_PURCHASE_LINKS, now=NOW)
+    allowed = evaluate(
+        _codex_request(recognition=recognition, quota=replace(QUOTA_AVAILABLE, provider="codex"))
+    )
+
+    assert allowed.allowed
+    assert allowed.action is not None
+    assert allowed.action.keystrokes() == "continue\r"
+
+    stale = replace(QUOTA_AVAILABLE, provider="codex", observed_at=NOW - timedelta(hours=3))
+    refused = evaluate(_codex_request(recognition=recognition, quota=stale))
+    assert not refused.allowed
+    assert refused.reason == "usage-not-confirmed-available"
+
+
+def test_codex_other_paid_vetoes_remain_unconditional_with_a_limit_banner() -> None:
+    screen = [*screens.CODEX_USAGE_LIMIT_WITH_PURCHASE_LINKS, "You're out of credits."]
+    recognition = providers.CODEX.recognise(screen, now=NOW)
+    decision = evaluate(
+        _codex_request(recognition=recognition, quota=replace(QUOTA_AVAILABLE, provider="codex"))
+    )
+
+    assert not decision.allowed
+    assert decision.reason == "paid-action-required:codex/out-of-credits"
+
+
 def test_disabling_resume_policy_refuses_everything() -> None:
     config = Config(mode=Mode.AUTO, policy=Policy(resume_after_reset=False))
     assert evaluate(make_request(config=config)).reason == "policy-disallows-resume"

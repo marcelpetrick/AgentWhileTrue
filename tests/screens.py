@@ -116,6 +116,16 @@ CODEX_RESET_CREDIT = [
     "› ",
 ]
 
+# Transcribed from media/agentWhileTrue_notWorking.png (Codex CLI 0.153.4).
+# The paid paths are passive links in the ordinary limit banner; the composer
+# is a separate control below them.
+CODEX_USAGE_LIMIT_WITH_PURCHASE_LINKS = [
+    "■ You've hit your usage limit. Upgrade to Pro (https://chatgpt.com/explore/pro), visit",
+    "  https://chatgpt.com/codex/settings/usage to purchase more credits or try again at 3:36 PM.",
+    "",
+    "› Ask Codex to do anything",
+]
+
 CODEX_ACTIVE = [
     "• Ran cargo test",
     "",
