@@ -52,7 +52,7 @@ Install the current release from GitHub with `pipx` so the CLI is isolated while
 remaining available at `~/.local/bin/agent-while-true`:
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.29.0'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.30.0'
 agent-while-true --version
 agent-while-true doctor
 ```
@@ -142,7 +142,7 @@ produces plain output.
 | `-` / `+` | Refresh faster / slower across `0.25 0.5 1 2 3 5 10 30 60` seconds |
 | `p` | Pause/resume; pause performs no terminal or quota polling |
 | `r` | Rediscover Konsole sessions immediately |
-| `t` | Cycle dark, vivid, and plain themes |
+| `t` | Cycle dark, vivid, CGA, amber, and plain themes |
 | `e` | Show or hide persisted action/state history |
 | `l` | Cycle the history length through 5, 10, 20, and 50 rows |
 | `h` or `?` | Toggle the in-dashboard help |

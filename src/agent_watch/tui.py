@@ -10,7 +10,7 @@ import tty
 from dataclasses import dataclass
 
 INTERVALS = (0.25, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0, 30.0, 60.0)
-THEMES = ("dark", "vivid", "plain")
+THEMES = ("dark", "vivid", "cga", "amber", "plain")
 HISTORY_LENGTHS = (5, 10, 20, 50)
 
 

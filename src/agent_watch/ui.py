@@ -38,6 +38,25 @@ _VIVID = {
     "codex": "\x1b[38;5;75m",
     "dim": "\x1b[38;5;244m",
 }
+_CGA = {
+    "structure": "\x1b[96m",
+    "healthy": "\x1b[97m",
+    "warning": "\x1b[36m",
+    "danger": "\x1b[95m",
+    "claude": "\x1b[35m",
+    "codex": "\x1b[96m",
+    "dim": "\x1b[37m",
+}
+_AMBER = {
+    "structure": "\x1b[38;5;214m",
+    "healthy": "\x1b[38;5;220m",
+    "warning": "\x1b[38;5;208m",
+    "danger": "\x1b[38;5;196m",
+    "claude": "\x1b[38;5;215m",
+    "codex": "\x1b[38;5;221m",
+    "dim": "\x1b[38;5;130m",
+}
+_PALETTES = {"dark": _DARK, "vivid": _VIVID, "cga": _CGA, "amber": _AMBER}
 _RESET = "\x1b[0m"
 
 _HEADERS = ("ID", "TYPE", "STATE", "PROMPT", "QUOTA", "Q.RESET", "PID", "SESSION")
@@ -70,7 +89,7 @@ def _row(values: Sequence[str]) -> str:
 def _paint(text: str, role: str, *, color: bool, theme: str) -> str:
     if not color or theme == "plain":
         return text
-    palette = _VIVID if theme == "vivid" else _DARK
+    palette = _PALETTES.get(theme, _DARK)
     return f"{palette[role]}{text}{_RESET}"
 
 
@@ -197,7 +216,7 @@ def render_status(
                 "    - / +   refresh faster / slower (0.25, 0.5, 1, 2, 3, 5, 10, 30, 60s)",
                 "    p       pause/resume; paused means no terminal or quota polling",
                 "    r       rediscover Konsole sessions now",
-                "    t       cycle dark, vivid and plain themes",
+                "    t       cycle dark, vivid, CGA, amber and plain themes",
                 "    e       show/hide persisted action history",
                 "    l       cycle history length: 5, 10, 20, 50",
                 "    h / ?   close this help",

@@ -1,6 +1,6 @@
 """Tests for interactive dashboard state without touching a real terminal."""
 
-from agent_watch.tui import INTERVALS, DashboardState
+from agent_watch.tui import INTERVALS, THEMES, DashboardState
 
 
 def test_refresh_keys_follow_btop_interval_direction() -> None:
@@ -35,3 +35,14 @@ def test_refresh_ladder_clamps_at_both_ends() -> None:
     state.interval_index = len(INTERVALS) - 1
     state.handle("+")
     assert state.interval == INTERVALS[-1]
+
+
+def test_dashboard_cycles_all_five_themes() -> None:
+    state = DashboardState.from_interval(2)
+    visited = [state.theme]
+    for _ in range(len(THEMES) - 1):
+        state.handle("t")
+        visited.append(state.theme)
+    assert visited == ["dark", "vivid", "cga", "amber", "plain"]
+    state.handle("t")
+    assert state.theme == "dark"

@@ -7,6 +7,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.30.0] - 2026-09-07
+
+### Added
+
+- The dashboard now offers five themes: dark, vivid, CGA, amber, and plain.
+- The CGA palette uses the classic high-contrast cyan, magenta, white, and black
+  terminal aesthetic; amber provides a warm monochrome-inspired alternative.
+
 ## [0.29.0] - 2026-09-07
 
 ### Added

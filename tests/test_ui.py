@@ -104,6 +104,14 @@ def test_colored_dashboard_and_help_are_optional() -> None:
     assert "\x1b[" in colored
 
 
+def test_cga_and_amber_themes_use_distinct_palettes() -> None:
+    cga = render_status([_session()], now=NOW, config=Config(), color=True, theme="cga")
+    amber = render_status([_session()], now=NOW, config=Config(), color=True, theme="amber")
+    assert "\x1b[96m" in cga
+    assert "\x1b[38;5;214m" in amber
+    assert cga != amber
+
+
 def test_codex_node_launcher_is_presented_as_codex() -> None:
     session = _session(provider_name="codex", title="AgentWhileTrue : node")
     text = render_status([session], now=NOW, config=Config())
