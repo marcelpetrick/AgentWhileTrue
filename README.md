@@ -3,12 +3,26 @@
 [![Quality](https://github.com/marcelpetrick/AgentWhileTrue/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/marcelpetrick/AgentWhileTrue/actions/workflows/quality.yml)
 [![Release](https://github.com/marcelpetrick/AgentWhileTrue/actions/workflows/release.yml/badge.svg)](https://github.com/marcelpetrick/AgentWhileTrue/actions/workflows/release.yml)
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB.svg)](https://www.python.org/)
-[![License: GPL v3](https://img.shields.io/badge/license-GPLv3-blue.svg)](LICENSE)
+[![License: GPL v3 or later](https://img.shields.io/badge/license-GPLv3%2B-blue.svg)](LICENSE)
 
 **Agent While True** is an agent budget watch and babysitter for Codex CLI and
 Claude Code sessions in KDE Konsole. It reports provider quota health and can
 resume a blocked session after usage becomes available again—only when the
 terminal, process identity, prompt, quota source, and policy all agree.
+
+**Author: Marcel Petrick <mail@marcelpetrick.it>**
+
+**License: GPLv3 or later. See `LICENSE`.**
+
+**Note: project is generated with AI.**
+
+## Current state of the solution
+
+![Agent While True auto-mode TUI showing four blocked sessions](media/agentWhileTrue.png)
+
+The main interface keeps independently recognized terminal state and provider
+quota visible for every selected Codex and Claude session. Red or unknown data
+does not authorize terminal input; the supervisor continues to fail closed.
 
 The primary command is `agent-while-true`. The shorter `agent-watch` command is
 kept as a compatible alias, so existing scripts and the examples below continue
@@ -43,6 +57,22 @@ cd AgentWhileTrue
 python3 -m pip install --user -e '.[dev]'
 ./localPipeline.sh
 ```
+
+For an end-to-end setup from a checkout, including all checks and the main
+interface, run:
+
+```bash
+./fullAutoMode.sh
+```
+
+The launcher runs the complete release gate, installs that verified wheel with
+`pipx`, creates the default configuration if needed, requires `doctor` to pass,
+shows live status and quota, and then opens the auto-mode dashboard for all
+eligible sessions. Invoking it explicitly opts Codex into composer continuation;
+paid, upgrade, reset-credit, and model-downgrade actions remain forbidden. If
+another input-capable watcher already owns the lock, it stays in control and the
+launcher opens an observe-only dashboard. Use `./fullAutoMode.sh --noRun` to do
+the setup and checks without starting the interface.
 
 ## See what is running
 
@@ -303,6 +333,6 @@ versioning while major version zero denotes an alpha interface.
 ## License
 
 Agent While True is licensed under the
-[GNU General Public License v3.0 only](LICENSE). The package metadata declares
-the `GPL-3.0-only` SPDX expression and includes the license in built
+[GNU General Public License v3.0 or later](LICENSE). The package metadata declares
+the `GPL-3.0-or-later` SPDX expression and includes the license in built
 distributions.

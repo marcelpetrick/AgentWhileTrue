@@ -7,9 +7,8 @@ them because they require a real Konsole session and provider reset.
 
 ## Execution status — 2026-09-07
 
-- New Konsole processes created after the setting change permit empty scoped
-  D-Bus input. Six older processes still block it and have been preserved
-  because they contain active work.
+- All six currently visible Konsole processes permit the empty scoped D-Bus
+  probe. `doctor` reports both `Konsole input OK` and `Auto mode OK`.
 - Live `status` and `quota` checks identify Codex through its Node launcher and
   read both `codex-rollout` and `claude-statusline` data.
 - Every dashboard control passed in a live read-only pseudo-terminal.
@@ -17,14 +16,14 @@ them because they require a real Konsole session and provider reset.
   `agent-watch.service`. Its local override runs `--auto --all --no-fzf` with
   `AGENT_WATCH_ALLOW_CODEX_AUTO_RESUME=true`.
 - The owner-only event log passed a scan for known prompt and credential text.
-- Still required: retire the old Konsole processes safely, obtain a completely
-  green `doctor`, and observe one real eligible reset/continuation lifecycle.
+- Still required: observe one real eligible reset/continuation lifecycle.
 
 ## 1. Restart Konsole safely
 
-- [ ] Finish, save, or deliberately stop the work in every currently open
+- [x] Finish, save, or deliberately stop the work in every old input-disabled
   Konsole session.
-- [ ] Close every running Konsole window, then start Konsole again.
+- [x] Replace the old input-disabled Konsole processes with sessions that have
+  loaded the security-sensitive D-Bus setting.
 
 The required setting is already stored in `konsolerc`:
 
@@ -46,7 +45,7 @@ complete this checklist; restart only after their current work is safe.
   agent-while-true doctor
   ```
 
-- [ ] Require both of these results before enabling automation:
+- [x] Require both of these results before enabling automation:
 
   ```text
   Konsole input          OK    sendText permitted

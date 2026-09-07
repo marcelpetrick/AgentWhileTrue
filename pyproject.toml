@@ -7,7 +7,7 @@ name = "agent-while-true"
 description = "Agent budget watch and babysitter for Codex and Claude Code sessions in KDE Konsole."
 readme = "README.md"
 requires-python = ">=3.12"
-license = "GPL-3.0-only"
+license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 authors = [{ name = "Marcel Petrick", email = "mail@marcelpetrick.it" }]
 keywords = ["konsole", "kde", "claude-code", "codex", "rate-limit", "automation"]

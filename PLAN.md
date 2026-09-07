@@ -43,6 +43,27 @@ without reconstructing history.
 - [x] v0.27.4: preserve the project history in its own repository; adapt the
   README, GPLv3 licensing, package metadata, and root-level GitHub Actions; then
   publish the first standalone-repository release.
+- [ ] v0.28.0: add a fail-closed `fullAutoMode.sh` that verifies, installs,
+  diagnoses, inspects, and launches the main auto dashboard without competing
+  with an existing controller.
+- [x] Re-run the machine acceptance checks: `doctor` reports `Konsole input OK`
+  and `Auto mode OK`; live discovery and both provider quota sources work.
+- [ ] Observe one real eligible quota reset, verify exactly one continuation,
+  and confirm its persisted `PLANNED -> SENT -> VERIFIED|FAILED` lifecycle.
+
+## Next iterations
+
+1. Document the current TUI, full-auto workflow, live acceptance evidence, and
+   remaining genuine-reset gate.
+2. Implement and test `fullAutoMode.sh`; bump the feature version and changelog.
+3. Run the complete local pipeline and opt-in live Konsole validation, then
+   install and smoke-test the verified wheel through the launcher.
+4. Commit each logical change independently, push `master`, and require the
+   GitHub quality matrix to pass.
+5. Tag the fully verified version, push the annotated tag, and require the
+   release workflow and published artifacts to pass.
+6. Keep the project-level acceptance open until one genuine eligible reset is
+   observed exactly once and its privacy-preserving action lifecycle is verified.
 
 ## 0. Evidence gathered before planning
 

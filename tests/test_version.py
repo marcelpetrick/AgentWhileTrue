@@ -35,10 +35,10 @@ def test_pyproject_takes_version_from_the_package() -> None:
     assert 'version = { attr = "agent_watch.version.__version__" }' in pyproject
 
 
-def test_distribution_declares_and_ships_gplv3_only() -> None:
+def test_distribution_declares_and_ships_gplv3_or_later() -> None:
     pyproject = (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     license_text = (PROJECT_ROOT / "LICENSE").read_text(encoding="utf-8")
-    assert 'license = "GPL-3.0-only"' in pyproject
+    assert 'license = "GPL-3.0-or-later"' in pyproject
     assert 'license-files = ["LICENSE"]' in pyproject
     assert "GNU GENERAL PUBLIC LICENSE" in license_text
     assert "Version 3, 29 June 2007" in license_text
