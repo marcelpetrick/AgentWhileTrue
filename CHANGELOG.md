@@ -7,6 +7,34 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.28.0] - 2026-09-07
+
+### Added
+
+- `fullAutoMode.sh` runs the complete release gate, installs the verified wheel
+  with pipx, initializes configuration, requires a passing environment doctor,
+  displays live session/quota checks, and then opens the all-session auto-mode
+  dashboard with the explicit Codex opt-in.
+- `--noRun` performs the same setup and checks without starting the dashboard.
+
+### Changed
+
+- Project metadata and documentation now consistently license Agent While True
+  under GPLv3 or later.
+
+### Safety
+
+- An existing input-capable watcher is never stopped or competed with; the
+  launcher opens a simultaneous observe-only dashboard when the single-instance
+  check reports an existing controller.
+- The launcher does not change Konsole, provider, account, subscription, paid,
+  reset-credit, or model-quality settings.
+
+### Fixed
+
+- The supplied user service now links to the standalone repository instead of
+  its former monorepo location.
+
 ## [0.27.4] - 2026-09-07
 
 ### Changed

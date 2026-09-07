@@ -43,7 +43,7 @@ without reconstructing history.
 - [x] v0.27.4: preserve the project history in its own repository; adapt the
   README, GPLv3 licensing, package metadata, and root-level GitHub Actions; then
   publish the first standalone-repository release.
-- [ ] v0.28.0: add a fail-closed `fullAutoMode.sh` that verifies, installs,
+- [x] v0.28.0: add a fail-closed `fullAutoMode.sh` that verifies, installs,
   diagnoses, inspects, and launches the main auto dashboard without competing
   with an existing controller.
 - [x] Re-run the machine acceptance checks: `doctor` reports `Konsole input OK`

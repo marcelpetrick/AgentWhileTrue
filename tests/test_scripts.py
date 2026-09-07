@@ -12,6 +12,7 @@ ROOT = Path(__file__).parents[1]
 PROXY = ROOT / "scripts" / "claude-statusline-proxy.sh"
 BRIDGE_INSTALLER = ROOT / "scripts" / "install-claude-bridge.sh"
 USER_SERVICE = ROOT / "systemd" / "agent-watch.service"
+FULL_AUTO = ROOT / "fullAutoMode.sh"
 
 
 def _run_proxy(
@@ -101,3 +102,27 @@ def test_bridge_installer_preserves_existing_statusline(tmp_path: Path) -> None:
 def test_user_service_forces_a_utf8_locale_for_qdbus() -> None:
     unit = USER_SERVICE.read_text(encoding="utf-8")
     assert "Environment=LC_ALL=C.UTF-8" in unit
+
+
+def test_full_auto_launcher_help_is_safe_and_describes_the_gate() -> None:
+    result = subprocess.run([str(FULL_AUTO), "--help"], text=True, capture_output=True, timeout=5)
+    assert result.returncode == 0
+    assert "complete local release pipeline" in result.stdout
+    assert "observe-only dashboard" in result.stdout
+    assert "Paid" in result.stdout
+
+
+def test_full_auto_launcher_orders_checks_before_auto_mode() -> None:
+    script = FULL_AUTO.read_text(encoding="utf-8")
+    setup = script.index("-m pip install --disable-pip-version-check -e '.[dev]'")
+    pipeline = script.index("./localPipeline.sh --noRun")
+    doctor = script.index('doctor_output="$("$cli" doctor)"')
+    status = script.index('"$cli" status')
+    quota = script.index('"$cli" quota')
+    auto = script.index('exec "$cli" run --auto --all --no-fzf')
+
+    assert setup < pipeline < doctor < status < quota < auto
+    assert "AGENT_WATCH_ALLOW_CODEX_AUTO_RESUME=true" in script
+    assert 'UV_VENV_CLEAR=1 pipx install --force "$wheel"' in script
+    assert "run --observe --all --no-fzf" in script
+    assert "systemctl --user stop" not in script
