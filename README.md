@@ -34,8 +34,10 @@ However, an alias such as `codex-dmo` that selects a distinct `CODEX_HOME` leave
 that profile identity on the child process, allowing the dashboard to infer the
 profile label and read its matching account email safely.
 
-Every session row also includes five-hour and weekly meters in `used/left`
-percent form. For example, `[████░] 84/16` means 84% used and 16% remaining.
+Every session row includes five-hour and weekly used-percentage meters. For
+example, `[████░] 84%` means that 84% of the window has been used. `PROMPT
+RESET` is the reset time parsed from the blocking terminal prompt; `QUOTA
+RESET` is the separate reset time reported by the provider quota source.
 
 The header reports public service health for OpenAI Responses/Login and
 Anthropic Claude Code/API. These are cached status-page observations, not paid
@@ -155,10 +157,13 @@ Start with observe mode. It runs the complete detection path but cannot type:
 agent-while-true run --observe --all
 ```
 
-On an interactive terminal this opens a color dashboard inspired by btop and
-ollamaFarm. Colors carry meaning: green is available/healthy, yellow is waiting
-or unknown, and red is exhausted or unsafe. `NO_COLOR=1` or `--no-color`
-produces plain output.
+On an interactive terminal this opens a fully framed color dashboard inspired
+by btop and ollamaFarm. Dark, vivid, CGA, and amber style the whole surface,
+section bars, table headers, borders, provider/account cells, states, usage
+meters, service health, history, and help. Colors carry meaning: green is
+available/healthy, yellow is waiting or unknown, and red is exhausted or
+unsafe. `NO_COLOR=1`, `--no-color`, or the plain theme produces ANSI-free
+output.
 
 | Key | Effect |
 | --- | --- |

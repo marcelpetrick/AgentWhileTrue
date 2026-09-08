@@ -74,6 +74,8 @@ without reconstructing history.
   plus five-hour and weekly used/left quota meters.
 - [x] v0.32.0: show asynchronously cached OpenAI and Anthropic component health,
   observation age, and honest configurable peak-hour hints in the dashboard.
+- [x] v0.33.0: clarify prompt versus quota reset headings, simplify usage meters
+  to used percentage, and color the complete framed dashboard across themes.
 - [x] Re-run the machine acceptance checks: `doctor` reports `Konsole input OK`
   and `Auto mode OK`; live discovery and both provider quota sources work.
 - [ ] Observe one real eligible quota reset, verify exactly one continuation,

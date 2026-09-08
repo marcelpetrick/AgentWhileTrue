@@ -1,8 +1,7 @@
 """Rendering for the running watcher.
 
-Plain text, no curses, no ANSI beyond an optional clear. The vision explicitly
-says the MVP does not need a TUI framework, and plain output has the practical
-advantage of being pipe-able, greppable and readable in a test failure.
+Plain text, no curses. Optional ANSI styling is applied as complete themed
+panels, while plain output stays pipe-able, greppable and readable in tests.
 """
 
 from __future__ import annotations
@@ -22,40 +21,56 @@ HIDE_CURSOR = "\x1b[?25l"
 SHOW_CURSOR = "\x1b[?25h"
 
 _DARK = {
-    "structure": "\x1b[36m",
-    "healthy": "\x1b[32m",
-    "warning": "\x1b[33m",
-    "danger": "\x1b[31m",
-    "claude": "\x1b[35m",
-    "codex": "\x1b[34m",
-    "dim": "\x1b[2m",
+    "surface": "\x1b[38;5;252;48;5;235m",
+    "structure": "\x1b[1;38;5;45;48;5;235m",
+    "header": "\x1b[1;38;5;16;48;5;45m",
+    "text": "\x1b[38;5;252;48;5;235m",
+    "accent": "\x1b[1;38;5;51;48;5;235m",
+    "healthy": "\x1b[1;38;5;48;48;5;235m",
+    "warning": "\x1b[1;38;5;220;48;5;235m",
+    "danger": "\x1b[1;38;5;203;48;5;235m",
+    "claude": "\x1b[1;38;5;213;48;5;235m",
+    "codex": "\x1b[1;38;5;75;48;5;235m",
+    "dim": "\x1b[38;5;245;48;5;235m",
 }
 _VIVID = {
-    "structure": "\x1b[38;5;45m",
-    "healthy": "\x1b[38;5;48m",
-    "warning": "\x1b[38;5;214m",
-    "danger": "\x1b[38;5;196m",
-    "claude": "\x1b[38;5;213m",
-    "codex": "\x1b[38;5;75m",
-    "dim": "\x1b[38;5;244m",
+    "surface": "\x1b[38;5;231;48;5;17m",
+    "structure": "\x1b[1;38;5;51;48;5;17m",
+    "header": "\x1b[1;38;5;16;48;5;201m",
+    "text": "\x1b[38;5;231;48;5;17m",
+    "accent": "\x1b[1;38;5;226;48;5;17m",
+    "healthy": "\x1b[1;38;5;48;48;5;17m",
+    "warning": "\x1b[1;38;5;214;48;5;17m",
+    "danger": "\x1b[1;38;5;196;48;5;17m",
+    "claude": "\x1b[1;38;5;213;48;5;17m",
+    "codex": "\x1b[1;38;5;81;48;5;17m",
+    "dim": "\x1b[38;5;153;48;5;17m",
 }
 _CGA = {
-    "structure": "\x1b[96m",
-    "healthy": "\x1b[97m",
-    "warning": "\x1b[36m",
-    "danger": "\x1b[95m",
-    "claude": "\x1b[35m",
-    "codex": "\x1b[96m",
-    "dim": "\x1b[37m",
+    "surface": "\x1b[37;40m",
+    "structure": "\x1b[1;96;40m",
+    "header": "\x1b[1;97;45m",
+    "text": "\x1b[97;40m",
+    "accent": "\x1b[1;95;40m",
+    "healthy": "\x1b[1;96;40m",
+    "warning": "\x1b[1;97;44m",
+    "danger": "\x1b[1;97;45m",
+    "claude": "\x1b[1;95;40m",
+    "codex": "\x1b[1;96;40m",
+    "dim": "\x1b[37;40m",
 }
 _AMBER = {
-    "structure": "\x1b[38;5;214m",
-    "healthy": "\x1b[38;5;220m",
-    "warning": "\x1b[38;5;208m",
-    "danger": "\x1b[38;5;196m",
-    "claude": "\x1b[38;5;215m",
-    "codex": "\x1b[38;5;221m",
-    "dim": "\x1b[38;5;130m",
+    "surface": "\x1b[38;5;223;48;5;52m",
+    "structure": "\x1b[1;38;5;214;48;5;52m",
+    "header": "\x1b[1;38;5;52;48;5;214m",
+    "text": "\x1b[38;5;223;48;5;52m",
+    "accent": "\x1b[1;38;5;228;48;5;52m",
+    "healthy": "\x1b[1;38;5;220;48;5;52m",
+    "warning": "\x1b[1;38;5;208;48;5;52m",
+    "danger": "\x1b[1;38;5;196;48;5;52m",
+    "claude": "\x1b[1;38;5;215;48;5;52m",
+    "codex": "\x1b[1;38;5;221;48;5;52m",
+    "dim": "\x1b[38;5;172;48;5;52m",
 }
 _PALETTES = {"dark": _DARK, "vivid": _VIVID, "cga": _CGA, "amber": _AMBER}
 _RESET = "\x1b[0m"
@@ -65,15 +80,15 @@ _HEADERS = (
     "TYPE",
     "ACCOUNT",
     "STATE",
-    "PROMPT",
-    "5H USED/LEFT",
-    "WEEK USED/LEFT",
+    "PROMPT RESET",
+    "5H USED",
+    "WEEK USED",
     "QUOTA",
-    "Q.RESET",
+    "QUOTA RESET",
     "PID",
     "SESSION",
 )
-_WIDTHS = (4, 8, 34, 20, 8, 15, 15, 10, 8, 8, 0)
+_WIDTHS = (3, 7, 31, 18, 12, 12, 12, 10, 12, 7, 0)
 
 
 def format_reset(reset_at: datetime | None, now: datetime) -> str:
@@ -106,6 +121,33 @@ def _paint(text: str, role: str, *, color: bool, theme: str) -> str:
     return f"{palette[role]}{text}{_RESET}"
 
 
+def _panel_line(text: str, width: int, role: str, *, color: bool, theme: str) -> str:
+    """Pad and frame one line so the theme covers the complete panel."""
+    inner = max(1, width - 4)
+    content = text[:inner]
+    plain = f"│ {content:<{inner}} │"
+    return _paint(plain, role, color=color, theme=theme)
+
+
+def _styled_row(
+    values: Sequence[str], roles: Sequence[str], width: int, *, color: bool, theme: str
+) -> str:
+    """Render semantic cells on the theme surface inside a panel border."""
+    if not color or theme == "plain":
+        return _panel_line(_row(values), width, "surface", color=False, theme=theme)
+    cells = []
+    fixed_width = sum(_WIDTHS[:-1]) + len(_WIDTHS) - 1
+    final_width = max(1, width - fixed_width - 4)
+    for index, (value, cell_width, role) in enumerate(zip(values, _WIDTHS, roles, strict=True)):
+        target_width = final_width if index == len(_WIDTHS) - 1 else cell_width
+        content = f"{value[:target_width]:<{target_width}}"
+        cells.append(_paint(content, role, color=True, theme=theme))
+        if index != len(_WIDTHS) - 1:
+            cells.append(_paint(" ", "surface", color=True, theme=theme))
+    border = _paint("│ ", "structure", color=True, theme=theme)
+    return border + "".join(cells) + _paint(" │", "structure", color=True, theme=theme)
+
+
 def _rule(title: str, width: int, *, color: bool, theme: str) -> str:
     prefix = f"┌─ {title} "
     plain = prefix + "─" * max(3, width - len(prefix) - 1) + "┐"
@@ -113,11 +155,22 @@ def _rule(title: str, width: int, *, color: bool, theme: str) -> str:
 
 
 def _state_role(value: str) -> str:
-    if value in {"ACTIVE", "AVAILABLE", "READY_TO_RESUME"}:
+    if value in {"ACTIVE", "AVAILABLE", "READY_TO_RESUME", "ONLINE"}:
         return "healthy"
-    if value in {"UNSAFE", "PROCESS_GONE", "EXHAUSTED"}:
+    if value in {"UNSAFE", "PROCESS_GONE", "EXHAUSTED", "OUTAGE"}:
         return "danger"
     return "warning"
+
+
+def _usage_role(snapshot: QuotaSnapshot, scope: str) -> str:
+    window = next((item for item in snapshot.windows if item.scope == scope), None)
+    if window is None:
+        return "dim"
+    if window.used_percent >= 100:
+        return "danger"
+    if window.used_percent >= 75:
+        return "warning"
+    return "healthy"
 
 
 def quota_state(snapshot: QuotaSnapshot, now: datetime) -> str:
@@ -128,14 +181,13 @@ def quota_state(snapshot: QuotaSnapshot, now: datetime) -> str:
 
 
 def quota_meter(snapshot: QuotaSnapshot, scope: str) -> str:
-    """Render a compact btop-style percentage meter with used and left values."""
+    """Render a compact btop-style meter containing only used percentage."""
     window = next((item for item in snapshot.windows if item.scope == scope), None)
     if window is None:
         return "-"
     used = max(0, min(100, round(window.used_percent)))
-    left = 100 - used
     filled = min(5, round(used / 20))
-    return f"[{'█' * filled}{'░' * (5 - filled)}] {used:>3}/{left:<3}"
+    return f"[{'█' * filled}{'░' * (5 - filled)}] {used:>3}%"
 
 
 def _health_age(health: ProviderHealth, now: datetime) -> str:
@@ -195,84 +247,163 @@ def render_status(
     """Render the running watcher's status table."""
     listed = list(sessions)
     title = f"Agent While True {__version__}"
+    panel_width = max(width, 160)
     interval = refresh_interval if refresh_interval is not None else config.scan_interval
-    pause_badge = "   PAUSED — press p to resume" if paused else ""
+    pause_badge = " — PAUSED: press p to resume" if paused else ""
     lines = [
-        _rule(title, width, color=color, theme=theme)
-        + _paint(pause_badge, "warning", color=color, theme=theme),
-        (
+        _rule(title + pause_badge, panel_width, color=color, theme=theme),
+        _panel_line(
             f"  {now.astimezone().strftime('%Y-%m-%d %H:%M:%S')}   every {interval:g}s   "
             "[+ slower  - faster  e events  l history  r rescan  p pause  "
-            "t theme  h help  q quit]"
+            "t theme  h help  q quit]",
+            panel_width,
+            "accent",
+            color=color,
+            theme=theme,
         ),
-        (f"  mode={config.mode.value}   watching {len(listed)} session(s)   theme={theme}"),
+        _panel_line(
+            f"  mode={config.mode.value}   watching {len(listed)} session(s)   theme={theme}",
+            panel_width,
+            "surface",
+            color=color,
+            theme=theme,
+        ),
     ]
     if service_health:
         status_parts = []
+        health_roles = []
         health_max_age = max(10.0, config.status_poll_interval * 2)
         for provider, label in (("openai", "OpenAI"), ("anthropic", "Anthropic")):
             health = service_health.get(provider, ProviderHealth(provider, HealthState.UNKNOWN, ""))
             status_parts.append(f"{label}: {_health_text(health, now, health_max_age)}")
-        lines.append("  services=" + "   ".join(status_parts))
+            health_roles.append(_state_role(health.state.value))
+        service_role = (
+            "danger"
+            if "danger" in health_roles
+            else ("warning" if "warning" in health_roles else "healthy")
+        )
+        lines.append(
+            _panel_line(
+                "  services=" + "   ".join(status_parts),
+                panel_width,
+                service_role,
+                color=color,
+                theme=theme,
+            )
+        )
         if peak_hours:
             lines.append(
-                "  peak-hours="
-                f"OpenAI: {peak_hours.get('openai', 'not published')}   "
-                f"Anthropic: {peak_hours.get('anthropic', 'not published')}"
+                _panel_line(
+                    "  peak-hours="
+                    f"OpenAI: {peak_hours.get('openai', 'not published')}   "
+                    f"Anthropic: {peak_hours.get('anthropic', 'not published')}",
+                    panel_width,
+                    "dim",
+                    color=color,
+                    theme=theme,
+                )
             )
     lines.extend(
         (
-            "",
-            _paint("  SESSIONS", "structure", color=color, theme=theme),
-            _paint(_row(_HEADERS), "dim", color=color, theme=theme),
-            _paint("─" * min(width, 100), "structure", color=color, theme=theme),
+            _panel_line("", panel_width, "surface", color=color, theme=theme),
+            _panel_line("SESSIONS", panel_width, "header", color=color, theme=theme),
+            _styled_row(
+                _HEADERS,
+                ("header",) * len(_HEADERS),
+                panel_width,
+                color=color,
+                theme=theme,
+            ),
+            _panel_line(
+                "─" * (panel_width - 4),
+                panel_width,
+                "structure",
+                color=color,
+                theme=theme,
+            ),
         )
     )
     for index, session in enumerate(listed, start=1):
-        row = _row(
-            (
-                str(index),
-                session.provider_name.title(),
-                session.account_label,
-                session.state.value,
-                format_reset(session.reset_at, now),
-                quota_meter(session.quota, "session"),
-                quota_meter(session.quota, "weekly"),
-                quota_state(session.quota, now),
-                format_reset(session.quota.next_reset, now),
-                str(session.identity.pid),
-                session.display_title(),
+        quota_value = quota_state(session.quota, now)
+        values = (
+            str(index),
+            session.provider_name.title(),
+            session.account_label,
+            session.state.value,
+            format_reset(session.reset_at, now),
+            quota_meter(session.quota, "session"),
+            quota_meter(session.quota, "weekly"),
+            quota_value,
+            format_reset(session.quota.next_reset, now),
+            str(session.identity.pid),
+            session.display_title(),
+        )
+        roles = (
+            "accent",
+            session.provider_name if session.provider_name in {"codex", "claude"} else "text",
+            "text",
+            _state_role(session.state.value),
+            "warning" if session.reset_at else "dim",
+            _usage_role(session.quota, "session"),
+            _usage_role(session.quota, "weekly"),
+            _state_role(quota_value),
+            "warning" if session.quota.next_reset else "dim",
+            "dim",
+            "text",
+        )
+        lines.append(_styled_row(values, roles, panel_width, color=color, theme=theme))
+    if not listed:
+        lines.append(
+            _panel_line("(nothing selected)", panel_width, "dim", color=color, theme=theme)
+        )
+    lines.append(_panel_line("", panel_width, "surface", color=color, theme=theme))
+    if last_event:
+        lines.append(
+            _panel_line(f"Last: {last_event}", panel_width, "accent", color=color, theme=theme)
+        )
+    if show_events and events:
+        lines.append(_panel_line("", panel_width, "surface", color=color, theme=theme))
+        lines.append(
+            _panel_line(
+                f"HISTORY (last {history_length})",
+                panel_width,
+                "header",
+                color=color,
+                theme=theme,
             )
         )
-        role = _state_role(session.quota.availability.value)
-        lines.append(_paint(row, role, color=color, theme=theme))
-    if not listed:
-        lines.append("  (nothing selected)")
-    lines.append("")
-    if last_event:
-        lines.append(f"  Last: {last_event}")
-    if show_events and events:
-        lines.append("")
-        lines.append(
-            _paint(f"  HISTORY (last {history_length})", "structure", color=color, theme=theme)
-        )
         for event in events[-history_length:]:
-            lines.append(f"    {event[: max(20, width - 6)]}")
+            lines.append(
+                _panel_line(
+                    event[: max(20, panel_width - 6)],
+                    panel_width,
+                    "dim",
+                    color=color,
+                    theme=theme,
+                )
+            )
     if show_help:
         lines.extend(
             (
-                "",
-                _paint("  KEYS", "structure", color=color, theme=theme),
-                "    - / +   refresh faster / slower (0.25, 0.5, 1, 2, 3, 5, 10, 30, 60s)",
-                "    p       pause/resume; paused means no terminal or quota polling",
-                "    r       rediscover Konsole sessions now",
-                "    t       cycle dark, vivid, CGA, amber and plain themes",
-                "    e       show/hide persisted action history",
-                "    l       cycle history length: 5, 10, 20, 50",
-                "    h / ?   close this help",
-                "    q       quit cleanly",
+                _panel_line("", panel_width, "surface", color=color, theme=theme),
+                _panel_line("KEYS", panel_width, "header", color=color, theme=theme),
+                *(
+                    _panel_line(item, panel_width, "text", color=color, theme=theme)
+                    for item in (
+                        "- / +   refresh faster / slower (0.25, 0.5, 1, 2, 3, 5, 10, 30, 60s)",
+                        "p       pause/resume; paused means no terminal or quota polling",
+                        "r       rediscover Konsole sessions now",
+                        "t       cycle dark, vivid, CGA, amber and plain themes",
+                        "e       show/hide persisted action history",
+                        "l       cycle history length: 5, 10, 20, 50",
+                        "h / ?   close this help",
+                        "q       quit cleanly",
+                    )
+                ),
             )
         )
+    bottom = "└" + "─" * (panel_width - 2) + "┘"
+    lines.append(_paint(bottom, "structure", color=color, theme=theme))
     return "\n".join(lines)
 
 

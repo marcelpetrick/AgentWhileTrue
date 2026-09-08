@@ -7,6 +7,20 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.33.0] - 2026-09-08
+
+### Changed
+
+- Renamed the ambiguous `PROMPT` column to `PROMPT RESET`: it is the reset time
+  parsed from the blocking terminal prompt, kept distinct from provider
+  `QUOTA RESET`.
+- Five-hour and weekly meters now show only used percentage, for example
+  `[████░] 84%`, without the redundant remaining percentage.
+- Dark, vivid, CGA, and amber now style the complete framed dashboard surface,
+  with contrasting section headers and semantic colors for provider, account,
+  state, quota, usage, service health, history, and help cells. Plain remains
+  completely ANSI-free.
+
 ## [0.32.0] - 2026-09-08
 
 ### Added

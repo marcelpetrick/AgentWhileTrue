@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime, timedelta
 
 from agent_watch.config import Config, Mode
@@ -113,8 +114,10 @@ def test_dashboard_shows_per_session_account_and_usage_meters() -> None:
     text = render_status([session], now=NOW, config=Config())
 
     assert "codex-dmo · work@example.com" in text
-    assert "84/16" in text
-    assert "77/23" in text
+    assert "84%" in text
+    assert "77%" in text
+    assert "/16" not in text
+    assert "/23" not in text
     assert "[████░]" in text
 
 
@@ -162,14 +165,32 @@ def test_colored_dashboard_and_help_are_optional() -> None:
     assert "\x1b[" not in plain
     assert "refresh faster / slower" in plain
     assert "\x1b[" in colored
+    assert "\x1b[38;5;231;48;5;17m" in colored
+    assert "│" in colored
+    assert "└" in colored
 
 
 def test_cga_and_amber_themes_use_distinct_palettes() -> None:
     cga = render_status([_session()], now=NOW, config=Config(), color=True, theme="cga")
     amber = render_status([_session()], now=NOW, config=Config(), color=True, theme="amber")
-    assert "\x1b[96m" in cga
-    assert "\x1b[38;5;214m" in amber
+    assert "\x1b[1;96;40m" in cga
+    assert "\x1b[1;38;5;214;48;5;52m" in amber
     assert cga != amber
+
+
+def test_every_theme_renders_a_complete_fixed_width_panel() -> None:
+    ansi = re.compile(r"\x1b\[[0-9;]*m")
+    for theme in ("dark", "vivid", "cga", "amber", "plain"):
+        text = render_status(
+            [_session()], now=NOW, config=Config(), color=theme != "plain", theme=theme
+        )
+        assert all(len(ansi.sub("", line)) == 160 for line in text.splitlines())
+
+
+def test_reset_headings_explain_their_values() -> None:
+    text = render_status([_session()], now=NOW, config=Config())
+    assert "PROMPT RESET" in text
+    assert "QUOTA RESET" in text
 
 
 def test_codex_node_launcher_is_presented_as_codex() -> None:
