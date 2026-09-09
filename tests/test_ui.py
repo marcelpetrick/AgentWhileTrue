@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from datetime import UTC, datetime, timedelta
 
+import pytest
+
 from agent_watch.config import Config, Mode
 from agent_watch.fsm import SupervisedSession
 from agent_watch.proc import ProcessIdentity
@@ -12,7 +14,7 @@ from agent_watch.quota import Availability, QuotaSnapshot, QuotaWindow
 from agent_watch.service_health import HealthState, ProviderHealth
 from agent_watch.states import SessionState
 from agent_watch.terminal.base import SessionRef
-from agent_watch.ui import format_reset, render_line, render_quota, render_status
+from agent_watch.ui import format_reset, format_reset_in, render_line, render_quota, render_status
 
 NOW = datetime(2026, 9, 5, 20, 0, tzinfo=UTC)
 REF = SessionRef("konsole", "org.kde.konsole-1", "/Sessions/2")
@@ -65,6 +67,20 @@ def test_no_reset_renders_as_a_dash() -> None:
     assert format_reset(None, NOW) == "-"
 
 
+@pytest.mark.parametrize(
+    ("delta", "expected"),
+    [
+        (timedelta(minutes=1), "1h"),
+        (timedelta(hours=35), "35h"),
+        (timedelta(hours=36), "2d"),
+        (timedelta(days=3), "3d"),
+        (timedelta(seconds=-1), "due"),
+    ],
+)
+def test_compact_reset_countdown(delta: timedelta, expected: str) -> None:
+    assert format_reset_in(NOW + delta, NOW) == expected
+
+
 def test_observe_line_shape() -> None:
     line = render_line(_session(state=SessionState.LIMIT_BLOCKED), NOW)
     assert "claude pts/3: LIMIT_BLOCKED" in line
@@ -91,6 +107,7 @@ def test_quota_view_shows_usage_reset_and_errors() -> None:
     assert "EXHAUSTED" in text
     assert "100.0%" in text
     assert (NOW + timedelta(hours=1)).astimezone().strftime("%H:%M") in text
+    assert "(1h)" in text
     assert "limit-reached" in text
 
 
@@ -119,6 +136,8 @@ def test_dashboard_shows_per_session_account_and_usage_meters() -> None:
     assert "/16" not in text
     assert "/23" not in text
     assert "[████░]" in text
+    assert "84% 1h" in text
+    assert "77% 3d" in text
 
 
 def test_dashboard_shows_cached_service_health() -> None:
@@ -182,7 +201,7 @@ def test_every_theme_renders_a_complete_fixed_width_panel() -> None:
         text = render_status(
             [_session()], now=NOW, config=Config(), color=theme != "plain", theme=theme
         )
-        assert all(len(ansi.sub("", line)) == 160 for line in text.splitlines())
+        assert all(len(ansi.sub("", line)) == 168 for line in text.splitlines())
 
 
 def test_reset_headings_explain_their_values() -> None:

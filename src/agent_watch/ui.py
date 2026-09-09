@@ -6,6 +6,7 @@ panels, while plain output stays pipe-able, greppable and readable in tests.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Iterable, Sequence
 from datetime import datetime
 
@@ -81,14 +82,14 @@ _HEADERS = (
     "ACCOUNT",
     "STATE",
     "PROMPT RESET",
-    "5H USED",
-    "WEEK USED",
+    "5H USED/IN",
+    "WEEK USED/IN",
     "QUOTA",
     "QUOTA RESET",
     "PID",
     "SESSION",
 )
-_WIDTHS = (3, 7, 31, 18, 12, 12, 12, 10, 12, 7, 0)
+_WIDTHS = (3, 7, 31, 18, 12, 16, 16, 10, 12, 7, 0)
 
 
 def format_reset(reset_at: datetime | None, now: datetime) -> str:
@@ -105,6 +106,18 @@ def format_reset(reset_at: datetime | None, now: datetime) -> str:
     if delta.total_seconds() < 0:
         return "due"
     return reset_at.astimezone().strftime("%H:%M")
+
+
+def format_reset_in(reset_at: datetime | None, now: datetime) -> str:
+    """Render a compact conservative countdown in hours or days."""
+    if reset_at is None:
+        return "-"
+    seconds = (reset_at - now).total_seconds()
+    if seconds <= 0:
+        return "due"
+    if seconds < 1.5 * 24 * 60 * 60:
+        return f"{math.ceil(seconds / (60 * 60))}h"
+    return f"{math.ceil(seconds / (24 * 60 * 60))}d"
 
 
 def _row(values: Sequence[str]) -> str:
@@ -190,6 +203,14 @@ def quota_meter(snapshot: QuotaSnapshot, scope: str) -> str:
     return f"[{'█' * filled}{'░' * (5 - filled)}] {used:>3}%"
 
 
+def quota_meter_with_reset(snapshot: QuotaSnapshot, scope: str, now: datetime) -> str:
+    """Combine one quota meter with its own compact reset countdown."""
+    window = next((item for item in snapshot.windows if item.scope == scope), None)
+    if window is None:
+        return "-"
+    return f"{quota_meter(snapshot, scope)} {format_reset_in(window.resets_at, now)}"
+
+
 def _health_age(health: ProviderHealth, now: datetime) -> str:
     if health.checked_at is None:
         return "never"
@@ -219,9 +240,10 @@ def render_quota(snapshot: QuotaSnapshot, *, now: datetime, identity: str = "") 
     if not snapshot.windows:
         lines.append("  windows:      no usable data")
     for window in snapshot.windows:
+        reset = format_reset(window.resets_at, now)
+        reset_in = format_reset_in(window.resets_at, now)
         lines.append(
-            f"  {window.scope:<12} {window.used_percent:>6.1f}%  "
-            f"reset {format_reset(window.resets_at, now)}"
+            f"  {window.scope:<12} {window.used_percent:>6.1f}%  reset {reset} ({reset_in})"
         )
     return "\n".join(lines)
 
@@ -246,7 +268,7 @@ def render_status(
     """Render the running watcher's status table."""
     listed = list(sessions)
     title = f"Agent While True {__version__}"
-    panel_width = max(width, 160)
+    panel_width = max(width, 168)
     interval = refresh_interval if refresh_interval is not None else config.scan_interval
     pause_badge = " — PAUSED: press p to resume" if paused else ""
     lines = [
@@ -318,8 +340,8 @@ def render_status(
             session.account_label,
             session.state.value,
             format_reset(session.reset_at, now),
-            quota_meter(session.quota, "session"),
-            quota_meter(session.quota, "weekly"),
+            quota_meter_with_reset(session.quota, "session", now),
+            quota_meter_with_reset(session.quota, "weekly", now),
             quota_value,
             format_reset(session.quota.next_reset, now),
             str(session.identity.pid),

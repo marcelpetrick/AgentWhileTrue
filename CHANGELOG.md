@@ -7,6 +7,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.35.0] - 2026-09-09
+
+### Added
+
+- Five-hour and weekly quota meters now each show their own compact reset
+  countdown. Durations below 1.5 days use hours; longer durations use days.
+
 ## [0.34.2] - 2026-09-09
 
 ### Fixed

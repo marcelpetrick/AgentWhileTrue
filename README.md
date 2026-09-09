@@ -34,10 +34,12 @@ However, an alias such as `codex-dmo` that selects a distinct `CODEX_HOME` leave
 that profile identity on the child process, allowing the dashboard to infer the
 profile label and read its matching account email safely.
 
-Every session row includes five-hour and weekly used-percentage meters. For
-example, `[████░] 84%` means that 84% of the window has been used. `PROMPT
-RESET` is the reset time parsed from the blocking terminal prompt; `QUOTA
-RESET` is the separate reset time reported by the provider quota source.
+Every session row includes five-hour and weekly used-percentage meters plus the
+time remaining until each individual reset. For example, `[████░] 84% 3h`
+means that 84% of the window has been used and it resets in at most three hours.
+Countdowns below 1.5 days use `h`; longer countdowns use `d`. `PROMPT RESET` is
+the reset time parsed from the blocking terminal prompt; `QUOTA RESET` is the
+separate effective reset time reported by the provider quota source.
 
 The header reports public service health for OpenAI Codex API and Anthropic
 Claude Code/API. These are cached observations from the providers' public JSON
