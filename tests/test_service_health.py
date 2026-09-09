@@ -180,6 +180,19 @@ def test_client_reuses_and_closes_persistent_connection(monkeypatch) -> None:
     assert connections[0].closed
 
 
+def test_client_preserves_standard_proxy_handling(monkeypatch) -> None:
+    sentinel = object()
+    monkeypatch.setattr(
+        "agent_watch.service_health.urllib.request.getproxies",
+        lambda: {"https": "http://proxy.invalid"},
+    )
+    monkeypatch.setattr("agent_watch.service_health.urllib.request.urlopen", sentinel)
+
+    client = StatusPageClient("openai")
+
+    assert client.opener is sentinel
+
+
 def test_monitor_replaces_each_memory_cache_entry() -> None:
     def fetch(provider: str) -> ProviderHealth:
         return ProviderHealth(provider, HealthState.ONLINE, "ok", NOW)

@@ -136,6 +136,16 @@ class StatusPageClient:
     _cached: ProviderHealth | None = field(init=False, default=None, repr=False)
     _connection: http.client.HTTPSConnection | None = field(init=False, default=None, repr=False)
 
+    def __post_init__(self) -> None:
+        if self.opener is not None:
+            return
+        proxies = urllib.request.getproxies()
+        if any(scheme in proxies for scheme in ("http", "https", "all")):
+            # urllib applies the configured proxy and TLS behavior correctly.
+            # This fallback cannot promise connection reuse, but connectivity
+            # is more important than the direct-path optimization.
+            self.opener = urllib.request.urlopen
+
     def close(self) -> None:
         if self._connection is not None:
             self._connection.close()

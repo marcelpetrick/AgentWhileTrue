@@ -7,6 +7,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.36.12] - 2026-09-09
+
+### Fixed
+
+- Retained standard-library HTTP(S) proxy handling for provider health checks;
+  direct connections use the persistent low-overhead transport.
+
 ## [0.36.11] - 2026-09-09
 
 ### Documentation
