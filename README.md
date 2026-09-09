@@ -71,7 +71,7 @@ Install the current release from GitHub with `pipx` so the CLI is isolated while
 remaining available at `~/.local/bin/agent-while-true`:
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.36.10'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.36.11'
 agent-while-true --version
 agent-while-true doctor
 ```
@@ -370,8 +370,8 @@ lifecycle prevent duplicate input across concurrent processes and crashes.
 
 See [vision.md](vision.md) for product intent, [PLAN.md](PLAN.md) for the
 implementation sequence, [ARCHITECTURE.md](ARCHITECTURE.md) for the C4 model and
-runtime safety flows, and [todo.md](todo.md) for the remaining live-machine
-acceptance steps.
+runtime safety flows, [PERFORMANCE.md](PERFORMANCE.md) for measured workload,
+and [todo.md](todo.md) for the remaining live-machine acceptance steps.
 
 ## Development and release
 

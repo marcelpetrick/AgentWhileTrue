@@ -7,6 +7,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.36.11] - 2026-09-09
+
+### Documentation
+
+- Added a reproducible local workload profile with before/after CPU, memory,
+  context-switch, subprocess, and compressed status-traffic measurements.
+
 ## [0.36.10] - 2026-09-09
 
 ### Fixed
