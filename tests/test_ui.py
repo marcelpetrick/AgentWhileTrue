@@ -69,6 +69,7 @@ def test_status_handles_nothing_selected() -> None:
 def test_reset_beyond_a_day_is_not_shown_as_a_clock_time() -> None:
     # "12:00" for something three days out would be actively misleading.
     assert format_reset(NOW + timedelta(days=3), NOW) == "+3d"
+    assert format_reset(NOW + timedelta(days=3, hours=1), NOW) == "+4d"
 
 
 def test_a_passed_reset_reads_as_due() -> None:

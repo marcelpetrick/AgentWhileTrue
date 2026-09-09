@@ -7,6 +7,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.36.3] - 2026-09-09
+
+### Fixed
+
+- Multi-day effective reset values now use the same conservative upward rounding
+  as their per-window countdowns, avoiding contradictory `+3d` and `4d` labels.
+
 ## [0.36.2] - 2026-09-09
 
 ### Fixed

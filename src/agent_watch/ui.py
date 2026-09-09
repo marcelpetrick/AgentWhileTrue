@@ -100,11 +100,11 @@ def format_reset(reset_at: datetime | None, now: datetime) -> str:
     """
     if reset_at is None:
         return "-"
-    delta = reset_at - now
-    if delta.days >= 1:
-        return f"+{delta.days}d"
-    if delta.total_seconds() < 0:
+    seconds = (reset_at - now).total_seconds()
+    if seconds < 0:
         return "due"
+    if seconds >= 24 * 60 * 60:
+        return f"+{math.ceil(seconds / (24 * 60 * 60))}d"
     return reset_at.astimezone().strftime("%H:%M")
 
 
