@@ -7,6 +7,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.36.8] - 2026-09-09
+
+### Fixed
+
+- Provider health workers now reuse one persistent HTTPS connection per status
+  service, retaining one-second checks without repeated DNS and TLS setup.
+
 ## [0.36.7] - 2026-09-09
 
 ### Documentation

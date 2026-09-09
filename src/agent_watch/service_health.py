@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import enum
 import gzip
+import http.client
 import io
 import json
 import threading
@@ -13,6 +14,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from typing import Any
+from urllib.parse import urlsplit
 
 STATUS_URLS = {
     "openai": "https://status.openai.com/api/v2/summary.json",
@@ -129,9 +131,29 @@ class StatusPageClient:
     """Small conditional-GET client for one provider's public status page."""
 
     provider: str
-    opener: Callable[..., Any] = urllib.request.urlopen
+    opener: Callable[..., Any] | None = None
     _etag: str | None = field(init=False, default=None, repr=False)
     _cached: ProviderHealth | None = field(init=False, default=None, repr=False)
+    _connection: http.client.HTTPSConnection | None = field(init=False, default=None, repr=False)
+
+    def close(self) -> None:
+        if self._connection is not None:
+            self._connection.close()
+            self._connection = None
+
+    def _persistent_response(self, headers: dict[str, str]) -> http.client.HTTPResponse:
+        parsed = urlsplit(STATUS_URLS[self.provider])
+        if self._connection is None:
+            self._connection = http.client.HTTPSConnection(
+                parsed.hostname,
+                parsed.port,
+                timeout=REQUEST_TIMEOUT_SECONDS,
+            )
+        path = parsed.path or "/"
+        if parsed.query:
+            path = f"{path}?{parsed.query}"
+        self._connection.request("GET", path, headers=headers)
+        return self._connection.getresponse()
 
     def fetch(self, *, now: datetime | None = None) -> ProviderHealth:
         checked_at = now or datetime.now(UTC)
@@ -142,16 +164,34 @@ class StatusPageClient:
         }
         if self._etag:
             headers["If-None-Match"] = self._etag
-        request = urllib.request.Request(STATUS_URLS[self.provider], headers=headers)
         try:
-            with self.opener(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
+            if self.opener is None:
+                response_context = self._persistent_response(headers)
+            else:
+                request = urllib.request.Request(STATUS_URLS[self.provider], headers=headers)
+                response_context = self.opener(request, timeout=REQUEST_TIMEOUT_SECONDS)
+            with response_context as response:
+                status = getattr(response, "status", 200)
+                if status == 304 and self._cached is not None:
+                    response.read(MAX_RESPONSE_BYTES + 1)
+                    return replace(self._cached, checked_at=checked_at)
+                if status != 200:
+                    response.read(MAX_RESPONSE_BYTES + 1)
+                    return unknown_health(self.provider, "status-unreachable")
                 document = _read_document(response)
                 etag = response.headers.get("ETag")
         except urllib.error.HTTPError as error:
             if error.code == 304 and self._cached is not None:
                 return replace(self._cached, checked_at=checked_at)
             return unknown_health(self.provider, "status-unreachable")
-        except (OSError, ValueError, urllib.error.URLError, json.JSONDecodeError):
+        except (
+            OSError,
+            ValueError,
+            http.client.HTTPException,
+            urllib.error.URLError,
+            json.JSONDecodeError,
+        ):
+            self.close()
             return unknown_health(self.provider, "status-unreachable")
         health = parse_summary(self.provider, document, now=checked_at)
         if health.state is not HealthState.UNKNOWN:
@@ -218,6 +258,8 @@ class HealthMonitor:
         self._stop.set()
         for thread in self._threads:
             thread.join(timeout=REQUEST_TIMEOUT_SECONDS + 1)
+        for client in self._clients.values():
+            client.close()
 
     def _run_provider(self, provider: str) -> None:
         while not self._stop.is_set():

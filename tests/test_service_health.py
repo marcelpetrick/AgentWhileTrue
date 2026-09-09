@@ -95,9 +95,10 @@ def test_unknown_component_status_fails_closed() -> None:
 
 
 class _Response(io.BytesIO):
-    def __init__(self, body: bytes, headers: dict[str, str]) -> None:
+    def __init__(self, body: bytes, headers: dict[str, str], *, status: int = 200) -> None:
         super().__init__(body)
         self.headers = headers
+        self.status = status
 
     def __enter__(self):
         return self
@@ -139,6 +140,44 @@ def test_client_rejects_oversized_or_unsupported_responses() -> None:
     oversized = _Response(b"x" * (128 * 1024 + 1), {})
     client = StatusPageClient("openai", opener=lambda *_args, **_kwargs: oversized)
     assert client.fetch(now=NOW).state is HealthState.UNKNOWN
+
+
+def test_client_reuses_and_closes_persistent_connection(monkeypatch) -> None:
+    document = _summary(_component("01KMP3KP5MGE23B80K1EK4S8PV", "Codex API", "operational"))
+    connections = []
+
+    class Connection:
+        def __init__(self, host, port, *, timeout) -> None:
+            assert host == "status.openai.com"
+            assert port is None
+            assert timeout == 3.0
+            self.closed = False
+            self.requests = []
+            self.responses = [
+                _Response(json.dumps(document).encode(), {"ETag": 'W/"one"'}),
+                _Response(b"", {}, status=304),
+            ]
+            connections.append(self)
+
+        def request(self, method, path, *, headers) -> None:
+            self.requests.append((method, path, headers))
+
+        def getresponse(self):
+            return self.responses.pop(0)
+
+        def close(self) -> None:
+            self.closed = True
+
+    monkeypatch.setattr("agent_watch.service_health.http.client.HTTPSConnection", Connection)
+    client = StatusPageClient("openai")
+
+    assert client.fetch(now=NOW).state is HealthState.ONLINE
+    assert client.fetch(now=LATER).state is HealthState.ONLINE
+    assert len(connections) == 1
+    assert connections[0].requests[1][2]["If-None-Match"] == 'W/"one"'
+
+    client.close()
+    assert connections[0].closed
 
 
 def test_monitor_replaces_each_memory_cache_entry() -> None:
