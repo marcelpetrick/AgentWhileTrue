@@ -142,11 +142,23 @@ def get_logger() -> EventLogger:
 
 
 def read_history(path: Path, *, limit: int = 10) -> list[str]:
-    """Read recent structured events without exposing terminal content."""
+    """Read only the tail needed for recent structured events."""
     if limit <= 0:
         return []
     try:
-        rows = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        with path.open("rb") as stream:
+            stream.seek(0, 2)
+            remaining = stream.tell()
+            chunks: list[bytes] = []
+            newlines = 0
+            while remaining and newlines <= limit:
+                size = min(8192, remaining)
+                remaining -= size
+                stream.seek(remaining)
+                chunk = stream.read(size)
+                chunks.append(chunk)
+                newlines += chunk.count(b"\n")
     except OSError:
         return []
+    rows = b"".join(reversed(chunks)).decode("utf-8", errors="replace").splitlines()
     return rows[-limit:]

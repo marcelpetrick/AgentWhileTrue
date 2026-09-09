@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -47,6 +48,17 @@ def test_status_lists_each_session() -> None:
     assert "Agent While True" in text
     assert "h help" in text
     assert "ACCOUNT" in text
+
+
+def test_full_auto_mode_and_toggle_are_explicit_in_dashboard() -> None:
+    config = Config(
+        mode=Mode.AUTO,
+        policy=replace(Config().policy, allow_codex_auto_resume=True),
+    )
+    text = render_status([_session()], now=NOW, config=config, show_help=True)
+    assert "mode=full-auto" in text
+    assert "a mode" in text
+    assert "toggle observe/full-auto" in text
 
 
 def test_status_handles_nothing_selected() -> None:
@@ -227,3 +239,12 @@ def test_dashboard_can_show_persisted_history() -> None:
     )
     assert "HISTORY (last 10)" in text
     assert "event=state_change" in text
+
+
+def test_dashboard_renders_only_selected_rows_from_retained_history() -> None:
+    events = [f"event=resume_sent attempt={number}" for number in range(50)]
+    text = render_status([_session()], now=NOW, config=Config(), events=events, history_length=5)
+    assert "HISTORY (last 5)" in text
+    assert "attempt=44" not in text
+    assert "attempt=45" in text
+    assert "attempt=49" in text

@@ -21,6 +21,7 @@ import signal
 import sys
 import time
 from collections.abc import Callable, Sequence
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -43,7 +44,7 @@ from agent_watch.quota import default_sources
 from agent_watch.service_health import HealthMonitor
 from agent_watch.state_store import StateStore
 from agent_watch.terminal.konsole import KonsoleAdapter
-from agent_watch.tui import DashboardState, TerminalKeys
+from agent_watch.tui import MAX_HISTORY_ENTRIES, DashboardState, TerminalKeys
 from agent_watch.ui import (
     CLEAR_SCREEN,
     HIDE_CURSOR,
@@ -260,12 +261,59 @@ def command_run(
             )
             return EXIT_ERROR
     try:
-        return _loop(supervisor, config, args, stream)
+        return _loop(supervisor, config, args, stream, lock)
     finally:
         lock.release()
 
 
-def _loop(supervisor: Supervisor, config: Config, args: argparse.Namespace, stream) -> int:
+def _toggle_runtime_mode(
+    supervisor: Supervisor, config: Config, lock: SingleInstanceLock
+) -> tuple[Config, str]:
+    """Toggle the interactive watcher without weakening the single-writer gate."""
+    if config.mode is Mode.AUTO:
+        updated = replace(config, mode=Mode.OBSERVE)
+        supervisor.config = updated
+        lock.release()
+        supervisor.log.info("mode_changed", previous="full-auto", new="observe", source="tui")
+        return updated, "full auto disabled; observe mode cannot send input"
+
+    try:
+        if not lock.held:
+            lock.acquire()
+    except LockHeldError:
+        supervisor.log.warning(
+            "mode_change_refused",
+            previous=config.mode.value,
+            requested="full-auto",
+            reason="lock-held",
+        )
+        return config, "full auto refused: another input controller holds the lock"
+
+    # Pressing the dedicated full-auto key is an explicit runtime opt-in to
+    # Codex composer continuation. Paid and quality-changing policy stays off.
+    updated = replace(
+        config,
+        mode=Mode.AUTO,
+        policy=replace(config.policy, allow_codex_auto_resume=True),
+    )
+    supervisor.config = updated
+    supervisor.log.info(
+        "mode_changed",
+        previous=config.mode.value,
+        new="full-auto",
+        source="tui",
+        codex_auto_resume=True,
+    )
+    return updated, "full auto enabled; policy and revalidation still apply"
+
+
+def _loop(
+    supervisor: Supervisor,
+    config: Config,
+    args: argparse.Namespace,
+    stream,
+    lock: SingleInstanceLock,
+) -> int:
     stop = {"requested": False}
 
     def request_stop(signum, frame) -> None:  # pragma: no cover - signal path
@@ -297,9 +345,7 @@ def _loop(supervisor: Supervisor, config: Config, args: argparse.Namespace, stre
                     _sync_all_sessions(supervisor, show_accounts=interactive)
                 decisions = supervisor.tick()
                 last_event = _summarise(supervisor.sessions.values(), decisions) or last_event
-                event_history = read_history(
-                    config.resolved_log_file(), limit=dashboard.history_length
-                )
+                event_history = read_history(config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES)
             now = datetime.now(UTC)
             if interactive or config.mode is not Mode.OBSERVE:
                 if interactive:
@@ -333,6 +379,11 @@ def _loop(supervisor: Supervisor, config: Config, args: argparse.Namespace, stre
             if interactive:
                 if dashboard.handle(keys.read(dashboard.interval)):
                     return EXIT_OK
+                if dashboard.consume_mode_toggle():
+                    config, last_event = _toggle_runtime_mode(supervisor, config, lock)
+                    event_history = read_history(
+                        config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
+                    )
                 dashboard.rescan_requested = False
             else:
                 time.sleep(dashboard.interval)

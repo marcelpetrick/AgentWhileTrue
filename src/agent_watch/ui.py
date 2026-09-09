@@ -10,7 +10,7 @@ import math
 from collections.abc import Iterable, Sequence
 from datetime import datetime
 
-from agent_watch.config import Config
+from agent_watch.config import Config, Mode
 from agent_watch.fsm import SupervisedSession
 from agent_watch.quota import Availability, QuotaSnapshot
 from agent_watch.service_health import HealthState, ProviderHealth
@@ -271,11 +271,16 @@ def render_status(
     panel_width = max(width, 168)
     interval = refresh_interval if refresh_interval is not None else config.scan_interval
     pause_badge = " — PAUSED: press p to resume" if paused else ""
+    mode_label = (
+        "full-auto"
+        if config.mode is Mode.AUTO and config.policy.allow_codex_auto_resume
+        else config.mode.value
+    )
     lines = [
         _rule(title + pause_badge, panel_width, color=color, theme=theme),
         _panel_line(
             f"  {now.astimezone().strftime('%Y-%m-%d %H:%M:%S')}   every {interval:g}s   "
-            "[+ slower  - faster  e events  l history  r rescan  p pause  "
+            "[+ slower  - faster  a mode  e events  l history  r rescan  p pause  "
             "t theme  h help  q quit]",
             panel_width,
             "accent",
@@ -283,7 +288,7 @@ def render_status(
             theme=theme,
         ),
         _panel_line(
-            f"  mode={config.mode.value}   watching {len(listed)} session(s)   theme={theme}",
+            f"  mode={mode_label}   watching {len(listed)} session(s)   theme={theme}",
             panel_width,
             "surface",
             color=color,
@@ -400,6 +405,7 @@ def render_status(
                     _panel_line(item, panel_width, "text", color=color, theme=theme)
                     for item in (
                         "- / +   refresh faster / slower (0.25, 0.5, 1, 2, 3, 5, 10, 30, 60s)",
+                        "a       toggle observe/full-auto; full-auto opts in Codex continuation",
                         "p       pause/resume; paused means no terminal or quota polling",
                         "r       rediscover Konsole sessions now",
                         "t       cycle dark, vivid, CGA, amber and plain themes",

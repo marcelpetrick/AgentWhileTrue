@@ -25,6 +25,9 @@ def test_dashboard_keys_toggle_state_and_quit() -> None:
     assert not state.show_events
     state.handle("l")
     assert state.history_length == 10
+    state.handle("a")
+    assert state.consume_mode_toggle()
+    assert not state.consume_mode_toggle()
     assert state.handle("q")
 
 

@@ -176,11 +176,12 @@ output.
 | Key | Effect |
 | --- | --- |
 | `-` / `+` | Refresh faster / slower across `0.25 0.5 1 2 3 5 10 30 60` seconds |
+| `a` | Toggle observe/full-auto; enabling is an explicit Codex resume opt-in |
 | `p` | Pause/resume; pause performs no terminal or quota polling |
 | `r` | Rediscover Konsole sessions immediately |
 | `t` | Cycle dark, vivid, CGA, amber, and plain themes |
 | `e` | Show or hide persisted action/state history |
-| `l` | Cycle the history length through 5, 10, 20, and 50 rows |
+| `l` | Cycle displayed history through 5, 10, 20, and 50 retained rows |
 | `h` or `?` | Toggle the in-dashboard help |
 | `q` | Quit and restore the terminal |
 
@@ -238,8 +239,11 @@ journalctl --user -u agent-watch.service -f  # service lifecycle/output
 ```
 
 The dashboard's `HISTORY` panel reads the same privacy-preserving event file.
-It records fingerprints and pattern IDs, never terminal text, prompts,
-credentials, or environment values.
+It retains the latest 50 entries in memory, even while showing only the chosen
+5, 10, 20, or 50 rows, so expanding the panel reveals what happened while you
+were away. Successful terminal retriggers appear as `resume_sent`, followed by
+their verification result. History records fingerprints and pattern IDs, never
+terminal text, prompts, credentials, or environment values.
 
 Codex is launched through a Node.js shim on current installations, so Konsole
 may label its tab or foreground command `node`. Agent While True walks the child

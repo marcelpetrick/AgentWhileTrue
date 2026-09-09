@@ -12,6 +12,7 @@ from dataclasses import dataclass
 INTERVALS = (0.25, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0, 30.0, 60.0)
 THEMES = ("dark", "vivid", "cga", "amber", "plain")
 HISTORY_LENGTHS = (5, 10, 20, 50)
+MAX_HISTORY_ENTRIES = max(HISTORY_LENGTHS)
 
 
 def nearest_interval_index(value: float) -> int:
@@ -29,6 +30,7 @@ class DashboardState:
     rescan_requested: bool = False
     show_events: bool = True
     history_index: int = 0
+    mode_toggle_requested: bool = False
 
     @classmethod
     def from_interval(cls, value: float) -> DashboardState:
@@ -67,7 +69,14 @@ class DashboardState:
             self.show_events = not self.show_events
         elif lowered == "l":
             self.history_index = (self.history_index + 1) % len(HISTORY_LENGTHS)
+        elif lowered == "a":
+            self.mode_toggle_requested = True
         return False
+
+    def consume_mode_toggle(self) -> bool:
+        requested = self.mode_toggle_requested
+        self.mode_toggle_requested = False
+        return requested
 
 
 class TerminalKeys:

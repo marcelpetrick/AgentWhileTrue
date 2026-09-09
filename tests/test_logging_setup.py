@@ -99,3 +99,12 @@ def test_read_history_tolerates_missing_files_and_zero_limit(tmp_path: Path) -> 
     log_file = tmp_path / "missing.log"
     assert read_history(log_file) == []
     assert read_history(log_file, limit=0) == []
+
+
+def test_read_history_keeps_only_the_requested_tail(tmp_path: Path) -> None:
+    log_file = tmp_path / "agent-watch.log"
+    log_file.write_text("".join(f"event={number} " + "x" * 1000 + "\n" for number in range(80)))
+    rows = read_history(log_file, limit=50)
+    assert len(rows) == 50
+    assert rows[0].startswith("event=30 ")
+    assert rows[-1].startswith("event=79 ")

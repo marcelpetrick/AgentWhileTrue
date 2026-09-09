@@ -7,6 +7,23 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.36.0] - 2026-09-09
+
+### Added
+
+- The interactive `a` key toggles safely between observe and full-auto mode.
+  Enabling takes the single-writer lock first and explicitly opts into Codex
+  composer continuation; lock contention leaves the watcher read-only.
+- The dashboard retains 50 history entries in memory while rendering only the
+  selected 5, 10, 20, or 50 rows. Terminal retriggers and their verification
+  results remain visible after returning to the dashboard.
+
+### Safety
+
+- Switching to observe updates policy before releasing the input lock. Switching
+  to full-auto acquires the lock before policy changes, and every later action
+  still passes the normal identity, prompt, quota, policy, and revalidation gate.
+
 ## [0.35.0] - 2026-09-09
 
 ### Added

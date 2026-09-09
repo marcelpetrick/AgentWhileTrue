@@ -15,6 +15,8 @@ import pytest
 
 from agent_watch import cli
 from agent_watch.cli import EXIT_ERROR, EXIT_OK, main
+from agent_watch.config import Config, Mode
+from agent_watch.lock import LockHeldError, SingleInstanceLock
 from agent_watch.quota import Availability, QuotaSnapshot
 from agent_watch.terminal.fake import FakeAdapter
 from agent_watch.version import __version__
@@ -175,6 +177,46 @@ def test_a_second_instance_is_refused_but_observe_is_not(
         assert main(["run", "--all", "--once", "--observe"], stream=out) == EXIT_OK
     finally:
         held.release()
+
+
+def test_tui_toggle_takes_lock_and_explicitly_enables_full_auto(tmp_path: Path) -> None:
+    kit = harness_module.build(tmp_path, mode=Mode.OBSERVE)
+    lock = SingleInstanceLock.in_directory(tmp_path / "runtime")
+
+    enabled, message = cli._toggle_runtime_mode(kit.supervisor, kit.supervisor.config, lock)
+    assert enabled.mode is Mode.AUTO
+    assert enabled.policy.allow_codex_auto_resume
+    assert kit.supervisor.config is enabled
+    assert lock.held
+    assert "full auto enabled" in message
+
+    disabled, message = cli._toggle_runtime_mode(kit.supervisor, enabled, lock)
+    assert disabled.mode is Mode.OBSERVE
+    assert kit.supervisor.config is disabled
+    assert not lock.held
+    assert "observe mode" in message
+    history = (tmp_path / "agent-watch.log").read_text()
+    assert history.count("event=mode_changed") == 2
+
+
+def test_tui_toggle_stays_read_only_when_input_lock_is_held(tmp_path: Path) -> None:
+    kit = harness_module.build(tmp_path, mode=Mode.OBSERVE)
+
+    class ContendedLock:
+        held = False
+
+        def acquire(self) -> None:
+            raise LockHeldError
+
+    unchanged, message = cli._toggle_runtime_mode(
+        kit.supervisor,
+        Config(mode=Mode.OBSERVE),
+        ContendedLock(),  # type: ignore[arg-type]
+    )
+    assert unchanged.mode is Mode.OBSERVE
+    assert kit.supervisor.config.mode is Mode.OBSERVE
+    assert "refused" in message
+    assert "event=mode_change_refused" in (tmp_path / "agent-watch.log").read_text()
 
 
 def test_quitting_the_picker_watches_nothing(sandbox: Path, out: io.StringIO, monkeypatch) -> None:
