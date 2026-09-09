@@ -7,6 +7,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.36.1] - 2026-09-09
+
+### Changed
+
+- Pinned the build and development toolchain to current stable releases:
+  setuptools 84.0.0, pytest 9.1.1, pytest-cov 7.1.0, Ruff 0.16.6, and build
+  1.6.0.
+- Updated the setup-python workflow action to 7.0.0 and the GitHub release
+  action to 3.0.3; checkout and artifact upload were already current.
+
 ## [0.36.0] - 2026-09-09
 
 ### Added
