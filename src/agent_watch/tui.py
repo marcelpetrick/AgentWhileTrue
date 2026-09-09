@@ -69,7 +69,7 @@ class DashboardState:
             self.show_events = not self.show_events
         elif lowered == "l":
             self.history_index = (self.history_index + 1) % len(HISTORY_LENGTHS)
-        elif lowered == "a":
+        elif key == "A":
             self.mode_toggle_requested = True
         return False
 

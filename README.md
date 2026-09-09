@@ -81,7 +81,7 @@ Install the current release from GitHub with `pipx` so the CLI is isolated while
 remaining available at `~/.local/bin/agent-while-true`:
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.36.1'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.36.2'
 agent-while-true --version
 agent-while-true doctor
 ```
@@ -176,7 +176,7 @@ output.
 | Key | Effect |
 | --- | --- |
 | `-` / `+` | Refresh faster / slower across `0.25 0.5 1 2 3 5 10 30 60` seconds |
-| `a` | Toggle observe/full-auto; enabling is an explicit Codex resume opt-in |
+| `A` | Toggle observe/full-auto; uppercase activation is an explicit Codex resume opt-in |
 | `p` | Pause/resume; pause performs no terminal or quota polling |
 | `r` | Rediscover Konsole sessions immediately |
 | `t` | Cycle dark, vivid, CGA, amber, and plain themes |

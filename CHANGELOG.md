@@ -7,6 +7,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.36.2] - 2026-09-09
+
+### Fixed
+
+- Full-auto toggling now requires an uppercase `A`, preventing an easy accidental
+  lowercase keypress from enabling terminal input and Codex continuation.
+
 ## [0.36.1] - 2026-09-09
 
 ### Changed

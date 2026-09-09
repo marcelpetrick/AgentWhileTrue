@@ -280,7 +280,7 @@ def render_status(
         _rule(title + pause_badge, panel_width, color=color, theme=theme),
         _panel_line(
             f"  {now.astimezone().strftime('%Y-%m-%d %H:%M:%S')}   every {interval:g}s   "
-            "[+ slower  - faster  a mode  e events  l history  r rescan  p pause  "
+            "[+ slower  - faster  A mode  e events  l history  r rescan  p pause  "
             "t theme  h help  q quit]",
             panel_width,
             "accent",
@@ -405,7 +405,7 @@ def render_status(
                     _panel_line(item, panel_width, "text", color=color, theme=theme)
                     for item in (
                         "- / +   refresh faster / slower (0.25, 0.5, 1, 2, 3, 5, 10, 30, 60s)",
-                        "a       toggle observe/full-auto; full-auto opts in Codex continuation",
+                        "A       toggle observe/full-auto; full-auto opts in Codex continuation",
                         "p       pause/resume; paused means no terminal or quota polling",
                         "r       rediscover Konsole sessions now",
                         "t       cycle dark, vivid, CGA, amber and plain themes",

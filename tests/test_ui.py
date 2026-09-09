@@ -57,7 +57,7 @@ def test_full_auto_mode_and_toggle_are_explicit_in_dashboard() -> None:
     )
     text = render_status([_session()], now=NOW, config=config, show_help=True)
     assert "mode=full-auto" in text
-    assert "a mode" in text
+    assert "A mode" in text
     assert "toggle observe/full-auto" in text
 
 
