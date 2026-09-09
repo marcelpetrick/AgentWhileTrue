@@ -22,7 +22,6 @@ _UNIT_SECONDS = {"ms": 0.001, "s": 1.0, "m": 60.0, "h": 3600.0}
 _TRUE = {"1", "true", "yes", "on"}
 _FALSE = {"0", "false", "no", "off"}
 _ENV_PREFIX = "AGENT_WATCH_"
-_OBSOLETE_KEYS = {"OPENAI_PEAK_HOURS", "ANTHROPIC_PEAK_HOURS"}
 
 
 class ConfigError(ValueError):
@@ -219,10 +218,6 @@ def _apply(config: Config, values: dict[str, str], source: str) -> Config:
     updates: dict[str, object] = {}
     policy_updates: dict[str, object] = {}
     for key, raw in values.items():
-        # v0.32 generated these display-only hints. Accept them so existing
-        # installations still start, but never present them as provider data.
-        if key in _OBSOLETE_KEYS:
-            continue
         target = _KEYS.get(key)
         if target is None:
             raise ConfigError(f"{source}: unknown setting {key!r}")
@@ -249,7 +244,7 @@ def from_environ(environ: dict[str, str] | None = None) -> dict[str, str]:
     for key, value in env.items():
         if key.startswith(_ENV_PREFIX):
             bare = key.removeprefix(_ENV_PREFIX)
-            if bare in _KEYS or bare in _OBSOLETE_KEYS:
+            if bare in _KEYS:
                 collected[bare] = value
     return collected
 

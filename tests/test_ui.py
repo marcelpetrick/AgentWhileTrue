@@ -167,7 +167,6 @@ def test_dashboard_shows_cached_service_health() -> None:
     assert "OpenAI: ONLINE (1s ago)" in text
     assert "Anthropic: DEGRADED" in text
     assert "incident" in text
-    assert "peak-hours" not in text
 
 
 def test_dashboard_explains_service_errors_and_refuses_stale_online_state() -> None:

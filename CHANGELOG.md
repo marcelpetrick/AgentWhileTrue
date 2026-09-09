@@ -7,6 +7,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.36.4] - 2026-09-09
+
+### Removed
+
+- Removed the remaining obsolete peak-hours configuration compatibility and
+  current documentation; provider health and actual quota resets remain.
+
 ## [0.36.3] - 2026-09-09
 
 ### Fixed
