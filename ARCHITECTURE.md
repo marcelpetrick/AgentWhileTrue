@@ -116,9 +116,9 @@ tests exercise the same supervisor and policy paths as the Konsole adapter.
 flowchart TD
     scan["Discover selected Konsole session"] --> identity{"Same service, session, PID,<br/>start time, and TTY?"}
     identity -- no --> refuse["Refuse and record reason"]
-    identity -- yes --> class{"Supported local Codex<br/>or Claude process?"}
-    class -- no --> refuse
-    class -- yes --> prompt{"Exact current prompt<br/>recognized without veto?"}
+    identity -- yes --> process_type{"Supported local Codex<br/>or Claude process?"}
+    process_type -- no --> refuse
+    process_type -- yes --> prompt{"Exact current prompt<br/>recognized without veto?"}
     prompt -- no --> refuse
     prompt -- yes --> quota{"Fresh quota exhausted or available<br/>as required, with no other limit?"}
     quota -- no or unknown --> refuse

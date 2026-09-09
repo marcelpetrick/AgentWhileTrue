@@ -7,6 +7,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.36.10] - 2026-09-09
+
+### Fixed
+
+- Renamed a reserved Mermaid node identifier so GitHub and browser renderers
+  display the guarded-resume architecture flow correctly.
+
 ## [0.36.9] - 2026-09-09
 
 ### Fixed
