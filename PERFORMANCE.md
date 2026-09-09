@@ -15,6 +15,8 @@ Measured on 2026-09-09 with:
   Claude sessions;
 - the default 2-second selected-session scan interval;
 - the required 1-second provider-health interval;
+- no configured HTTP or HTTPS proxy, so the persistent direct transport was
+  active;
 - observe mode, `--all`, `--no-fzf`, and `--no-color`;
 - output redirected to `/dev/null` so terminal rendering did not dominate the
   process measurement.
@@ -79,10 +81,13 @@ connections as the implementation:
 
 This is about 1.27 KB of compressed response bodies per second across both
 providers. HTTP headers and the initial DNS/TCP/TLS setup are not included in
-that body count. Connections stay open between checks, response bodies are
-bounded to 128 KiB compressed and decompressed, and transport failure closes the
-connection so the next check reconnects cleanly. Unknown or failed responses
-remain `UNKNOWN`; connection reuse does not reuse authorization decisions.
+that body count. On the measured direct path, connections stay open between
+checks, response bodies are bounded to 128 KiB compressed and decompressed, and
+transport failure closes the connection so the next check reconnects cleanly.
+When an HTTP(S) proxy is configured, Agent While True preserves the
+standard-library proxy-aware transport instead; its CPU and traffic
+characteristics were not measured here. Unknown or failed responses remain
+`UNKNOWN`; connection reuse does not reuse authorization decisions.
 
 ## Evaluation
 
