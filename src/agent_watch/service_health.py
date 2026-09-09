@@ -1,25 +1,51 @@
-"""Memory-only provider health from the providers' public status pages."""
+"""Memory-only provider health from public, component-specific status APIs."""
 
 from __future__ import annotations
 
 import enum
+import gzip
+import io
 import json
 import threading
 import urllib.error
 import urllib.request
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
+from typing import Any
 
 STATUS_URLS = {
     "openai": "https://status.openai.com/api/v2/summary.json",
-    "anthropic": "https://status.anthropic.com/api/v2/summary.json",
+    "anthropic": "https://status.claude.com/api/v2/summary.json",
 }
+
+
+@dataclass(frozen=True, slots=True)
+class Component:
+    """A stable status component, with its name retained as a migration fallback."""
+
+    component_id: str
+    name: str
+
+
 WATCHED_COMPONENTS = {
-    "openai": ("Responses", "Login"),
-    "anthropic": ("Claude Code", "Claude API (api.anthropic.com)"),
+    # Codex CLI uses the Codex service. Generic Responses and duplicate Login
+    # components can report unrelated API or ChatGPT incidents.
+    "openai": (Component("01KMP3KP5MGE23B80K1EK4S8PV", "Codex API"),),
+    "anthropic": (
+        Component("yyzkbfz2thpt", "Claude Code"),
+        Component("k8w3r06qmzrp", "Claude API (api.anthropic.com)"),
+    ),
 }
 REQUEST_TIMEOUT_SECONDS = 3.0
+MAX_RESPONSE_BYTES = 128 * 1024
+_STATUS_STATES = {
+    "operational": 0,
+    "under_maintenance": 1,
+    "degraded_performance": 1,
+    "partial_outage": 1,
+    "major_outage": 2,
+}
 
 
 class HealthState(enum.StrEnum):
@@ -41,92 +67,160 @@ def unknown_health(provider: str, detail: str = "not-checked") -> ProviderHealth
     return ProviderHealth(provider, HealthState.UNKNOWN, detail)
 
 
-def _state(statuses: list[str], indicator: str) -> HealthState:
-    values = {value.casefold() for value in statuses}
-    if values & {"major_outage", "critical"} or indicator.casefold() == "critical":
-        return HealthState.OUTAGE
-    if values - {"operational"} or indicator.casefold() not in {"", "none"}:
-        return HealthState.DEGRADED
-    return HealthState.ONLINE
+def _selected_components(provider: str, components: list[object]) -> list[tuple[str, str]] | None:
+    records = [component for component in components if isinstance(component, dict)]
+    selected: list[tuple[str, str]] = []
+    for wanted in WATCHED_COMPONENTS[provider]:
+        matches = [item for item in records if item.get("id") == wanted.component_id]
+        if not matches:
+            # Names are less stable than IDs, but allow a provider migration only
+            # when the fallback is unambiguous. OpenAI currently has duplicate
+            # Login names, which is why a unique-name requirement matters.
+            matches = [item for item in records if item.get("name") == wanted.name]
+        if len(matches) != 1:
+            return None
+        item = matches[0]
+        name, status = item.get("name"), item.get("status")
+        if not isinstance(name, str) or not isinstance(status, str):
+            return None
+        selected.append((name, status.casefold()))
+    return selected
 
 
 def parse_summary(provider: str, document: object, *, now: datetime) -> ProviderHealth:
-    """Reduce a Statuspage summary to the components relevant to this tool."""
+    """Reduce a public summary to only the components used by the local CLI."""
+    if provider not in WATCHED_COMPONENTS:
+        return unknown_health(provider, "unsupported-provider")
     if not isinstance(document, dict):
         return unknown_health(provider, "malformed-status")
-    wanted = WATCHED_COMPONENTS[provider]
     components = document.get("components")
     if not isinstance(components, list):
         return unknown_health(provider, "missing-components")
-    selected: list[tuple[str, str]] = []
-    for component in components:
-        if not isinstance(component, dict) or component.get("name") not in wanted:
-            continue
-        status = component.get("status")
-        if isinstance(status, str):
-            selected.append((str(component["name"]), status))
-    if len(selected) != len(wanted):
+    selected = _selected_components(provider, components)
+    if selected is None:
         return unknown_health(provider, "component-not-found")
-    overall = document.get("status")
-    indicator = overall.get("indicator", "") if isinstance(overall, dict) else ""
-    state = _state([status for _, status in selected], str(indicator))
+    if any(status not in _STATUS_STATES for _, status in selected):
+        return unknown_health(provider, "unknown-component-status")
+    severity = max(_STATUS_STATES[status] for _, status in selected)
+    state = (HealthState.ONLINE, HealthState.DEGRADED, HealthState.OUTAGE)[severity]
     detail = ", ".join(f"{name}={status}" for name, status in selected)
     return ProviderHealth(provider, state, detail, now)
 
 
+def _read_document(response: Any) -> object:
+    compressed = response.read(MAX_RESPONSE_BYTES + 1)
+    if len(compressed) > MAX_RESPONSE_BYTES:
+        raise ValueError("status response too large")
+    encoding = response.headers.get("Content-Encoding", "").casefold()
+    if encoding == "gzip":
+        with gzip.GzipFile(fileobj=io.BytesIO(compressed)) as stream:
+            document_bytes = stream.read(MAX_RESPONSE_BYTES + 1)
+    elif encoding in {"", "identity"}:
+        document_bytes = compressed
+    else:
+        raise ValueError("unsupported status encoding")
+    if len(document_bytes) > MAX_RESPONSE_BYTES:
+        raise ValueError("status response too large")
+    return json.loads(document_bytes)
+
+
+@dataclass(slots=True)
+class StatusPageClient:
+    """Small conditional-GET client for one provider's public status page."""
+
+    provider: str
+    opener: Callable[..., Any] = urllib.request.urlopen
+    _etag: str | None = field(init=False, default=None, repr=False)
+    _cached: ProviderHealth | None = field(init=False, default=None, repr=False)
+
+    def fetch(self, *, now: datetime | None = None) -> ProviderHealth:
+        checked_at = now or datetime.now(UTC)
+        headers = {
+            "Accept": "application/json",
+            "Accept-Encoding": "gzip",
+            "User-Agent": "AgentWhileTrue service-health",
+        }
+        if self._etag:
+            headers["If-None-Match"] = self._etag
+        request = urllib.request.Request(STATUS_URLS[self.provider], headers=headers)
+        try:
+            with self.opener(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
+                document = _read_document(response)
+                etag = response.headers.get("ETag")
+        except urllib.error.HTTPError as error:
+            if error.code == 304 and self._cached is not None:
+                return replace(self._cached, checked_at=checked_at)
+            return unknown_health(self.provider, "status-unreachable")
+        except (OSError, ValueError, urllib.error.URLError, json.JSONDecodeError):
+            return unknown_health(self.provider, "status-unreachable")
+        health = parse_summary(self.provider, document, now=checked_at)
+        if health.state is not HealthState.UNKNOWN:
+            self._cached = health
+            self._etag = etag if isinstance(etag, str) else None
+        return health
+
+
 def fetch_summary(provider: str, *, now: datetime | None = None) -> ProviderHealth:
-    """Fetch one provider summary without credentials or model requests."""
-    request = urllib.request.Request(
-        STATUS_URLS[provider], headers={"User-Agent": "AgentWhileTrue service-health"}
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
-            document = json.loads(response.read(512 * 1024))
-    except (OSError, ValueError, urllib.error.URLError, json.JSONDecodeError):
-        return unknown_health(provider, "status-unreachable")
-    return parse_summary(provider, document, now=now or datetime.now(UTC))
+    """Perform one credential-free status request without retaining validators."""
+    return StatusPageClient(provider).fetch(now=now)
 
 
 @dataclass(slots=True)
 class HealthMonitor:
-    """Poll status pages off the supervisor thread and expose the latest cache."""
+    """Poll each status API independently and expose a tiny memory-only cache."""
 
-    interval: float = 60.0
-    fetch: Callable[[str], ProviderHealth] = fetch_summary
+    interval: float = 1.0
+    fetch: Callable[[str], ProviderHealth] | None = None
     _lock: threading.Lock = field(init=False, repr=False)
     _stop: threading.Event = field(init=False, repr=False)
-    _thread: threading.Thread | None = field(init=False, default=None, repr=False)
+    _threads: list[threading.Thread] = field(init=False, default_factory=list, repr=False)
     _latest: dict[str, ProviderHealth] = field(init=False, repr=False)
+    _clients: dict[str, StatusPageClient] = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
         self._lock = threading.Lock()
         self._stop = threading.Event()
         self._latest = {provider: unknown_health(provider) for provider in STATUS_URLS}
+        self._clients = {provider: StatusPageClient(provider) for provider in STATUS_URLS}
+
+    def _fetch(self, provider: str) -> ProviderHealth:
+        if self.fetch is not None:
+            return self.fetch(provider)
+        return self._clients[provider].fetch()
+
+    def _poll_provider(self, provider: str) -> None:
+        health = self._fetch(provider)
+        with self._lock:
+            self._latest[provider] = health
 
     def poll_once(self) -> None:
-        latest = {provider: self.fetch(provider) for provider in STATUS_URLS}
-        with self._lock:
-            self._latest = latest
+        for provider in STATUS_URLS:
+            self._poll_provider(provider)
 
     def snapshot(self) -> dict[str, ProviderHealth]:
         with self._lock:
             return dict(self._latest)
 
     def start(self) -> None:
-        if self._thread is not None:
+        if self._threads:
             return
-        self._thread = threading.Thread(target=self._run, name="provider-health", daemon=True)
-        self._thread.start()
+        for provider in STATUS_URLS:
+            thread = threading.Thread(
+                target=self._run_provider,
+                args=(provider,),
+                name=f"provider-health-{provider}",
+                daemon=True,
+            )
+            self._threads.append(thread)
+            thread.start()
 
     def stop(self) -> None:
         self._stop.set()
-        if self._thread is not None:
-            self._thread.join(timeout=REQUEST_TIMEOUT_SECONDS * len(STATUS_URLS) + 1)
+        for thread in self._threads:
+            thread.join(timeout=REQUEST_TIMEOUT_SECONDS + 1)
 
-    def _run(self) -> None:
+    def _run_provider(self, provider: str) -> None:
         while not self._stop.is_set():
-            self.poll_once()
-            # One second is the supported floor. It satisfies fast dashboards
-            # without allowing a malformed zero interval to busy-loop against
-            # public infrastructure.
+            self._poll_provider(provider)
+            # One second is the supported floor: responsive without busy-looping.
             self._stop.wait(max(1.0, self.interval))

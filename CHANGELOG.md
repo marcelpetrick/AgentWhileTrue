@@ -7,6 +7,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.34.1] - 2026-09-09
+
+### Fixed
+
+- Service health now follows the official Codex API, Claude Code, and Claude API
+  component IDs instead of generic OpenAI components or page-wide incidents.
+- OpenAI and Anthropic are polled independently once per second through their
+  canonical public JSON endpoints, with gzip, ETag revalidation, bounded
+  responses, strict status parsing, and `UNKNOWN` on every ambiguity or error.
+
 ## [0.34.0] - 2026-09-09
 
 ### Changed

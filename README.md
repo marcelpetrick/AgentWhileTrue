@@ -39,13 +39,15 @@ example, `[████░] 84%` means that 84% of the window has been used. `PR
 RESET` is the reset time parsed from the blocking terminal prompt; `QUOTA
 RESET` is the separate reset time reported by the provider quota source.
 
-The header reports public service health for OpenAI Responses/Login and
-Anthropic Claude Code/API. These are cached status-page observations, not paid
-model calls, and `UNKNOWN` is shown when the network or status data is unusable.
-The observation age refreshes with the dashboard; the public endpoints are
-polled once per second in the background by default (`STATUS_POLL_INTERVAL=1s`).
-One second is the enforced lower bound; increase it if you prefer less network
-traffic.
+The header reports public service health for OpenAI Codex API and Anthropic
+Claude Code/API. These are cached observations from the providers' public JSON
+status APIs, not paid model calls, and `UNKNOWN` is shown when the network,
+schema, component identity, or component status is unusable. Each provider is
+polled independently once per second in the background by default
+(`STATUS_POLL_INTERVAL=1s`), so one slow endpoint cannot delay the other. The
+client requests gzip and uses ETag revalidation when offered, keeping unchanged
+responses small. One second is the enforced lower bound; increase it if you
+prefer less network traffic.
 
 Neither provider publishes reliable predictive peak-load hours. The dashboard
 therefore says `not published` instead of presenting speculation. If you have a
