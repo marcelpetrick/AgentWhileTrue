@@ -71,7 +71,7 @@ Install the current release from GitHub with `pipx` so the CLI is isolated while
 remaining available at `~/.local/bin/agent-while-true`:
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.36.4'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.36.5'
 agent-while-true --version
 agent-while-true doctor
 ```
@@ -153,6 +153,15 @@ Start with observe mode. It runs the complete detection path but cannot type:
 
 ```bash
 agent-while-true run --observe --all
+```
+
+Only one input-capable instance may run. If the background service owns the
+lock, stop it before opening the interactive TUI, then restore it after quitting:
+
+```bash
+systemctl --user stop agent-watch.service
+agent-while-true run --observe --all  # press Shift+A to enable full auto
+systemctl --user start agent-watch.service
 ```
 
 On an interactive terminal this opens a fully framed color dashboard inspired

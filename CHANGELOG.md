@@ -7,6 +7,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.36.5] - 2026-09-09
+
+### Documentation
+
+- Added the short command sequence for handing the single-instance lock between
+  the background service and the interactive TUI.
+
 ## [0.36.4] - 2026-09-09
 
 ### Removed
