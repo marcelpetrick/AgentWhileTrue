@@ -7,6 +7,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.34.0] - 2026-09-09
+
+### Changed
+
+- Updated the README's dashboard screenshot to the v0.33.0 interface and kept
+  the v0.24.0 screenshot in `media/` as an archival record.
+
 ## [0.33.0] - 2026-09-08
 
 ### Changed

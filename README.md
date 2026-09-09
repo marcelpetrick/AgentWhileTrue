@@ -18,7 +18,7 @@ terminal, process identity, prompt, quota source, and policy all agree.
 
 ## Current state of the solution
 
-![Agent While True auto-mode TUI showing four blocked sessions](media/agentWhileTrue.png)
+![Agent While True v0.33.0 auto-mode dashboard](media/agentWhileTrue_v0.33.0.png)
 
 The main interface keeps independently recognized terminal state and provider
 quota visible for every selected Codex and Claude session. Red or unknown data
