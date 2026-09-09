@@ -71,7 +71,7 @@ Install the current release from GitHub with `pipx` so the CLI is isolated while
 remaining available at `~/.local/bin/agent-while-true`:
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.36.6'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.36.7'
 agent-while-true --version
 agent-while-true doctor
 ```
@@ -81,8 +81,9 @@ For development, clone the standalone repository:
 ```bash
 git clone https://github.com/marcelpetrick/AgentWhileTrue.git
 cd AgentWhileTrue
-python3 -m pip install --user -e '.[dev]'
-./localPipeline.sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -e '.[dev]'
+PATH="$PWD/.venv/bin:$PATH" ./localPipeline.sh
 ```
 
 For an end-to-end setup from a checkout, including all checks and the main
@@ -116,7 +117,7 @@ known window:
 Claude pts/4 PID 769257
   availability: EXHAUSTED
   source:       claude-statusline
-  session       100.0%  reset 03:20
+  session       100.0%  reset 03:20 (4h)
 ```
 
 Provider state and terminal state are intentionally separate. A quota may be
@@ -374,7 +375,7 @@ acceptance steps.
 
 ```bash
 ./localPipeline.sh
-python3 -m pytest -m konsole  # set AGENT_WATCH_LIVE_KONSOLE=1 for the live test
+AGENT_WATCH_LIVE_KONSOLE=1 python3 -m pytest -q -m konsole
 ```
 
 The local pipeline is the canonical release gate. It checks Python 3.12+, Ruff

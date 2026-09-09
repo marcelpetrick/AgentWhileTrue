@@ -7,6 +7,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.36.7] - 2026-09-09
+
+### Documentation
+
+- Replaced the historical execution plan with a current implementation,
+  acceptance, maintenance, delivery, and deferred-scope roadmap.
+- Reduced the machine TODO to the genuine-reset validation that remains and
+  reconciled README setup/examples plus the vision document navigation.
+
 ## [0.36.6] - 2026-09-09
 
 ### Documentation

@@ -1,5 +1,10 @@
 # Agent While True — Vision
 
+This document is the long-lived product and safety vision. For current delivery
+status, see [PLAN.md](PLAN.md); for the implemented C4 model and runtime flows,
+see [ARCHITECTURE.md](ARCHITECTURE.md); for the final live-machine acceptance
+gate, see [todo.md](todo.md).
+
 ## 1. Purpose
 
 Agent While True is a Linux-first agent budget watch and babysitter for interactive AI coding-agent sessions running inside KDE Konsole.
@@ -814,7 +819,7 @@ These states must never trigger automatic input.
 
 ---
 
-# 28. Dangerous Conditions That Must Be Considered
+## 28. Dangerous Conditions That Must Be Considered
 
 The following are safety-critical.
 
