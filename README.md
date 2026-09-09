@@ -49,11 +49,15 @@ client requests gzip and uses ETag revalidation when offered, keeping unchanged
 responses small. One second is the enforced lower bound; increase it if you
 prefer less network traffic.
 
-Neither provider publishes reliable predictive peak-load hours. The dashboard
-therefore says `not published` instead of presenting speculation. If you have a
-known local operations window, set `OPENAI_PEAK_HOURS` or
-`ANTHROPIC_PEAK_HOURS` to a display hint such as
-`15:00-19:00 Europe/Berlin`; these hints never affect automation policy.
+The dashboard does not claim predictive peak hours. There is no public live
+schedule API for either provider, and Anthropic [removed Claude Code's peak-hour
+limit reduction](https://www.anthropic.com/news/higher-limits-spacex) for Pro
+and Max accounts on May 6, 2026. In contrast, `abtop` currently
+[hard-codes 12:00-18:00 UTC](https://github.com/graykode/abtop/blob/148f64d04663181850519fb36e3c2ca84a9136a6/src/ui/footer.rs#L136-L149)
+without consulting a provider API, weekdays, or Pacific daylight-saving time.
+Legacy `OPENAI_PEAK_HOURS` and `ANTHROPIC_PEAK_HOURS` settings are accepted for
+configuration compatibility but ignored, so guesses cannot look authoritative
+or influence automation.
 
 The primary command is `agent-while-true`. The shorter `agent-watch` command is
 kept as a compatible alias, so existing scripts and the examples below continue

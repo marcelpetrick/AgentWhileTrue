@@ -320,10 +320,6 @@ def _loop(supervisor: Supervisor, config: Config, args: argparse.Namespace, stre
                         show_events=dashboard.show_events,
                         history_length=dashboard.history_length,
                         service_health=health.snapshot(),
-                        peak_hours={
-                            "openai": config.openai_peak_hours,
-                            "anthropic": config.anthropic_peak_hours,
-                        },
                     )
                     + "\n"
                 )
@@ -446,11 +442,6 @@ USAGE_POLL_INTERVAL=60s
 # Public status summaries are cached off the supervisor thread. The TUI still
 # refreshes their age every second when its display interval is 1s.
 STATUS_POLL_INTERVAL=1s
-
-# Providers do not publish predictive peak-load hours. Optional local display
-# hints may be configured explicitly, for example "15:00-19:00 Europe/Berlin".
-OPENAI_PEAK_HOURS=not published
-ANTHROPIC_PEAK_HOURS=not published
 
 # Extra wait after the provider's nominal reset, because a reset timestamp can
 # pass while usage is not yet actually available.

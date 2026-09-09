@@ -69,6 +69,14 @@ def test_unknown_setting_is_an_error_not_a_silent_default(tmp_path: Path) -> Non
         load(config_path=path, environ={})
 
 
+def test_obsolete_peak_hints_are_accepted_but_ignored(tmp_path: Path) -> None:
+    path = tmp_path / "config"
+    path.write_text("OPENAI_PEAK_HOURS=guess\nANTHROPIC_PEAK_HOURS=guess\n")
+    config = load(config_path=path, environ={"AGENT_WATCH_ANTHROPIC_PEAK_HOURS": "guess"})
+    assert not hasattr(config, "openai_peak_hours")
+    assert not hasattr(config, "anthropic_peak_hours")
+
+
 def test_malformed_line_is_an_error(tmp_path: Path) -> None:
     path = tmp_path / "config"
     path.write_text("this is not a setting\n")

@@ -7,6 +7,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.34.2] - 2026-09-09
+
+### Fixed
+
+- Removed configurable peak-hour guesses from the dashboard. Anthropic has
+  removed Claude Code's peak-hour limit reduction for Pro and Max accounts, no
+  provider publishes a live schedule API, and legacy hint keys are now accepted
+  only for configuration compatibility and ignored.
+
 ## [0.34.1] - 2026-09-09
 
 ### Fixed

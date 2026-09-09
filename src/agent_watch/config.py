@@ -22,6 +22,7 @@ _UNIT_SECONDS = {"ms": 0.001, "s": 1.0, "m": 60.0, "h": 3600.0}
 _TRUE = {"1", "true", "yes", "on"}
 _FALSE = {"0", "false", "no", "off"}
 _ENV_PREFIX = "AGENT_WATCH_"
+_OBSOLETE_KEYS = {"OPENAI_PEAK_HOURS", "ANTHROPIC_PEAK_HOURS"}
 
 
 class ConfigError(ValueError):
@@ -112,8 +113,6 @@ class Config:
     scan_interval: float = 2.0
     usage_poll_interval: float = 60.0
     status_poll_interval: float = 1.0
-    openai_peak_hours: str = "not published"
-    anthropic_peak_hours: str = "not published"
     reset_grace: float = 60.0
     max_resume_attempts: int = 3
     retry_delays: tuple[float, ...] = (5.0, 30.0, 60.0)
@@ -149,8 +148,6 @@ _KEYS: dict[str, tuple[str, str]] = {
     "SCAN_INTERVAL": ("scan_interval", "duration"),
     "USAGE_POLL_INTERVAL": ("usage_poll_interval", "duration"),
     "STATUS_POLL_INTERVAL": ("status_poll_interval", "duration"),
-    "OPENAI_PEAK_HOURS": ("openai_peak_hours", "text"),
-    "ANTHROPIC_PEAK_HOURS": ("anthropic_peak_hours", "text"),
     "RESET_GRACE": ("reset_grace", "duration"),
     "MAX_RESUME_ATTEMPTS": ("max_resume_attempts", "int"),
     "RETRY_DELAYS": ("retry_delays", "durations"),
@@ -222,6 +219,10 @@ def _apply(config: Config, values: dict[str, str], source: str) -> Config:
     updates: dict[str, object] = {}
     policy_updates: dict[str, object] = {}
     for key, raw in values.items():
+        # v0.32 generated these display-only hints. Accept them so existing
+        # installations still start, but never present them as provider data.
+        if key in _OBSOLETE_KEYS:
+            continue
         target = _KEYS.get(key)
         if target is None:
             raise ConfigError(f"{source}: unknown setting {key!r}")
@@ -248,7 +249,7 @@ def from_environ(environ: dict[str, str] | None = None) -> dict[str, str]:
     for key, value in env.items():
         if key.startswith(_ENV_PREFIX):
             bare = key.removeprefix(_ENV_PREFIX)
-            if bare in _KEYS:
+            if bare in _KEYS or bare in _OBSOLETE_KEYS:
                 collected[bare] = value
     return collected
 

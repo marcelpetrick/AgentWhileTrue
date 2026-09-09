@@ -242,7 +242,6 @@ def render_status(
     show_events: bool = True,
     history_length: int = 5,
     service_health: dict[str, ProviderHealth] | None = None,
-    peak_hours: dict[str, str] | None = None,
 ) -> str:
     """Render the running watcher's status table."""
     listed = list(sessions)
@@ -291,18 +290,6 @@ def render_status(
                 theme=theme,
             )
         )
-        if peak_hours:
-            lines.append(
-                _panel_line(
-                    "  peak-hours="
-                    f"OpenAI: {peak_hours.get('openai', 'not published')}   "
-                    f"Anthropic: {peak_hours.get('anthropic', 'not published')}",
-                    panel_width,
-                    "dim",
-                    color=color,
-                    theme=theme,
-                )
-            )
     lines.extend(
         (
             _panel_line("", panel_width, "surface", color=color, theme=theme),

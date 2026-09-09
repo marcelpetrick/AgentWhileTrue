@@ -121,7 +121,7 @@ def test_dashboard_shows_per_session_account_and_usage_meters() -> None:
     assert "[████░]" in text
 
 
-def test_dashboard_shows_cached_service_health_and_peak_disclosure() -> None:
+def test_dashboard_shows_cached_service_health() -> None:
     health = {
         "openai": ProviderHealth("openai", HealthState.ONLINE, "ok", NOW),
         "anthropic": ProviderHealth("anthropic", HealthState.DEGRADED, "incident", NOW),
@@ -131,13 +131,11 @@ def test_dashboard_shows_cached_service_health_and_peak_disclosure() -> None:
         now=NOW + timedelta(seconds=1),
         config=Config(),
         service_health=health,
-        peak_hours={"openai": "not published", "anthropic": "16:00-20:00 local"},
     )
     assert "OpenAI: ONLINE (1s ago)" in text
     assert "Anthropic: DEGRADED" in text
     assert "incident" in text
-    assert "OpenAI: not published" in text
-    assert "Anthropic: 16:00-20:00 local" in text
+    assert "peak-hours" not in text
 
 
 def test_dashboard_explains_service_errors_and_refuses_stale_online_state() -> None:
