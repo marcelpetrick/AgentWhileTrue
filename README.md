@@ -71,7 +71,7 @@ Install the current release from GitHub with `pipx` so the CLI is isolated while
 remaining available at `~/.local/bin/agent-while-true`:
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.36.8'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.36.9'
 agent-while-true --version
 agent-while-true doctor
 ```
@@ -186,8 +186,10 @@ output.
 | `q` | Quit and restore the terminal |
 
 Like btop, `+` makes the interval number larger and therefore refreshes more
-slowly. Non-interactive observe output stays ANSI-free and separates scans with
-a blank line for readable logs.
+slowly. Selected sessions use that interval, while full Konsole rediscovery runs
+every 30 seconds or immediately after `r`; this avoids spawning discovery calls
+on every dashboard frame. Non-interactive observe output stays ANSI-free and
+separates scans with a blank line for readable logs.
 
 Other modes are:
 

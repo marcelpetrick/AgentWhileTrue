@@ -58,6 +58,7 @@ from agent_watch.version import __version__
 EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_INTERRUPTED = 130
+REDISCOVERY_INTERVAL_SECONDS = 30.0
 
 ROOT_WARNING = """\
 WARNING: Agent While True should run as your KDE desktop user, not as root.
@@ -333,6 +334,8 @@ def _loop(
     last_event = ""
     event_history: list[str] = []
     health = HealthMonitor(interval=config.status_poll_interval)
+    # command_run() has just completed initial discovery and selection.
+    next_rediscovery = time.monotonic() + REDISCOVERY_INTERVAL_SECONDS
     if not args.once:
         health.start()
     if interactive:
@@ -340,9 +343,13 @@ def _loop(
     try:
         while not stop["requested"]:
             if not dashboard.paused:
-                supervisor.prune_and_rebind()
-                if args.all:
-                    _sync_all_sessions(supervisor, show_accounts=interactive)
+                monotonic_now = time.monotonic()
+                if dashboard.rescan_requested or monotonic_now >= next_rediscovery:
+                    supervisor.prune_and_rebind()
+                    if args.all:
+                        _sync_all_sessions(supervisor, show_accounts=interactive)
+                    next_rediscovery = monotonic_now + REDISCOVERY_INTERVAL_SECONDS
+                    dashboard.rescan_requested = False
                 decisions = supervisor.tick()
                 last_event = _summarise(supervisor.sessions.values(), decisions) or last_event
                 event_history = read_history(config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES)
@@ -384,7 +391,6 @@ def _loop(
                     event_history = read_history(
                         config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
                     )
-                dashboard.rescan_requested = False
             else:
                 time.sleep(dashboard.interval)
         return EXIT_INTERRUPTED

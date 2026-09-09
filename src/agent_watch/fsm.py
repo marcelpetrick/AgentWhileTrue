@@ -283,12 +283,10 @@ class Supervisor:
             source = self.quota_sources.get(session.provider_name)
             if source is None:
                 continue
-            try:
-                pid = self.terminal.foreground_pid(session.ref)
-            except TerminalError:
-                continue
-            if pid > 0:
-                source.snapshot(pid=pid)
+            # This warm-up only populates account-bound quota caches. The live
+            # foreground PID is independently re-read by observe() before any
+            # decision, and again immediately before an action.
+            source.snapshot(pid=session.identity.pid)
 
     def _detect_time_jump(self, now: datetime) -> bool:
         monotonic = self.monotonic_fn()
