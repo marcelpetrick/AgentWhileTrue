@@ -109,3 +109,22 @@ def test_invalid_interval_fields_and_long_interval_are_ignored(tmp_path: Path) -
     )
     text = render_summary(path, now=NOW, days=1)
     assert "session-time: unavailable" in text
+
+
+def test_unconvertible_timestamp_does_not_break_report(tmp_path: Path, monkeypatch) -> None:
+    from agent_watch import summary
+
+    class BadLocalDate:
+        def astimezone(self, zone):
+            raise ValueError("year 0 is out of range")
+
+    class LocalDatetime:
+        @staticmethod
+        def strptime(raw, fmt):
+            return BadLocalDate()
+
+    path = tmp_path / "agent-watch.log"
+    path.write_text("0001-01-01 00:00:00,000 INFO event=resume_sent\n")
+    monkeypatch.setattr(summary, "datetime", LocalDatetime)
+    text = render_summary(path, now=NOW, days=1)
+    assert "sent=0" in text

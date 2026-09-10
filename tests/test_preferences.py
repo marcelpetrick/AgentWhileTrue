@@ -152,6 +152,15 @@ def test_wrong_boolean_version_is_rejected(tmp_path: Path) -> None:
     assert _state_snapshot(state) == before
 
 
+def test_oversized_integer_uses_defaults_instead_of_crashing(tmp_path: Path) -> None:
+    path = tmp_path / "preferences.json"
+    path.write_text('{"version":' + "9" * 5000 + "}")
+    state = DashboardState.from_interval(2)
+    before = _state_snapshot(state)
+    load_preferences(path, state)
+    assert _state_snapshot(state) == before
+
+
 def test_replace_failure_preserves_existing_file_and_cleans_temp_files(
     tmp_path: Path, monkeypatch
 ) -> None:

@@ -49,11 +49,11 @@ def _log_paths(path: Path) -> tuple[Path, ...]:
 def _local_stamp(raw: str, now: datetime) -> datetime | None:
     try:
         parsed = datetime.strptime(raw, "%Y-%m-%d %H:%M:%S,%f")
-    except ValueError:
+        # Logging timestamps use the host's local wall clock. Extreme dates
+        # can parse successfully but fail while converting the local offset.
+        return parsed.astimezone(UTC).astimezone(now.tzinfo or UTC)
+    except (ValueError, OverflowError, OSError):
         return None
-    # Python logging timestamps have no offset and represent the host's local
-    # wall clock.  Interpret them in the host zone before comparing to `now`.
-    return parsed.astimezone(UTC).astimezone(now.tzinfo or UTC)
 
 
 def _events(path: Path, *, now: datetime, start: datetime) -> Iterator[_Event]:

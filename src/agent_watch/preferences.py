@@ -74,7 +74,7 @@ def load_preferences(path: Path, state: DashboardState) -> None:
             return
         document = json.loads(payload.decode("utf-8"))
         values = _validated_values(document)
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError, RecursionError):
+    except (OSError, ValueError, RecursionError):
         return
     if values is None:
         return
