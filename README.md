@@ -241,8 +241,9 @@ journalctl --user -u agent-watch.service -f  # service lifecycle/output
 ```
 
 The dashboard's `HISTORY` panel reads the same privacy-preserving event file.
-It retains the latest 50 entries in memory, even while showing only the chosen
-5, 10, 20, or 50 rows, so expanding the panel reveals what happened while you
+It shows 10 entries by default and retains the latest 50 entries in memory, even
+while showing only the chosen 5, 10, 20, or 50 rows, so expanding the panel
+reveals what happened while you
 were away. Successful terminal retriggers appear as `resume_sent`, followed by
 their verification result. History records fingerprints and pattern IDs, never
 terminal text, prompts, credentials, or environment values.

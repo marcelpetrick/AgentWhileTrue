@@ -7,6 +7,12 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.36.14] - 2026-09-10
+
+### Fixed
+
+- Show 10 history entries by default instead of 5 in the dashboard.
+
 ## [0.36.13] - 2026-09-09
 
 ### Documentation

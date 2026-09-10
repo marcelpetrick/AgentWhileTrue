@@ -262,7 +262,7 @@ def render_status(
     width: int = 100,
     events: Sequence[str] = (),
     show_events: bool = True,
-    history_length: int = 5,
+    history_length: int = 10,
     service_health: dict[str, ProviderHealth] | None = None,
 ) -> str:
     """Render the running watcher's status table."""

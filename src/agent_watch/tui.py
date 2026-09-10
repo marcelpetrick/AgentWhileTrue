@@ -29,7 +29,7 @@ class DashboardState:
     theme_index: int = 0
     rescan_requested: bool = False
     show_events: bool = True
-    history_index: int = 0
+    history_index: int = 1
     mode_toggle_requested: bool = False
 
     @classmethod
