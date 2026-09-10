@@ -8,6 +8,8 @@ from datetime import datetime
 
 from agent_watch.fsm import SupervisedSession
 from agent_watch.logging_setup import EventLogger
+from agent_watch.proc import ProcessIdentity
+from agent_watch.terminal.base import SessionRef
 
 _BLOCKED = {"LIMIT_BLOCKED", "WAITING_FOR_RESET", "RESET_GRACE_PERIOD", "READY_TO_RESUME"}
 _KNOWN = _BLOCKED | {"ACTIVE", "LIMIT_WARNING"}
@@ -31,7 +33,7 @@ class ObservationMetrics:
 
     def __init__(self, log: EventLogger) -> None:
         self.log = log
-        self.samples: dict[str, _Sample] = {}
+        self.samples: dict[tuple[SessionRef, ProcessIdentity], _Sample] = {}
 
     def _flush(self, sample: _Sample) -> None:
         if sample.at > sample.start:
@@ -48,13 +50,17 @@ class ObservationMetrics:
     def record(
         self, sessions: Iterable[SupervisedSession], *, monotonic: float, max_gap: float
     ) -> None:
-        live: set[str] = set()
+        live: set[tuple[SessionRef, ProcessIdentity]] = set()
         for session in sessions:
-            key = session.ref.key() + session.identity.key()
+            key = (session.ref, session.identity)
             live.add(key)
             previous = self.samples.get(key)
             at = session.observed_at
-            if at is None or session.observed_state not in _KNOWN:
+            if (
+                at is None
+                or session.observed_state not in _KNOWN
+                or (session.decision_at is not None and at < session.decision_at)
+            ):
                 if previous:
                     self._flush(previous)
                     del self.samples[key]

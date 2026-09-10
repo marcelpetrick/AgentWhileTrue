@@ -7,6 +7,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.40.2] - 2026-09-10
+
+### Fixed
+
+- Keep measurement identities separate even when session/PID suffixes coincide,
+  and reject cached pre-pause evidence when starting a new sampled interval.
+
 ## [0.40.1] - 2026-09-10
 
 ### Fixed

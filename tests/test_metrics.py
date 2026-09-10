@@ -68,3 +68,45 @@ def test_metrics_flush_periodically_and_do_not_count_repeated_cached_observation
     assert len(log.rows) == 2
     assert sum((fields["end"] - fields["start"]).total_seconds() for _, fields in log.rows) == 64
     assert all(not fields["blocked"] for _, fields in log.rows)
+
+
+def test_cached_observation_after_pause_cannot_seed_measured_time() -> None:
+    log = RecordingLog()
+    metrics = ObservationMetrics(log)
+    session = SupervisedSession(
+        SessionRef("konsole", "org.kde.konsole-1", "/Sessions/1"),
+        ProcessIdentity(123, 1, "pts/1", "/bin/claude"),
+        "claude",
+        observed_state="LIMIT_BLOCKED",
+        observed_at=NOW,
+        decision_at=NOW,
+    )
+    metrics.record([session], monotonic=0, max_gap=4)
+    metrics.reset()
+    session.decision_at = NOW + timedelta(seconds=1)
+    metrics.record([session], monotonic=1, max_gap=4)  # resumed but timer skipped observation
+    session.observed_at = session.decision_at = NOW + timedelta(seconds=2)
+    metrics.record([session], monotonic=2, max_gap=4)
+    metrics.reset()
+    assert log.rows == []
+
+
+def test_similar_session_and_pid_suffixes_stay_independent() -> None:
+    log = RecordingLog()
+    metrics = ObservationMetrics(log)
+    sessions = [
+        SupervisedSession(
+            SessionRef("konsole", "org.kde.konsole-1", f"/Sessions/{suffix}"),
+            ProcessIdentity(pid, 1, "pts/1", "/bin/claude"),
+            "claude",
+            observed_state="LIMIT_BLOCKED",
+            observed_at=NOW,
+        )
+        for suffix, pid in ((1, 23), (12, 3))
+    ]
+    metrics.record(sessions, monotonic=0, max_gap=4)
+    for session in sessions:
+        session.observed_at = NOW + timedelta(seconds=2)
+    metrics.record(sessions, monotonic=2, max_gap=4)
+    metrics.reset()
+    assert len(log.rows) == 2
