@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Codex CLI prompt recognition.
 
 Patterns were taken from the strings shipped inside the Codex CLI 0.153.2

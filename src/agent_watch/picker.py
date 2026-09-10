@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """The interactive session picker.
 
 The picker is a safety mechanism before it is a convenience. Nothing is

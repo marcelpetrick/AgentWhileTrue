@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Marcel Petrick
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # Agent While True — Vision
 
 This document is the long-lived product and safety vision. For current delivery

@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+# SPDX-License-Identifier: GPL-3.0-or-later
+version = 1
+
+# Generated source-package metadata has no comment syntax. This deliberately
+# narrow exception does not excuse missing annotations in source files.
+[[annotations]]
+path = ["PKG-INFO", "setup.cfg", "src/agent_while_true.egg-info/*"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Marcel Petrick"
+SPDX-License-Identifier = "GPL-3.0-or-later"

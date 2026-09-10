@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Display-only provider account identity discovery.
 
 Account emails are sensitive presentation data. They are read once when an

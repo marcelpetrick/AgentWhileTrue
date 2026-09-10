@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests for the event log.
 
 The central property is negative: terminal content must not be able to reach the

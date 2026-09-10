@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Classify the foreground process of a terminal session.
 
 Only a process that is *positively* identified as Codex or Claude Code may ever

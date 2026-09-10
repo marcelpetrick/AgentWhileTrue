@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+# SPDX-License-Identifier: GPL-3.0-or-later
+include *.md *.sh *.license
+include REUSE.toml .gitignore
+recursive-include LICENSES *.txt
+recursive-include scripts *.py *.sh
+recursive-include tests *.py
+recursive-include media *.png *.license
+recursive-include systemd *.service *.license
+recursive-include src *.license

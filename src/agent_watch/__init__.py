@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Agent While True: a conservative budget watch and babysitter for coding agents.
 
 The package watches KDE Konsole sessions that are running Codex CLI or Claude

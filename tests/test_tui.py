@@ -1,6 +1,44 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests for interactive dashboard state without touching a real terminal."""
 
+import pytest
+
+from agent_watch import tui
 from agent_watch.tui import INTERVALS, THEMES, DashboardState
+
+
+@pytest.mark.parametrize("ready", [False, True])
+def test_terminal_keys_restores_mode(monkeypatch, ready):
+    restored = []
+    monkeypatch.setattr(tui.sys.stdin, "fileno", lambda: 42)
+    monkeypatch.setattr(tui.termios, "tcgetattr", lambda fd: ["original"])
+    monkeypatch.setattr(tui.tty, "setcbreak", lambda fd: None)
+    monkeypatch.setattr(tui.select, "select", lambda *args: ([42] if ready else [], [], []))
+    monkeypatch.setattr(tui.os, "read", lambda *args: b"d")
+    monkeypatch.setattr(tui.termios, "tcsetattr", lambda *args: restored.append(args))
+    assert tui.TerminalKeys(True).read(0.5) == ("d" if ready else "")
+    assert restored == [(42, tui.termios.TCSADRAIN, ["original"])]
+    assert tui.TerminalKeys(False).read(0.5) == ""
+
+
+def test_terminal_keys_restores_mode_on_read_error(monkeypatch):
+    restored = []
+    monkeypatch.setattr(tui.sys.stdin, "fileno", lambda: 42)
+    monkeypatch.setattr(tui.termios, "tcgetattr", lambda fd: ["original"])
+    monkeypatch.setattr(tui.tty, "setcbreak", lambda fd: None)
+    monkeypatch.setattr(tui.select, "select", lambda *args: ([42], [], []))
+    monkeypatch.setattr(tui.termios, "tcsetattr", lambda *args: restored.append(args))
+
+    def fail(*args):
+        raise OSError("terminal closed")
+
+    monkeypatch.setattr(tui.os, "read", fail)
+    with pytest.raises(OSError, match="terminal closed"):
+        tui.TerminalKeys(True).read(0.5)
+    assert restored == [(42, tui.termios.TCSADRAIN, ["original"])]
 
 
 def test_refresh_keys_follow_btop_interval_direction() -> None:

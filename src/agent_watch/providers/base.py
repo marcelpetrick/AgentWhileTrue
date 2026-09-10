@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Provider-agnostic prompt recognition.
 
 A recognizer turns a bounded window of displayed text into a

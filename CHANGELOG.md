@@ -13,6 +13,18 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.41.0] - 2026-09-10
+
+### Added
+
+- Enforce 91% combined statement/branch coverage with additional identity,
+  process, status transport and terminal cleanup failure-path tests.
+- Annotate repository files with SPDX metadata and enforce REUSE compliance.
+- Generate and validate SPDX 2.3 and CycloneDX 1.6 runtime/release-artifact SBOMs.
+- Verify a freshly extracted source archive and install wheels outside the
+  checkout; retain profiles, coverage and SBOMs in CI/release artifacts.
+- Audit development/build dependencies in an isolated scheduled CI job.
+
 ## [0.40.3] - 2026-09-10
 
 ### Fixed

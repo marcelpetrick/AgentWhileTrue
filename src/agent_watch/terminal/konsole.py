@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """KDE Konsole adapter, driven through Konsole's per-session D-Bus interface.
 
 Using Konsole's own interface rather than desktop-wide input simulation is what

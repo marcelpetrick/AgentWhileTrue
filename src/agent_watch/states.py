@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """The state vocabulary shared by the recognizers, the policy gate and the FSM."""
 
 from __future__ import annotations

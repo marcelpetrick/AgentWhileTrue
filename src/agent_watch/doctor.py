@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Environment diagnostics.
 
 ``agent-watch doctor`` exists so that an unsupported environment says so in one

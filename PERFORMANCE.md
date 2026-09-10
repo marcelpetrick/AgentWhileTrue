@@ -156,3 +156,8 @@ GNU `time` command above for 30 seconds and measured 0.64 seconds user CPU,
 That is about 3.35% of one CPU including startup, shutdown, and subprocesses.
 No terminal input was sent. Session counts differed from the earlier sample,
 so this result is current evidence rather than a like-for-like comparison.
+
+Presentation keys now redraw cached observations until the next scheduled scan.
+A deterministic 20-key scroll burst previously caused 21 terminal/quota scans;
+it now causes one. Explicit rescan, resume, interval and mode changes still
+request fresh work, and every input action retains immediate safety revalidation.

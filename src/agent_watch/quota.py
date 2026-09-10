@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Provider quota state, kept strictly separate from terminal state.
 
 The vision insists on two sources of truth that must not be conflated: provider

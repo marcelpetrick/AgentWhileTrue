@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Bounded operational summaries derived from structured event logs.
 
 The summary is deliberately an aggregate view.  Log lines are parsed only far

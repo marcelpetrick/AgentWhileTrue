@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 #
 # The quality gate. The same entry point runs locally and in CI, so "it passed
 # on my machine" and "it passed in CI" mean the same thing.
@@ -57,6 +62,9 @@ run_tool() {
     fi
 }
 
+step "SPDX license coverage (REUSE)"
+run_tool reuse lint || fail "reuse lint"
+
 step "ruff (lint)"
 if [ "$FIX" -eq 1 ]; then
     run_tool ruff check --fix . || fail "ruff check"
@@ -75,7 +83,13 @@ step "shellcheck"
 if command -v shellcheck > /dev/null 2>&1; then
     # Every tracked shell script, including this one. `git ls-files` rather than
     # `find` so untracked scratch files never gate the build.
-    mapfile -t scripts < <(git ls-files '*.sh')
+    if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+        mapfile -t scripts < <(git ls-files '*.sh')
+    else
+        # A source archive has no Git index, but its integration scripts still
+        # need checking. Limit discovery to the shipped script directories.
+        mapfile -t scripts < <(find . -maxdepth 1 -type f -name '*.sh'; find scripts -type f -name '*.sh')
+    fi
     if [ "${#scripts[@]}" -gt 0 ]; then
         shellcheck --severity=style "${scripts[@]}" || fail "shellcheck"
     else
@@ -86,12 +100,16 @@ else
 fi
 
 step "git diff --check"
-git diff --check || fail "git diff --check"
+if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+    git diff --check || fail "git diff --check"
+else
+    printf 'source archive: no Git diff to check\n'
+fi
 
 step "pytest"
 if [ "$COVERAGE" -eq 1 ]; then
     run_tool pytest --cov=agent_watch --cov-report=term-missing --cov-report=xml \
-        --cov-fail-under=85 \
+        --cov-report=json --cov-fail-under=91 \
         || fail "pytest"
 else
     run_tool pytest || fail "pytest"

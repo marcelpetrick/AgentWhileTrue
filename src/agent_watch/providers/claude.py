@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Claude Code prompt recognition.
 
 Every pattern below was taken from the strings shipped inside the Claude Code

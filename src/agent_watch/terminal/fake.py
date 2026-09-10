@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """A scriptable in-memory terminal adapter.
 
 A real quota reset takes hours, so every dangerous path in this project has to

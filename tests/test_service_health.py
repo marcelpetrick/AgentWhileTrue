@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Provider status-page parsing, transport, and background-cache tests."""
 
 from __future__ import annotations

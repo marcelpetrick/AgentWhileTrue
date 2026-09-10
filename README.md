@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Marcel Petrick
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # Agent While True
 
 [![Quality](https://github.com/marcelpetrick/AgentWhileTrue/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/marcelpetrick/AgentWhileTrue/actions/workflows/quality.yml)
@@ -446,15 +452,41 @@ AGENT_WATCH_LIVE_KONSOLE=1 python3 -m pytest -q -m konsole
 
 The local pipeline is the canonical release gate. It checks Python 3.12+, Ruff
 lint and formatting, every tracked shell script with mandatory ShellCheck,
-`git diff --check`, pytest with an 85% coverage floor, all built-in danger
+`git diff --check`, pytest with a 91% combined statement/branch coverage floor,
+REUSE SPDX licensing checks, all built-in danger
 simulations, sdist/wheel construction, and an isolated install exercising
 `doctor`, `status`, `quota`, `summary`, simulations, and both command names.
 GitHub Actions runs this same script on Python 3.12, 3.13, and 3.14.
 
+Synthetic application profiles run in the pipeline and are retained alongside
+coverage reports. Timing results are diagnostic; deterministic operation-count
+tests guard performance without flaky machine-speed thresholds. See
+[PERFORMANCE.md](PERFORMANCE.md) for workloads, measured improvements and limits.
+The installed-package smoke tests run outside the checkout with `PYTHONPATH`
+removed. The default build constructs the wheel from the source distribution;
+the freshly extracted source archive also runs its own quality gate outside Git.
+
+Both SPDX 2.3 and CycloneDX 1.6 JSON SBOMs are generated from the actual wheel
+and source archive, checked with maintained standards validators, and retained
+in `dist/sbom/`. They describe the project, its empty third-party runtime
+dependency graph, and release-artifact checksums—not the OS, Python interpreter,
+or build/development environment. Unexpected runtime dependencies fail generation
+until inventory support is added. A separate dependency-audit workflow checks
+installed development/build tooling on pushes, pull requests and weekly;
+this online advisory check is not part of the offline-capable quality gate.
+
+All tracked files carry SPDX metadata through native comments or `.license`
+sidecars, checked by `reuse lint`. New files must carry the same metadata.
+After installing `.[dev]`, the online dependency check can also be run locally:
+
+```bash
+python3 -m pip_audit --progress-spinner off
+```
+
 Pushes to `master` and pull requests run the quality workflow. A tag named
 `agentwhiletrue-vX.Y.Z` additionally verifies the tag against the package
 version and changelog, reruns the pipeline, and publishes the built wheel and
-source distribution as a GitHub release.
+source distribution and validated SBOMs as a GitHub release.
 
 Release tags use `agentwhiletrue-vX.Y.Z`. The project follows semantic
 versioning while major version zero denotes an alpha interface.

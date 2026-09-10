@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Marcel Petrick
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # Agent While True implementation plan
 
 This plan tracks the current implementation and the work that remains. Product

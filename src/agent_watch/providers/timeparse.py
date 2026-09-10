@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Parse the reset times that the agent CLIs print.
 
 Machine-readable provider state is always preferred (vision DANGER 12), and this

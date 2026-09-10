@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Runnable safety scenarios.
 
 Section 40 of the vision lists the situations that must be exercised before the

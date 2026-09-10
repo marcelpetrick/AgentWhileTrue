@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests for foreground-process classification.
 
 The fixtures mirror processes captured on a live machine: Claude Code 2.1.261

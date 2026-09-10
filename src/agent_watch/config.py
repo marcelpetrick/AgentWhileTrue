@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Layered configuration: defaults < config file < environment < CLI.
 
 The v0 file format from the vision is a plain ``KEY=VALUE`` file, which is

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """The supervisor: one tick of observe, decide, act, verify.
 
 This module wires together everything the other modules provide and owns the

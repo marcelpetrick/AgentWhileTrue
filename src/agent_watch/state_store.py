@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Persistent state, so a restart cannot repeat an action.
 
 The hazard is narrow and specific (vision DANGER 13): the supervisor sends

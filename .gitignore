@@ -1,11 +1,19 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
 .coverage
 coverage.xml
+coverage.json
+artifacts/
 htmlcov/
 build/
 dist/
 *.egg-info/
 .venv/
+.audit-venv/
+dependency-audit.json

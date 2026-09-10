@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 [build-system]
 requires = ["setuptools==84.0.0"]
 build-backend = "setuptools.build_meta"
@@ -25,7 +29,11 @@ dynamic = ["version"]
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest==9.1.1", "pytest-cov==7.1.0", "ruff==0.16.6", "build==1.6.0"]
+dev = [
+    "pytest==9.1.1", "pytest-cov==7.1.0", "ruff==0.16.6", "build==1.6.0",
+    "reuse==6.2.0", "pip-audit==2.10.1",
+    "spdx-tools==0.8.5", "cyclonedx-python-lib[validation]==11.12.0",
+]
 
 [project.scripts]
 agent-while-true = "agent_watch.cli:main"

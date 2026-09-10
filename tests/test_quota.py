@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Tests for provider quota sources.
 
 The fixtures are trimmed copies of real documents: a Codex session rollout event

@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Marcel Petrick
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # Agent While True architecture
 
 This document describes the implemented architecture. It uses the C4 model to

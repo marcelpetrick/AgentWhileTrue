@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Structured event logging that structurally cannot leak terminal content.
 
 Terminal output routinely contains API keys, passwords, customer data and

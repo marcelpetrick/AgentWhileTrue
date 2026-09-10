@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Process inspection via ``/proc`` and the composite identity built from it.
 
 Linux reuses process IDs, so a PID on its own is never a safe handle for

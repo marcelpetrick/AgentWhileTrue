@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """A whole supervisor wired to fakes, so scenarios run in milliseconds.
 
 Real quota resets take hours, so the danger cases from section 40 of the vision

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """The version string, the changelog and the packaging metadata must agree.
 
 Every commit in this project bumps the version, so the cheapest way to keep that
