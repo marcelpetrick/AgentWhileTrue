@@ -38,12 +38,14 @@ from agent_watch.fsm import Observation, Supervisor, SystemInspector
 from agent_watch.identity import session_account
 from agent_watch.lock import LockHeldError, SingleInstanceLock
 from agent_watch.logging_setup import read_history, setup
+from agent_watch.metrics import ObservationMetrics
 from agent_watch.picker import Candidate, NumberedPicker, discover, pick_with_fzf
 from agent_watch.policy import Decision
 from agent_watch.preferences import load_preferences, save_preferences
 from agent_watch.quota import default_sources
 from agent_watch.service_health import HealthMonitor
 from agent_watch.state_store import StateStore
+from agent_watch.summary import render_summary
 from agent_watch.terminal.konsole import KonsoleAdapter
 from agent_watch.tui import MAX_HISTORY_ENTRIES, DashboardState, TerminalKeys
 from agent_watch.ui import (
@@ -119,6 +121,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     logs_parser = subparsers.add_parser("logs", help="show persisted action and state history")
     logs_parser.add_argument("-n", "--lines", type=int, default=40, help="how many lines to show")
+    summary_parser = subparsers.add_parser("summary", help="summarize retained operational events")
+    summary_parser.add_argument(
+        "--days", type=int, choices=(1, 7), default=1, help="rolling report window (default: 1 day)"
+    )
 
     simulate_parser = subparsers.add_parser(
         "simulate", help="run a built-in safety scenario against a simulated terminal"
@@ -338,6 +344,7 @@ def _loop(
     last_event = ""
     preferences_warning = ""
     event_history: list[str] = []
+    metrics = ObservationMetrics(supervisor.log)
     health = HealthMonitor(interval=config.status_poll_interval)
     # command_run() has just completed initial discovery and selection.
     next_rediscovery = time.monotonic() + REDISCOVERY_INTERVAL_SECONDS
@@ -356,6 +363,11 @@ def _loop(
                     next_rediscovery = monotonic_now + REDISCOVERY_INTERVAL_SECONDS
                     dashboard.rescan_requested = False
                 decisions = supervisor.tick()
+                metrics.record(
+                    supervisor.sessions.values(),
+                    monotonic=time.monotonic(),
+                    max_gap=max(2, dashboard.interval * 2),
+                )
                 last_event = _summarise(supervisor.sessions.values(), decisions) or last_event
                 event_history = read_history(config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES)
             now = datetime.now(UTC)
@@ -394,6 +406,8 @@ def _loop(
                 key = keys.read(dashboard.interval)
                 if dashboard.handle(key):
                     return EXIT_OK
+                if key.lower() == "p":
+                    metrics.reset()
                 if key.lower() in {"t", "e", "l", "d", "h", "?"}:
                     preferences_warning = (
                         ""
@@ -409,6 +423,7 @@ def _loop(
                 time.sleep(dashboard.interval)
         return EXIT_INTERRUPTED
     finally:
+        metrics.reset()
         health.stop()
         if interactive:
             stream.write(SHOW_CURSOR + "\n")
@@ -629,6 +644,11 @@ def main(
         return command_config(config, out)
     if args.command == "logs":
         return command_logs(config, args, out)
+    if args.command == "summary":
+        out.write(
+            render_summary(config.resolved_log_file(), now=datetime.now(UTC), days=args.days) + "\n"
+        )
+        return EXIT_OK
     parser.print_help(out)  # pragma: no cover - argparse covers the known set
     return EXIT_ERROR
 

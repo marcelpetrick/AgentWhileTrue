@@ -29,6 +29,9 @@ Completed in 0.38.0: interactive changes are saved to `preferences.json`.
 
 ## 3. Operational summaries (proposal 6)
 
+Completed in 0.39.0: `summary --days 1|7` aggregates retained events. New
+redacted interval events batch consecutive observations; gaps are excluded.
+
 - Add a read-only day/week report of sent continuations, verified successes,
   failures and refusals from retained structured event logs.
 - Include measured blocked time only where observations support it; identify

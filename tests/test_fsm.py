@@ -101,6 +101,15 @@ def test_ask_mode_sends_only_after_confirmation(tmp_path: Path) -> None:
     assert accepted.sent == [(SESSION, "\r")]
 
 
+def test_refusals_count_episodes_not_repeated_polls(tmp_path: Path) -> None:
+    kit, _ = _claude_session(tmp_path, mode=Mode.OBSERVE)
+    for _ in range(3):
+        kit.supervisor.tick()
+        kit.clock.advance(2)
+    assert (tmp_path / "agent-watch.log").read_text().count("event=resume_refused") == 1
+    assert kit.sent == []
+
+
 def test_ask_mode_without_a_way_to_ask_refuses(tmp_path: Path) -> None:
     kit, _ = _claude_session(tmp_path, mode=Mode.ASK, confirm=None)
     kit.supervisor.tick()

@@ -100,6 +100,17 @@ def test_logs_without_a_log_file(sandbox: Path, out: io.StringIO) -> None:
     assert "No log at" in out.getvalue()
 
 
+def test_summary_needs_no_terminal_or_provider(
+    sandbox: Path, out: io.StringIO, monkeypatch
+) -> None:
+    def forbidden():
+        pytest.fail("summary must not construct a terminal adapter")
+
+    monkeypatch.setattr(cli, "KonsoleAdapter", forbidden)
+    assert main(["summary", "--days", "7"], stream=out) == EXIT_OK
+    assert "unavailable" in out.getvalue()
+
+
 def test_running_as_root_is_refused_by_default(
     sandbox: Path, out: io.StringIO, monkeypatch
 ) -> None:

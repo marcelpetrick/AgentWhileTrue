@@ -115,6 +115,7 @@ class SupervisedSession:
     observed_at: datetime | None = None
     observed_state: str = "not observed"
     matched_ids: tuple[str, ...] = ()
+    reported_refusal: str = ""
     last_fingerprint: str = ""
     pending_key: str = ""
     verify_after: datetime | None = None
@@ -284,6 +285,24 @@ class Supervisor:
             decision = self._advance(session, now)
             session.last_reason = decision.reason
             session.decision_at = now
+            # Count refusal episodes, not every poll of the same blocked prompt.
+            refusal = (
+                decision.reason
+                if not decision.allowed
+                and decision.reason
+                not in {
+                    "verifying",
+                    "waiting-for-reset",
+                    "declined-by-user",
+                    "send-failed",
+                }
+                and not decision.reason.startswith(("revalidation-failed:", "verify:"))
+                and session.observed_state not in {"ACTIVE", "LIMIT_WARNING"}
+                else ""
+            )
+            if refusal and refusal != session.reported_refusal:
+                self.log.info("resume_refused", provider=session.provider_name, reason=refusal)
+            session.reported_refusal = refusal
             decisions.append(decision)
         return decisions
 
@@ -526,6 +545,9 @@ class Supervisor:
             # The agent is gone. That is not a failure of the keystroke, but it
             # is certainly not a verified resume either.
             self.store.mark(key, ActionState.FAILED, result="process-gone")
+            self.log.warning(
+                "resume_verification_failed", provider=session.provider_name, reason="process-gone"
+            )
             session.state = SessionState.PROCESS_GONE
             return Decision(allowed=False, reason="verify:process-gone")
 

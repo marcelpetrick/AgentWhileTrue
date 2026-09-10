@@ -7,6 +7,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.39.0] - 2026-09-10
+
+### Added
+
+- Read-only `summary --days 1|7` reports retained sends, verified resumptions,
+  armed provider waits, failures and refusal episodes across rotated logs.
+- Batch sampled supervision intervals to report observed and blocked session
+  time without counting pauses, unknown states or observation gaps as coverage.
+
 ## [0.38.0] - 2026-09-10
 
 ### Added

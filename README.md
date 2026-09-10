@@ -267,6 +267,25 @@ may label its tab or foreground command `node`. Agent While True walks the child
 process tree, classifies the native Codex process, reads quota from that process,
 and presents the session as `Codex` in its own dashboard.
 
+## Operational summaries
+
+Run `agent-while-true summary` for the last 24 hours, or
+`agent-while-true summary --days 7` for a rolling week. Reports read only the
+configured event log and its five rotated backups; they never query terminals
+or providers. Counts distinguish sent actions, verified resumptions, armed
+Claude automatic waits, failures, and refusal episodes (a changed refusal
+reason counts again; repeated polls of the same refusal do not).
+
+Measured blocked and observed session-time sums intervals between consecutive
+known observations across watched sessions. It is sampled supervision time,
+not provider execution time. Pauses, unknown states, clock jumps, and long gaps
+are excluded. Timing while a session waits without fresh observations is not
+inferred. Intervals are flushed approximately once per minute and on clean exit;
+a crash can lose the unflushed tail. Reports cover retained evidence only:
+older logs lack interval/refusal evidence, and rotation can remove events.
+Multiple observers contribute separate samples, so use one watcher for a
+non-overlapping session-time report.
+
 ## Claude quota bridge
 
 The bridge is the supplied `scripts/claude-statusline-proxy.sh`, not another
