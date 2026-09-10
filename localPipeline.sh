@@ -108,4 +108,6 @@ expected_version="$(PYTHONPATH=src "$PYTHON_BIN" -c 'from agent_watch.version im
 smoke_command "$TEMP_ROOT/smoke/bin/agent-while-true" doctor
 smoke_command "$TEMP_ROOT/smoke/bin/agent-while-true" status
 smoke_command "$TEMP_ROOT/smoke/bin/agent-while-true" quota
+"$TEMP_ROOT/smoke/bin/agent-while-true" --log-file "$TEMP_ROOT/no-events.log" summary
+"$TEMP_ROOT/smoke/bin/agent-watch" --log-file "$TEMP_ROOT/no-events.log" summary --days 7
 PIPELINE_RESULTS+=("Installed wheel  : PASS (commands, diagnostics, simulations)")

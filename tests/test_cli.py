@@ -357,3 +357,55 @@ def test_interactive_preferences_round_trip_without_input(
     assert restored.theme == ("plain" if save_ok else "amber")
     assert not lock.held
     assert kit.sent == []
+
+
+def test_interactive_navigation_focuses_panels_and_scrolls_back_from_end(
+    tmp_path: Path, monkeypatch
+) -> None:
+    import os
+
+    kit = harness_module.build(tmp_path, mode=Mode.OBSERVE)
+    info = kit.inspector.add_claude(PID)
+    ref = kit.terminal.add(
+        "/Sessions/1",
+        shell_pid=100,
+        foreground_pid=PID,
+        screen=list(screens.CLAUDE_READY_TO_RESUME),
+        title="sample",
+    )
+    kit.supervisor.select(ref, info.identity, "claude", "sample")
+    pressed = iter(["d", "]", "h", "G", "k", "g", "q"])
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(cli.TerminalKeys, "read", lambda self, timeout: next(pressed))
+    monkeypatch.setattr(cli.HealthMonitor, "start", lambda self: None)
+    monkeypatch.setattr(
+        cli.shutil, "get_terminal_size", lambda fallback=None: os.terminal_size((80, 8))
+    )
+    pages = []
+    render = cli.render_viewport
+
+    def capture(frame, height, offset):
+        page = render(frame, height, offset)
+        pages.append((offset, page))
+        return page
+
+    monkeypatch.setattr(cli, "render_viewport", capture)
+
+    class InteractiveOutput(io.StringIO):
+        def isatty(self):
+            return True
+
+    args = cli.build_parser().parse_args(["run", "--observe", "--no-color"])
+    lock = SingleInstanceLock.in_directory(tmp_path / "runtime")
+    assert (
+        cli._loop(kit.supervisor, kit.supervisor.config, args, InteractiveOutput(), lock) == EXIT_OK
+    )
+    assert "DETAIL 1/1" in pages[1][1]
+    assert "DETAIL 1/1" in pages[2][1]
+    assert "KEYS" in pages[3][1]
+    assert pages[5][0] == pages[4][0] - 1
+    assert pages[6][0] == 0
+    assert all(len(page.splitlines()) <= 7 for _, page in pages)
+    assert all("j/k scroll" in page for _, page in pages)
+    assert kit.sent == []
+    assert not lock.held
