@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Marcel Petrick
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # Changelog
 
 All notable changes to Agent While True are documented here.
@@ -6,6 +12,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and
 the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
+
+## [0.40.3] - 2026-09-10
+
+### Fixed
+
+- Redraw presentation keys without multiplying terminal and quota scans; keep
+  explicit rescans and immediate pre-input revalidation.
+- Avoid Unicode database calls for ASCII layout, preserving wide and combining
+  character behavior. Add reproducible synthetic profiles and operation-count
+  regressions alongside current read-only live measurements.
 
 ## [0.40.2] - 2026-09-10
 

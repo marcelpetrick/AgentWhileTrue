@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Rendering for the running watcher.
 
 Plain text, no curses. Optional ANSI styling is applied as complete themed
@@ -102,6 +106,8 @@ def _safe_text(value: object) -> str:
 
 
 def _cell_width(value: str) -> int:
+    if value.isascii():
+        return len(value)
     return sum(
         0 if unicodedata.combining(char) else 2 if unicodedata.east_asian_width(char) in "WF" else 1
         for char in value
@@ -112,6 +118,8 @@ def _fit(value: object, width: int) -> str:
     text = _safe_text(value)
     if width <= 0:
         return ""
+    if text.isascii():
+        return text[:width].ljust(width)
     result: list[str] = []
     used = 0
     for char in text:
@@ -136,11 +144,19 @@ def _wrap(value: object, width: int) -> list[str]:
         return [""]
     if not text:
         return [""]
+    if text.isascii():
+        return [text[start : start + width] for start in range(0, len(text), width)]
     lines: list[str] = []
     chars: list[str] = []
     used = 0
     for char in text:
-        cells = _cell_width(char)
+        cells = (
+            0
+            if unicodedata.combining(char)
+            else 2
+            if unicodedata.east_asian_width(char) in "WF"
+            else 1
+        )
         if cells > width:
             char, cells = "?", 1
         if used + cells > width:

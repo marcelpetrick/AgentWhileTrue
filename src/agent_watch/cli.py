@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Command-line interface.
 
 Subcommands mirror the vision: ``run``, ``status``, ``doctor``, ``init``,
@@ -351,14 +355,15 @@ def _loop(
     health = HealthMonitor(interval=config.status_poll_interval)
     # command_run() has just completed initial discovery and selection.
     next_rediscovery = time.monotonic() + REDISCOVERY_INTERVAL_SECONDS
+    next_scan = 0.0
     if not args.once:
         health.start()
     if interactive:
         stream.write(HIDE_CURSOR)
     try:
         while not stop["requested"]:
-            if not dashboard.paused:
-                monotonic_now = time.monotonic()
+            monotonic_now = time.monotonic()
+            if not dashboard.paused and (dashboard.rescan_requested or monotonic_now >= next_scan):
                 if dashboard.rescan_requested or monotonic_now >= next_rediscovery:
                     supervisor.prune_and_rebind()
                     if args.all:
@@ -373,6 +378,10 @@ def _loop(
                 )
                 last_event = _summarise(supervisor.sessions.values(), decisions) or last_event
                 event_history = read_history(config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES)
+                # Presentation keys redraw cached observations, not terminal/quota
+                # reads. Schedule from completion so slow scans never catch up in
+                # a busy loop. Input authorization still revalidates in Supervisor.
+                next_scan = time.monotonic() + dashboard.interval
             now = datetime.now(UTC)
             if interactive or config.mode is not Mode.OBSERVE:
                 if interactive:
@@ -418,7 +427,12 @@ def _loop(
             if args.once:
                 return EXIT_OK
             if interactive:
-                key = keys.read(dashboard.interval)
+                timeout = (
+                    dashboard.interval
+                    if dashboard.paused
+                    else max(0.0, next_scan - time.monotonic())
+                )
+                key = keys.read(timeout)
                 if dashboard.handle(key):
                     return EXIT_OK
                 if key.lower() == "d" or key in {"[", "]"}:
@@ -429,6 +443,8 @@ def _loop(
                     focus_section = "HISTORY " if dashboard.show_events else ""
                 if key.lower() == "p":
                     metrics.reset()
+                if key.lower() == "p" or key in {"+", "=", "-", "_"}:
+                    next_scan = 0.0
                 if key.lower() in {"t", "e", "l", "d", "h", "?"}:
                     preferences_warning = (
                         ""
@@ -437,6 +453,7 @@ def _loop(
                     )
                 if dashboard.consume_mode_toggle():
                     config, last_event = _toggle_runtime_mode(supervisor, config, lock)
+                    next_scan = 0.0
                     event_history = read_history(
                         config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
                     )

@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Marcel Petrick
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 # Performance evaluation
 
 This document records measured idle workload on the primary development
@@ -116,3 +121,38 @@ Re-run this profile after changes to terminal discovery, quota polling, status
 transport, dashboard cadence, or process inspection. Compare like-for-like
 session counts and record both CPU time and subprocess activity; elapsed time or
 network body size alone can hide a regression.
+
+## Deterministic application profile
+
+The repository also includes a synthetic `cProfile` workload. It exercises all
+fake-terminal safety simulations, narrow and wide dashboard rendering, Claude
+quota parsing, a 50,000-line Codex rollout tail, bounded reads from a
+10,000-entry event log, and its retained operational summary:
+
+```bash
+python3 scripts/profile_app.py --iterations 5 --profile artifacts/profile.prof
+python3 -m pstats artifacts/profile.prof
+```
+
+The tool creates the profile's parent directory. It uses temporary synthetic
+data exclusively and reports timings and function names, never terminal text,
+environment values, or credentials. Running it as root does not enable live
+inspection or input.
+
+On 2026-09-10 with Python 3.14.7, the measured rendering bottleneck was
+reproduced with `--iterations 1 --render-frames 300 --render-width 100`.
+Before optimization, the 300 frames took 12.890 seconds and 52,845,302 calls:
+`_wrap` accounted for 8.773 seconds cumulative, `_cell_width` for 6.438 seconds,
+and the Unicode database functions were each called over ten million times.
+After adding ASCII fast paths, the same 300 frames took 0.626 seconds and
+1,746,002 calls, about 20.6 times faster. Unicode text retains the width-aware
+path. Regression tests use semantic operation counts rather than fragile timing
+thresholds: ASCII layout must make zero Unicode database lookups, while wide
+and combining characters must retain their original layout.
+
+A separate read-only live observe sample after the change used the existing
+GNU `time` command above for 30 seconds and measured 0.64 seconds user CPU,
+0.40 seconds system CPU, 31.08 seconds elapsed, and 36,096 KiB maximum RSS.
+That is about 3.35% of one CPU including startup, shutdown, and subprocesses.
+No terminal input was sent. Session counts differed from the earlier sample,
+so this result is current evidence rather than a like-for-like comparison.

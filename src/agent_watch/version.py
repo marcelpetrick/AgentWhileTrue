@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Marcel Petrick
+#
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 """Single source of truth for the project version.
 
 ``pyproject.toml`` reads ``__version__`` from here, the CLI reports it, and a
@@ -7,6 +11,6 @@ string is therefore the only edit a release needs.
 
 from __future__ import annotations
 
-__version__ = "0.40.2"
+__version__ = "0.40.3"
 
 __all__ = ["__version__"]
