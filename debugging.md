@@ -17,8 +17,9 @@ session as soon as its usage window resets. On 2026-09-10 this did not happen:
 
 - The default Codex profile (pts/9) reset at 21:52. No `continue` was sent. The
   user had to type it by hand, and the watcher did not notice.
-- The `codex-dmo` profile (pts/5) resets at 22:33. It will not be resumed
-  either (see [Outcome for codex-dmo](#outcome-for-codex-dmo-at-2233)).
+- The `codex-dmo` profile (pts/5) reset at 22:33. It was not resumed either:
+  at 22:34:00 the next check moved to the following day (see
+  [Outcome for codex-dmo](#outcome-for-codex-dmo-at-2233)).
 
 Bugs, in fix order:
 
@@ -373,4 +374,15 @@ Prediction: at 22:34:00 the watcher re-reads `try again at 10:33 PM`, parses it
 as 2026-09-11 22:33 (D1), logs `usage-not-confirmed-available`, and schedules
 the next check for 2026-09-11 22:34. No `continue` will be sent.
 
-Observed outcome: pending (to be appended after 22:34).
+Observed outcome, confirming the prediction exactly:
+
+| Time | Observation |
+| --- | --- |
+| 22:34:00.573 | `resume_refused provider=codex reason=usage-not-confirmed-available` (no `session=`, D7) |
+| 22:34:30 | Dashboard: `LIMIT_BLOCKED`, 5h window `due`, quota `STALE` (age 17377 s, D2) |
+| 22:34:30 | Dashboard: `Next check: 2026-09-11T22:34:00+02:00` (D1) |
+| 22:34:30 | Codex screen still shows `try again at 10:33 PM.`; no `continue` was sent |
+
+Full-auto was on and the TUI held the input lock the whole time, so no
+configuration or operator error explains the missing retry. Without a manual
+`continue`, the session stays blocked and unobserved (D5) until the next day.
