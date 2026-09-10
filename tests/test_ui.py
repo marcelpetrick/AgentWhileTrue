@@ -248,3 +248,30 @@ def test_dashboard_renders_only_selected_rows_from_retained_history() -> None:
     assert "attempt=44" not in text
     assert "attempt=45" in text
     assert "attempt=49" in text
+
+
+def test_details_show_missing_and_stale_evidence_without_permission() -> None:
+    session = _session(last_reason="quota-stale", observed_at=NOW - timedelta(minutes=20))
+    text = render_status([session], now=NOW, config=Config(), show_details=True, paused=True)
+    assert "quota-stale" in text
+    assert "STALE" in text
+    assert "not observed" in text
+    assert "Next check: paused" in text
+    assert "continuation is not guaranteed" in text
+
+
+def test_detail_selection_wraps_and_reports_exhausted_windows() -> None:
+    quota = QuotaSnapshot(
+        "claude",
+        Availability.EXHAUSTED,
+        "statusline",
+        NOW,
+        (QuotaWindow("weekly", 100, NOW + timedelta(days=1)),),
+    )
+    session = _session(quota=quota, last_reason="weekly-exhausted")
+    text = render_status(
+        [_session(), session], now=NOW, config=Config(), show_details=True, detail_index=-1
+    )
+    assert "DETAIL 2/2" in text
+    assert "weekly-exhausted" in text
+    assert "Exhausted windows (last sample): weekly" in text

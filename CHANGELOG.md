@@ -7,6 +7,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.37.0] - 2026-09-10
+
+### Added
+
+- Dashboard resume explanations (`d`, then `[` / `]`) show the latest outcome,
+  observation age, recognized patterns, quota evidence and scheduled checks.
+- Preserve the final tick outcome and revalidation/verification observations
+  for display without retaining terminal text or changing authorization.
+
 ## [0.36.14] - 2026-09-10
 
 ### Fixed

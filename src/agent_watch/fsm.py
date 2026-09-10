@@ -111,6 +111,10 @@ class SupervisedSession:
     next_check_at: datetime | None = None
     unsafe_reason: str | None = None
     last_reason: str = ""
+    decision_at: datetime | None = None
+    observed_at: datetime | None = None
+    observed_state: str = "not observed"
+    matched_ids: tuple[str, ...] = ()
     last_fingerprint: str = ""
     pending_key: str = ""
     verify_after: datetime | None = None
@@ -275,7 +279,13 @@ class Supervisor:
         if self._detect_time_jump(now):
             self._invalidate_schedules(now)
         self._warm_quota_sources()
-        return [self._advance(session, now) for session in list(self.sessions.values())]
+        decisions = []
+        for session in list(self.sessions.values()):
+            decision = self._advance(session, now)
+            session.last_reason = decision.reason
+            session.decision_at = now
+            decisions.append(decision)
+        return decisions
 
     def _warm_quota_sources(self) -> None:
         """Observe every selected account before any session decision is made."""
@@ -378,6 +388,7 @@ class Supervisor:
     def _record_state(
         self, session: SupervisedSession, observation: Observation, decision: Decision
     ) -> None:
+        self._remember_observation(session, observation)
         previous = session.state
         if session.marked_unsafe:
             # An unsafe session stays unsafe until a human clears it; a later
@@ -416,6 +427,15 @@ class Supervisor:
 
     # -- acting ------------------------------------------------------------
 
+    @staticmethod
+    def _remember_observation(session: SupervisedSession, observation: Observation) -> None:
+        """Keep display evidence only; never retain the screen or process environment."""
+        session.observed_at = observation.at
+        session.quota = observation.quota
+        recognition = observation.recognition
+        session.observed_state = recognition.state.value if recognition else "unrecognized"
+        session.matched_ids = tuple(recognition.matched_ids) if recognition else ()
+
     def act(
         self, session: SupervisedSession, observation: Observation, decision: Decision
     ) -> Decision:
@@ -427,6 +447,7 @@ class Supervisor:
         cancels the action.
         """
         fresh = self.observe(session.ref)
+        self._remember_observation(session, fresh)
         recheck = self._decide(session, fresh)
         if not recheck.allowed:
             self.log.warning(
@@ -499,6 +520,7 @@ class Supervisor:
         session.verify_after = None
         observation = self.observe(session.ref, now=now)
         key = session.pending_key
+        self._remember_observation(session, observation)
 
         if observation.recognition is None:
             # The agent is gone. That is not a failure of the keystroke, but it

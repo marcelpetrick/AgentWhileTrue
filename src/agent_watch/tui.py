@@ -31,6 +31,8 @@ class DashboardState:
     show_events: bool = True
     history_index: int = 1
     mode_toggle_requested: bool = False
+    details_visible: bool = False
+    detail_index: int = 0
 
     @classmethod
     def from_interval(cls, value: float) -> DashboardState:
@@ -69,6 +71,12 @@ class DashboardState:
             self.show_events = not self.show_events
         elif lowered == "l":
             self.history_index = (self.history_index + 1) % len(HISTORY_LENGTHS)
+        elif lowered == "d":
+            self.details_visible = not self.details_visible
+        elif key == "]":
+            self.detail_index += 1
+        elif key == "[":
+            self.detail_index -= 1
         elif key == "A":
             self.mode_toggle_requested = True
         return False

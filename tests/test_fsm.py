@@ -85,6 +85,10 @@ def test_observe_mode_never_sends_anything(tmp_path: Path) -> None:
     # Observe mode still worked out what it would have done.
     assert decisions[0].action is not None
     assert kit.sent == []
+    session = next(iter(kit.supervisor.sessions.values()))
+    assert session.last_reason == decisions[0].reason
+    assert session.observed_at == kit.clock.now()
+    assert session.matched_ids
 
 
 def test_ask_mode_sends_only_after_confirmation(tmp_path: Path) -> None:

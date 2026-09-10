@@ -6,6 +6,8 @@ These additions must never grant authorization or log terminal contents.
 
 ## 1. Explain resume decisions
 
+Completed in 0.37.0: `d` toggles details and `[` / `]` navigate sessions.
+
 - Add an optional dashboard detail view with per-session navigation.
 - Show the latest actual policy decision, observation time, recognized pattern
   and state, quota source/age/freshness, exhausted windows, and retry/grace time.

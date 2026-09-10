@@ -33,6 +33,17 @@ def test_dashboard_keys_toggle_state_and_quit() -> None:
     assert state.handle("q")
 
 
+def test_detail_controls_do_not_toggle_input_mode() -> None:
+    state = DashboardState.from_interval(2)
+    state.handle("d")
+    state.handle("]")
+    assert state.details_visible
+    assert state.detail_index == 1
+    state.handle("[")
+    assert state.detail_index == 0
+    assert not state.consume_mode_toggle()
+
+
 def test_refresh_ladder_clamps_at_both_ends() -> None:
     state = DashboardState.from_interval(INTERVALS[0])
     state.handle("-")

@@ -248,6 +248,41 @@ def render_quota(snapshot: QuotaSnapshot, *, now: datetime, identity: str = "") 
     return "\n".join(lines)
 
 
+def session_details(
+    session: SupervisedSession, now: datetime, interval: float, paused: bool = False
+) -> list[str]:
+    """Explain cached evidence without evaluating policy or reading a terminal."""
+
+    def age(moment: datetime | None) -> str:
+        if moment is None:
+            return "not observed"
+        seconds = (now - moment).total_seconds()
+        return "clock changed; recheck required" if seconds < 0 else f"{seconds:.0f}s ago"
+
+    observation_age = (now - session.observed_at).total_seconds() if session.observed_at else None
+    stale = observation_age is None or observation_age < 0 or observation_age > interval * 2
+    scheduled = session.verify_after or session.next_check_at
+    next_check = (
+        scheduled.astimezone().isoformat(timespec="seconds")
+        if scheduled
+        else f"next scan (every {interval:g}s)"
+    )
+    return [
+        f"Session: {session.provider_name} {session.identity.tty} PID {session.identity.pid}",
+        f"Last decision: {session.last_reason or 'not evaluated'} ({age(session.decision_at)})",
+        f"Observation: {age(session.observed_at)}{'; STALE' if stale else ''}",
+        f"Recognized state: {session.observed_state}",
+        f"Patterns: {', '.join(session.matched_ids) or 'none'}",
+        f"Quota: {quota_state(session.quota, now)}; source={session.quota.source}; "
+        f"age={age(session.quota.observed_at)}",
+        f"Quota detail: {session.quota.note or 'none'}",
+        "Exhausted windows (last sample): "
+        + (", ".join(sorted(session.quota.exhausted_scopes)) or "none reported"),
+        f"Next check: {'paused' if paused else next_check}; continuation is not guaranteed",
+        "Cached evidence only; every action requires fresh policy and identity checks.",
+    ]
+
+
 def render_status(
     sessions: Iterable[SupervisedSession],
     *,
@@ -263,6 +298,8 @@ def render_status(
     events: Sequence[str] = (),
     show_events: bool = True,
     history_length: int = 10,
+    show_details: bool = False,
+    detail_index: int = 0,
     service_health: dict[str, ProviderHealth] | None = None,
 ) -> str:
     """Render the running watcher's status table."""
@@ -371,6 +408,19 @@ def render_status(
             _panel_line("(nothing selected)", panel_width, "dim", color=color, theme=theme)
         )
     lines.append(_panel_line("", panel_width, "surface", color=color, theme=theme))
+    if show_details and listed:
+        selected = detail_index % len(listed)
+        lines.append(
+            _panel_line(
+                f"DETAIL {selected + 1}/{len(listed)} ([ / ] select; d hide)",
+                panel_width,
+                "header",
+                color=color,
+                theme=theme,
+            )
+        )
+        for detail in session_details(listed[selected], now, interval, paused):
+            lines.append(_panel_line(detail, panel_width, "text", color=color, theme=theme))
     if last_event:
         lines.append(
             _panel_line(f"Last: {last_event}", panel_width, "accent", color=color, theme=theme)
@@ -411,6 +461,7 @@ def render_status(
                         "t       cycle dark, vivid, CGA, amber and plain themes",
                         "e       show/hide persisted action history",
                         "l       cycle history length: 5, 10, 20, 50",
+                        "d       show/hide resume explanation; [ / ] previous/next session",
                         "h / ?   close this help",
                         "q       quit cleanly",
                     )

@@ -183,6 +183,8 @@ output.
 | `e` | Show or hide persisted action/state history |
 | `l` | Cycle displayed history through 5, 10, 20, and 50 retained rows |
 | `h` or `?` | Toggle the in-dashboard help |
+| `d` | Show or hide the selected session's resume explanation |
+| `[` / `]` | Select the previous / next session explanation |
 | `q` | Quit and restore the terminal |
 
 Like btop, `+` makes the interval number larger and therefore refreshes more
@@ -190,6 +192,11 @@ slowly. Selected sessions use that interval, while full Konsole rediscovery runs
 every 30 seconds or immediately after `r`; this avoids spawning discovery calls
 on every dashboard frame. Non-interactive observe output stays ANSI-free and
 separates scans with a blank line for readable logs.
+
+The `d` detail panel explains the latest decision, recognized pattern IDs,
+quota source and age, exhausted windows, and next scheduled check. It labels
+old observations as stale; displayed reset/check times never promise a resume.
+The panel uses cached evidence and does not read or send terminal input.
 
 Other modes are:
 

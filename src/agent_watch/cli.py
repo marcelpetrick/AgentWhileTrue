@@ -372,6 +372,8 @@ def _loop(
                         events=event_history,
                         show_events=dashboard.show_events,
                         history_length=dashboard.history_length,
+                        show_details=dashboard.details_visible,
+                        detail_index=dashboard.detail_index,
                         service_health=health.snapshot(),
                     )
                     + "\n"
