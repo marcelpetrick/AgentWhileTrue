@@ -5,10 +5,19 @@
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB.svg)](https://www.python.org/)
 [![License: GPL v3 or later](https://img.shields.io/badge/license-GPLv3%2B-blue.svg)](LICENSE)
 
-**Agent While True** is an agent budget watch and babysitter for Codex CLI and
-Claude Code sessions in KDE Konsole. It reports provider quota health and can
-resume a blocked session after usage becomes available again—only when the
-terminal, process identity, prompt, quota source, and policy all agree.
+**Agent While True** brings your Codex CLI and Claude Code sessions together in
+one colorful terminal dashboard. See each agent's state, account, quota usage,
+and reset countdown without hopping between Konsole tabs.
+
+When a supported session hits its usage limit, Agent While True can wait for
+quota to return and resume it automatically. You choose which sessions it may
+supervise and when it may act. Every continuation passes fresh safety checks;
+unknown prompts, paid choices, and model downgrades are off limits.
+
+Start in observe mode, explore why a session is waiting, and enable automation
+when you're ready. Your agents get a babysitter. You get your attention back.
+
+![Agent While True v0.33.0 auto-mode dashboard](media/agentWhileTrue_v0.33.0.png)
 
 **Author: Marcel Petrick <mail@marcelpetrick.it>**
 
@@ -16,40 +25,18 @@ terminal, process identity, prompt, quota source, and policy all agree.
 
 **Note: project is generated with AI.**
 
-## Current state of the solution
+## What you get
 
-![Agent While True v0.33.0 auto-mode dashboard](media/agentWhileTrue_v0.33.0.png)
-
-The main interface keeps independently recognized terminal state and provider
-quota visible for every selected Codex and Claude session. Red or unknown data
-does not authorize terminal input; the supervisor continues to fail closed.
-Interactive dashboards identify the authenticated account for each individual
-session. A Codex profile home such as `~/.codex-dmo` is rendered as
-`codex-dmo · business@example.com`, while the default is rendered as
-`codex · private@example.com`. This display-only identity is never written to
-Agent While True's log or persistent state.
-
-Shell aliases themselves cannot normally be recovered after Zsh expands them.
-However, an alias such as `codex-dmo` that selects a distinct `CODEX_HOME` leaves
-that profile identity on the child process, allowing the dashboard to infer the
-profile label and read its matching account email safely.
-
-Every session row includes five-hour and weekly used-percentage meters plus the
-time remaining until each individual reset. For example, `[████░] 84% 3h`
-means that 84% of the window has been used and it resets in at most three hours.
-Countdowns below 1.5 days use `h`; longer countdowns use `d`. `PROMPT RESET` is
-the reset time parsed from the blocking terminal prompt; `QUOTA RESET` is the
-separate effective reset time reported by the provider quota source.
-
-The header reports public service health for OpenAI Codex API and Anthropic
-Claude Code/API. These are cached observations from the providers' public JSON
-status APIs, not paid model calls, and `UNKNOWN` is shown when the network,
-schema, component identity, or component status is unusable. Each provider is
-polled independently once per second in the background by default
-(`STATUS_POLL_INTERVAL=1s`), so one slow endpoint cannot delay the other. The
-client requests gzip and uses ETag revalidation when offered, keeping unchanged
-responses small. One second is the enforced lower bound; increase it if you
-prefer less network traffic.
+- **One view across your agents.** Track selected Codex and Claude sessions,
+  their accounts, five-hour and weekly usage meters, and provider service health.
+- **Resume with guardrails.** Observe without typing, confirm each action, or
+  allow automatic continuation for exact, tested prompts and fresh quota data.
+- **Answers when an agent waits.** Open session details to see the latest
+  decision, quota freshness, blocking windows, and next scheduled check.
+- **A TUI that fits your setup.** Switch themes, scroll through narrow session
+  cards or a wide table, and keep your display preferences between launches.
+- **A record of what happened.** Browse action history and day/week summaries
+  of continuations, failures, refusals, and sampled supervision time.
 
 The primary command is `agent-while-true`. The shorter `agent-watch` command is
 kept as a compatible alias, so existing scripts and the examples below continue
@@ -58,16 +45,9 @@ to work.
 The current target is Manjaro/Arch Linux, KDE Plasma, Konsole, Wayland or X11,
 and Python 3.12 or newer. Runtime code uses only the Python standard library.
 
-![Claude Code session-limit menu](media/claude_out_of_quota.png)
-
-This real prompt is handled narrowly. With fresh quota confirming the session is
-exhausted, auto mode may move from the visibly selected first item to the exact
-“continue automatically” item and confirm it. It never selects “upgrade your
-plan.” Any different menu, cursor position, or unknown quota fails closed.
-
 ## Install
 
-Install the current release from GitHub with `pipx` so the CLI is isolated while
+Install a tagged release from GitHub with `pipx` so the CLI is isolated while
 remaining available at `~/.local/bin/agent-while-true`:
 
 ```bash
@@ -76,7 +56,8 @@ agent-while-true --version
 agent-while-true doctor
 ```
 
-For development, clone the standalone repository:
+This README describes the current source tree. The command above pins v0.36.13;
+use a development checkout for features added since that release:
 
 ```bash
 git clone https://github.com/marcelpetrick/AgentWhileTrue.git
@@ -265,15 +246,49 @@ journalctl --user -u agent-watch.service -f  # service lifecycle/output
 The dashboard's `HISTORY` panel reads the same privacy-preserving event file.
 It shows 10 entries by default and retains the latest 50 entries in memory, even
 while showing only the chosen 5, 10, 20, or 50 rows, so expanding the panel
-reveals what happened while you
-were away. Successful terminal retriggers appear as `resume_sent`, followed by
-their verification result. History records fingerprints and pattern IDs, never
+reveals what happened while you were away. Successful terminal retriggers
+appear as `resume_sent`, followed by their verification result. History records
+fingerprints and pattern IDs, never
 terminal text, prompts, credentials, or environment values.
 
 Codex is launched through a Node.js shim on current installations, so Konsole
 may label its tab or foreground command `node`. Agent While True walks the child
 process tree, classifies the native Codex process, reads quota from that process,
 and presents the session as `Codex` in its own dashboard.
+
+## Read the dashboard
+
+The main interface keeps independently recognized terminal state and provider
+quota visible for every selected Codex and Claude session. Red or unknown data
+does not authorize terminal input; the supervisor continues to fail closed.
+Interactive dashboards identify the authenticated account for each individual
+session. A Codex profile home such as `~/.codex-dmo` is rendered as
+`codex-dmo · business@example.com`, while the default is rendered as
+`codex · private@example.com`. This display-only identity is never written to
+Agent While True's log or persistent state.
+
+Shell aliases themselves cannot normally be recovered after Zsh expands them.
+However, an alias such as `codex-dmo` that selects a distinct `CODEX_HOME` leaves
+that profile identity on the child process, allowing the dashboard to infer the
+profile label and read its matching account email safely.
+
+Every session includes five-hour and weekly used-percentage meters plus the
+time remaining until each individual reset. For example, `[████░] 84% 3h`
+means that 84% of the window has been used and its reported reset is within
+three hours. Countdowns below 1.5 days use `h`; longer countdowns use `d`.
+`PROMPT RESET` is the reset time parsed from the blocking terminal prompt;
+`QUOTA RESET` is the separate effective reset time reported by the provider
+quota source. A reported reset time does not guarantee available quota.
+
+The dashboard reports public service health for OpenAI Codex API and Anthropic
+Claude Code/API. These are cached observations from the providers' public JSON
+status APIs, not paid model calls, and `UNKNOWN` is shown when the network,
+schema, component identity, or component status is unusable. Each provider is
+polled independently once per second in the background by default
+(`STATUS_POLL_INTERVAL=1s`), so one slow endpoint cannot delay the other. The
+client requests gzip and uses ETag revalidation when offered, keeping unchanged
+responses small. One second is the enforced lower bound; increase it if you
+prefer less network traffic.
 
 ## Operational summaries
 
@@ -397,6 +412,13 @@ Then run `systemctl --user restart agent-watch.service`. Remove the service with
 
 ## Safety model
 
+![Claude Code session-limit menu](media/claude_out_of_quota.png)
+
+This real prompt is handled narrowly. With fresh quota confirming the session is
+exhausted, auto mode may move from the visibly selected first item to the exact
+“continue automatically” item and confirm it. It never selects “upgrade your
+plan.” Any different menu, cursor position, or unknown quota fails closed.
+
 Immediately before any input, Agent While True re-reads and verifies:
 
 - the explicitly selected Konsole session;
@@ -426,8 +448,8 @@ The local pipeline is the canonical release gate. It checks Python 3.12+, Ruff
 lint and formatting, every tracked shell script with mandatory ShellCheck,
 `git diff --check`, pytest with an 85% coverage floor, all built-in danger
 simulations, sdist/wheel construction, and an isolated install exercising
-`doctor`, `status`, `quota`, simulations, and both command names. GitHub Actions
-runs this same script on Python 3.12, 3.13, and 3.14.
+`doctor`, `status`, `quota`, `summary`, simulations, and both command names.
+GitHub Actions runs this same script on Python 3.12, 3.13, and 3.14.
 
 Pushes to `master` and pull requests run the quality workflow. A tag named
 `agentwhiletrue-vX.Y.Z` additionally verifies the tag against the package
