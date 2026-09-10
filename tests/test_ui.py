@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
@@ -15,7 +16,13 @@ from agent_watch.quota import Availability, QuotaSnapshot, QuotaWindow
 from agent_watch.service_health import HealthState, ProviderHealth
 from agent_watch.states import SessionState
 from agent_watch.terminal.base import SessionRef
-from agent_watch.ui import format_reset, format_reset_in, render_line, render_quota, render_status
+from agent_watch.ui import (
+    format_reset,
+    format_reset_in,
+    render_line,
+    render_quota,
+    render_status,
+)
 
 NOW = datetime(2026, 9, 5, 20, 0, tzinfo=UTC)
 REF = SessionRef("konsole", "org.kde.konsole-1", "/Sessions/2")
@@ -275,3 +282,112 @@ def test_detail_selection_wraps_and_reports_exhausted_windows() -> None:
     assert "DETAIL 2/2" in text
     assert "weekly-exhausted" in text
     assert "Exhausted windows (last sample): weekly" in text
+
+
+@pytest.mark.parametrize("width", [80, 120, 168, 200])
+def test_dashboard_respects_explicit_widths(width: int) -> None:
+    text = render_status([_session()], now=NOW, config=Config(), width=width)
+    assert all(len(line) == width for line in text.splitlines())
+    if width < 168:
+        assert "ACCOUNT:" in text
+        assert "SESSION:" in text
+        assert "TYPE:" in text
+    else:
+        assert "ACCOUNT" in text
+        assert "PROMPT RESET" in text
+
+
+@pytest.mark.parametrize("theme", ["dark", "vivid", "cga", "amber", "plain"])
+def test_narrow_dashboard_supports_every_theme(theme: str) -> None:
+    text = render_status(
+        [_session()], now=NOW, config=Config(), width=80, color=theme != "plain", theme=theme
+    )
+    assert "SESSION 1/1" in text
+    if theme != "plain":
+        assert "\x1b[" in text
+
+
+def test_narrow_dashboard_wraps_unicode_and_strips_terminal_controls() -> None:
+    session = _session(title="very-long-日本語-\x1b[31m-title-" + "x" * 100)
+    text = render_status([session], now=NOW, config=Config(), width=40)
+    assert "\x1b[31m" not in text
+    assert "日本語" in text
+    assert all(_display_width(line) == 40 for line in text.splitlines())
+
+
+def test_small_viewport_keeps_navigation_and_reaches_history_end() -> None:
+    events = [f"event=resume_sent attempt={number}" for number in range(12)]
+    text = render_status(
+        [_session()],
+        now=NOW,
+        config=Config(),
+        width=80,
+        height=6,
+        scroll_offset=10**9,
+        events=events,
+        history_length=10,
+        show_help=False,
+    )
+    assert len(text.splitlines()) == 6
+    assert "j/k scroll" in text
+    assert "└" in text
+    assert "attempt=11" in text
+
+
+def _display_width(line: str) -> int:
+    plain = re.sub(r"\x1b\[[0-9;]*m", "", line)
+    return sum(
+        0 if unicodedata.combining(char) else 2 if unicodedata.east_asian_width(char) in "WF" else 1
+        for char in plain
+    )
+
+
+@pytest.mark.parametrize("width", [1, 2, 4, 5, 20, 40, 80, 120, 168, 200])
+@pytest.mark.parametrize("height", [1, 2, 3, 4, 12])
+def test_small_colored_viewports_never_overflow(width: int, height: int) -> None:
+    text = render_status(
+        [_session(title="日本語 é " * 20)],
+        now=NOW,
+        config=Config(),
+        width=width,
+        height=height,
+        color=True,
+        show_details=True,
+        show_help=True,
+    )
+    assert len(text.splitlines()) <= height
+    assert all(_display_width(line) == width for line in text.splitlines())
+
+
+def test_scrolling_makes_every_body_line_accessible() -> None:
+    from agent_watch.ui import render_viewport
+
+    frame = render_status(
+        [_session()],
+        now=NOW,
+        config=Config(),
+        width=40,
+        show_details=True,
+        show_help=True,
+        events=["last history entry with a long payload " * 3],
+    )
+    seen = set()
+    for offset in range(len(frame.splitlines())):
+        page = render_viewport(frame, 6, offset)
+        assert "j/k g/G h q" in page
+        seen.update(page.splitlines())
+    assert set(frame.splitlines()) <= seen
+
+
+def test_end_jump_can_scroll_back_and_resize_clamps_offset() -> None:
+    from agent_watch.tui import DashboardState
+    from agent_watch.ui import clamp_scroll_offset
+
+    state = DashboardState.from_interval(2)
+    state.handle("G")
+    state.scroll_offset = clamp_scroll_offset(100, 20, state.scroll_offset)
+    assert state.scroll_offset == 80
+    state.handle("k")
+    assert state.scroll_offset == 79
+    state.scroll_offset = clamp_scroll_offset(10, 20, state.scroll_offset)
+    assert state.scroll_offset == 0

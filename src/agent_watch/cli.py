@@ -52,9 +52,11 @@ from agent_watch.ui import (
     CLEAR_SCREEN,
     HIDE_CURSOR,
     SHOW_CURSOR,
+    clamp_scroll_offset,
     render_line,
     render_quota,
     render_status,
+    render_viewport,
 )
 from agent_watch.version import __version__
 
@@ -343,6 +345,7 @@ def _loop(
     color = interactive and not args.no_color and "NO_COLOR" not in os.environ
     last_event = ""
     preferences_warning = ""
+    focus_section = ""
     event_history: list[str] = []
     metrics = ObservationMetrics(supervisor.log)
     health = HealthMonitor(interval=config.status_poll_interval)
@@ -374,27 +377,39 @@ def _loop(
             if interactive or config.mode is not Mode.OBSERVE:
                 if interactive:
                     stream.write(CLEAR_SCREEN)
-                stream.write(
-                    render_status(
-                        supervisor.sessions.values(),
-                        now=now,
-                        config=config,
-                        last_event=preferences_warning or last_event,
-                        refresh_interval=dashboard.interval,
-                        paused=dashboard.paused,
-                        show_help=dashboard.help_visible,
-                        color=color,
-                        theme=dashboard.theme,
-                        width=shutil.get_terminal_size((100, 24)).columns,
-                        events=event_history,
-                        show_events=dashboard.show_events,
-                        history_length=dashboard.history_length,
-                        show_details=dashboard.details_visible,
-                        detail_index=dashboard.detail_index,
-                        service_health=health.snapshot(),
-                    )
-                    + "\n"
+                size = shutil.get_terminal_size((168, 24))
+                frame = render_status(
+                    supervisor.sessions.values(),
+                    now=now,
+                    config=config,
+                    last_event=preferences_warning or last_event,
+                    refresh_interval=dashboard.interval,
+                    paused=dashboard.paused,
+                    show_help=dashboard.help_visible,
+                    color=color,
+                    theme=dashboard.theme,
+                    width=size.columns if interactive else max(168, size.columns),
+                    events=event_history,
+                    show_events=dashboard.show_events,
+                    history_length=dashboard.history_length,
+                    show_details=dashboard.details_visible,
+                    detail_index=dashboard.detail_index,
+                    service_health=health.snapshot(),
                 )
+                if interactive:
+                    height = max(1, size.lines - 1)
+                    frame_lines = frame.splitlines()
+                    if focus_section:
+                        for index, line in enumerate(frame_lines):
+                            if focus_section in line:
+                                dashboard.scroll_offset = max(0, index - 2)
+                                break
+                        focus_section = ""
+                    dashboard.scroll_offset = clamp_scroll_offset(
+                        len(frame_lines), height, dashboard.scroll_offset
+                    )
+                    frame = render_viewport(frame, height, dashboard.scroll_offset)
+                stream.write(frame + "\n")
             else:
                 for session in supervisor.sessions.values():
                     stream.write(render_line(session, now) + "\n")
@@ -406,6 +421,12 @@ def _loop(
                 key = keys.read(dashboard.interval)
                 if dashboard.handle(key):
                     return EXIT_OK
+                if key.lower() == "d" or key in {"[", "]"}:
+                    focus_section = "DETAIL " if dashboard.details_visible else ""
+                elif key.lower() in {"h", "?"}:
+                    focus_section = "KEYS" if dashboard.help_visible else ""
+                elif key.lower() == "e":
+                    focus_section = "HISTORY " if dashboard.show_events else ""
                 if key.lower() == "p":
                     metrics.reset()
                 if key.lower() in {"t", "e", "l", "d", "h", "?"}:

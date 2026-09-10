@@ -185,6 +185,8 @@ output.
 | `h` or `?` | Toggle the in-dashboard help |
 | `d` | Show or hide the selected session's resume explanation |
 | `[` / `]` | Select the previous / next session explanation |
+| `j` / `k` | Scroll down / up through the dashboard |
+| `g` / `G` | Jump to the top / end of the dashboard |
 | `q` | Quit and restore the terminal |
 
 Like btop, `+` makes the interval number larger and therefore refreshes more
@@ -197,6 +199,12 @@ The `d` detail panel explains the latest decision, recognized pattern IDs,
 quota source and age, exhausted windows, and next scheduled check. It labels
 old observations as stale; displayed reset/check times never promise a resume.
 The panel uses cached evidence and does not read or send terminal input.
+
+Below 168 columns, session cards replace the wide table. Details, history and
+help wrap to fit; `j` / `k` scroll through the full content while the navigation
+footer stays visible. `g` / `G` jump to the top/end. Opening details or help
+brings that panel into view. Window resizing clamps the scroll position, and
+non-interactive reports remain complete and ANSI-free.
 
 Interactive theme, history length, and history/detail/help visibility are saved
 under the configured state directory in `preferences.json` (normally

@@ -33,6 +33,9 @@ The requested implementation is complete:
 - The single-instance lock permits at most one input-capable watcher.
 - Deterministic simulations, package smoke tests, and a live read-only Konsole
   adapter test are part of the release gate.
+- Resume explanations, saved presentation preferences, day/week operational
+  summaries, and a responsive scrolling dashboard are implemented; the ordered
+  feature plan and validation notes are in [nextFeatures.md](nextFeatures.md).
 
 ## Remaining acceptance gate
 

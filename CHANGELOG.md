@@ -7,6 +7,17 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.40.0] - 2026-09-10
+
+### Added
+
+- Responsive session cards below 168 columns and a height-bounded dashboard
+  viewport with `j` / `k` scrolling and `g` / `G` top/end navigation.
+- Wrap detail, history and help text; preserve cell widths for wide/combining
+  characters and remove terminal control sequences from displayed fields.
+- Keep navigation visible and focus opened detail/help/history panels without
+  restoring selections or changing input policy.
+
 ## [0.39.0] - 2026-09-10
 
 ### Added

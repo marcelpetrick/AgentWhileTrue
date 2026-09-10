@@ -42,6 +42,9 @@ redacted interval events batch consecutive observations; gaps are excluded.
 
 ## 4. Responsive dashboard (proposal 3)
 
+Completed in 0.40.0: narrow cards, wrapped content, height-bounded viewports,
+`j` / `k` and `g` / `G` navigation, and automatic focus for opened panels.
+
 - Keep the wide table where it fits and use readable session cards for narrow
   windows. Respect terminal width and height, including styled output.
 - Add viewport scrolling so sessions, details, help and retained history remain

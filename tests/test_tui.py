@@ -44,6 +44,24 @@ def test_detail_controls_do_not_toggle_input_mode() -> None:
     assert not state.consume_mode_toggle()
 
 
+def test_viewport_controls_move_and_reset_scroll() -> None:
+    state = DashboardState.from_interval(2)
+    state.handle("j")
+    state.handle("j")
+    assert state.scroll_offset == 2
+    state.handle("k")
+    assert state.scroll_offset == 1
+    state.handle("g")
+    assert state.scroll_offset == 0
+    state.handle("G")
+    assert state.scroll_offset > 1000
+    state.handle("d")
+    assert state.scroll_offset == 0
+    state.handle("j")
+    state.handle("]")
+    assert state.scroll_offset == 0
+
+
 def test_refresh_ladder_clamps_at_both_ends() -> None:
     state = DashboardState.from_interval(INTERVALS[0])
     state.handle("-")

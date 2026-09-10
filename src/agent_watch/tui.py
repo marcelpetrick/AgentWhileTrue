@@ -33,6 +33,7 @@ class DashboardState:
     mode_toggle_requested: bool = False
     details_visible: bool = False
     detail_index: int = 0
+    scroll_offset: int = 0
 
     @classmethod
     def from_interval(cls, value: float) -> DashboardState:
@@ -73,10 +74,21 @@ class DashboardState:
             self.history_index = (self.history_index + 1) % len(HISTORY_LENGTHS)
         elif lowered == "d":
             self.details_visible = not self.details_visible
+            self.scroll_offset = 0
         elif key == "]":
             self.detail_index += 1
+            self.scroll_offset = 0
         elif key == "[":
             self.detail_index -= 1
+            self.scroll_offset = 0
+        elif lowered == "j":
+            self.scroll_offset += 1
+        elif lowered == "k":
+            self.scroll_offset = max(0, self.scroll_offset - 1)
+        elif key == "g":
+            self.scroll_offset = 0
+        elif key == "G":
+            self.scroll_offset = 10**9
         elif key == "A":
             self.mode_toggle_requested = True
         return False

@@ -74,6 +74,16 @@ flowchart TB
 The runtime package has no third-party dependencies. Shell is limited to the
 Claude bridge, installation helpers, and quality/release integration.
 
+Presentation preferences live in a separate, versioned owner-only file and
+can restore only theme, history length and panel visibility. The detail panel
+reads cached decision/observation metadata; it never evaluates authorization.
+Responsive rendering and viewport navigation operate solely on presentation.
+
+`metrics.py` batches intervals between consecutive known observations, excluding
+pauses and gaps. `summary.py` streams retained structured logs, including rotated
+backups, to report event counts and sampled session-time. Both are independent
+of the persisted action lifecycle; reports explicitly describe partial coverage.
+
 ## Runtime components
 
 ```mermaid

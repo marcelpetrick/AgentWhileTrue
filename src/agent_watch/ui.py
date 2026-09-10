@@ -7,6 +7,8 @@ panels, while plain output stays pipe-able, greppable and readable in tests.
 from __future__ import annotations
 
 import math
+import re
+import unicodedata
 from collections.abc import Iterable, Sequence
 from datetime import datetime
 
@@ -90,6 +92,65 @@ _HEADERS = (
     "SESSION",
 )
 _WIDTHS = (3, 7, 31, 18, 12, 16, 16, 10, 12, 7, 0)
+_CONTROL_RE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+_ESCAPE_RE = re.compile(r"\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b\[[0-?]*[ -/]*[@-~]")
+
+
+def _safe_text(value: object) -> str:
+    """Remove terminal controls before text reaches an ANSI themed panel."""
+    return _CONTROL_RE.sub("", _ESCAPE_RE.sub("", str(value)))
+
+
+def _cell_width(value: str) -> int:
+    return sum(
+        0 if unicodedata.combining(char) else 2 if unicodedata.east_asian_width(char) in "WF" else 1
+        for char in value
+    )
+
+
+def _fit(value: object, width: int) -> str:
+    text = _safe_text(value)
+    if width <= 0:
+        return ""
+    result: list[str] = []
+    used = 0
+    for char in text:
+        char_width = (
+            0
+            if unicodedata.combining(char)
+            else 2
+            if unicodedata.east_asian_width(char) in "WF"
+            else 1
+        )
+        if used + char_width > width:
+            break
+        result.append(char)
+        used += char_width
+    return "".join(result) + " " * (width - used)
+
+
+def _wrap(value: object, width: int) -> list[str]:
+    """Wrap in one pass, including fields wider than the complete terminal."""
+    text = _safe_text(value)
+    if width <= 0:
+        return [""]
+    if not text:
+        return [""]
+    lines: list[str] = []
+    chars: list[str] = []
+    used = 0
+    for char in text:
+        cells = _cell_width(char)
+        if cells > width:
+            char, cells = "?", 1
+        if used + cells > width:
+            lines.append("".join(chars))
+            chars, used = [], 0
+        chars.append(char)
+        used += cells
+    if chars:
+        lines.append("".join(chars))
+    return lines
 
 
 def format_reset(reset_at: datetime | None, now: datetime) -> str:
@@ -123,7 +184,7 @@ def format_reset_in(reset_at: datetime | None, now: datetime) -> str:
 def _row(values: Sequence[str]) -> str:
     parts = []
     for value, width in zip(values, _WIDTHS, strict=True):
-        parts.append(value if width == 0 else f"{value:<{width}}")
+        parts.append(_safe_text(value) if width == 0 else _fit(value, width))
     return " ".join(parts).rstrip()
 
 
@@ -136,9 +197,11 @@ def _paint(text: str, role: str, *, color: bool, theme: str) -> str:
 
 def _panel_line(text: str, width: int, role: str, *, color: bool, theme: str) -> str:
     """Pad and frame one line so the theme covers the complete panel."""
+    if width < 5:
+        return _paint(_fit(text, width), role, color=color, theme=theme)
     inner = max(1, width - 4)
-    content = text[:inner]
-    plain = f"│ {content:<{inner}} │"
+    content = _fit(text, inner)
+    plain = f"│ {content} │"
     return _paint(plain, role, color=color, theme=theme)
 
 
@@ -153,7 +216,7 @@ def _styled_row(
     final_width = max(1, width - fixed_width - 4)
     for index, (value, cell_width, role) in enumerate(zip(values, _WIDTHS, roles, strict=True)):
         target_width = final_width if index == len(_WIDTHS) - 1 else cell_width
-        content = f"{value[:target_width]:<{target_width}}"
+        content = _fit(value, target_width)
         cells.append(_paint(content, role, color=True, theme=theme))
         if index != len(_WIDTHS) - 1:
             cells.append(_paint(" ", "surface", color=True, theme=theme))
@@ -163,7 +226,9 @@ def _styled_row(
 
 def _rule(title: str, width: int, *, color: bool, theme: str) -> str:
     prefix = f"┌─ {title} "
-    plain = prefix + "─" * max(3, width - len(prefix) - 1) + "┐"
+    prefix = _safe_text(prefix)
+    plain = prefix + "─" * max(1, width - _cell_width(prefix) - 1) + "┐"
+    plain = _fit(plain, width)
     return _paint(plain, "structure", color=color, theme=theme)
 
 
@@ -269,6 +334,8 @@ def session_details(
     )
     return [
         f"Session: {session.provider_name} {session.identity.tty} PID {session.identity.pid}",
+        f"Title: {session.display_title()}",
+        f"Account: {session.account_label}",
         f"Last decision: {session.last_reason or 'not evaluated'} ({age(session.decision_at)})",
         f"Observation: {age(session.observed_at)}{'; STALE' if stale else ''}",
         f"Recognized state: {session.observed_state}",
@@ -283,6 +350,68 @@ def session_details(
     ]
 
 
+def _session_card(
+    session: SupervisedSession,
+    index: int,
+    total: int,
+    now: datetime,
+    panel_width: int,
+    *,
+    color: bool,
+    theme: str,
+) -> list[str]:
+    quota_value = quota_state(session.quota, now)
+    fields = (
+        ("ID", str(index)),
+        ("TYPE", session.provider_name.title()),
+        ("ACCOUNT", session.account_label),
+        ("STATE", session.state.value),
+        ("PROMPT RESET", format_reset(session.reset_at, now)),
+        ("5H USED/IN", quota_meter_with_reset(session.quota, "session", now)),
+        ("WEEK USED/IN", quota_meter_with_reset(session.quota, "weekly", now)),
+        ("QUOTA", quota_value),
+        ("QUOTA RESET", format_reset(session.quota.next_reset, now)),
+        ("PID", str(session.identity.pid)),
+        ("SESSION", session.display_title()),
+    )
+    lines = [
+        _panel_line(f"SESSION {index}/{total}", panel_width, "header", color=color, theme=theme)
+    ]
+    inner = max(1, panel_width - 4)
+    for label, value in fields:
+        for part in _wrap(f"{label}: {value}", inner):
+            lines.append(_panel_line(part, panel_width, "text", color=color, theme=theme))
+    return lines
+
+
+def clamp_scroll_offset(line_count: int, height: int | None, offset: int) -> int:
+    """Normalize stored navigation after end-of-page jumps or a resize."""
+    if height is None or line_count <= height:
+        return 0
+    return min(max(0, offset), max(0, line_count - max(3, height)))
+
+
+def render_viewport(text: str, height: int | None, offset: int) -> str:
+    return _viewport(text.splitlines(), height, offset)
+
+
+def _viewport(lines: list[str], height: int | None, offset: int) -> str:
+    if height is None:
+        return "\n".join(lines)
+    if height <= 0 or not lines:
+        return ""
+    if height == 1:
+        return lines[-1]
+    if height == 2:
+        return "\n".join((lines[0], lines[-1]))
+    header = lines[:2] if height >= 4 else lines[:1]
+    footer = lines[-1]
+    body = lines[len(header) : -1]
+    visible = height - len(header) - 1
+    start = clamp_scroll_offset(len(lines), height, offset)
+    return "\n".join([*header, *body[start : start + visible], footer])
+
+
 def render_status(
     sessions: Iterable[SupervisedSession],
     *,
@@ -294,7 +423,9 @@ def render_status(
     show_help: bool = False,
     color: bool = False,
     theme: str = "dark",
-    width: int = 100,
+    width: int = 168,
+    height: int | None = None,
+    scroll_offset: int = 0,
     events: Sequence[str] = (),
     show_events: bool = True,
     history_length: int = 10,
@@ -305,7 +436,7 @@ def render_status(
     """Render the running watcher's status table."""
     listed = list(sessions)
     title = f"Agent While True {__version__}"
-    panel_width = max(width, 168)
+    panel_width = max(1, width)
     interval = refresh_interval if refresh_interval is not None else config.scan_interval
     pause_badge = " — PAUSED: press p to resume" if paused else ""
     mode_label = (
@@ -316,22 +447,20 @@ def render_status(
     lines = [
         _rule(title + pause_badge, panel_width, color=color, theme=theme),
         _panel_line(
-            f"  {now.astimezone().strftime('%Y-%m-%d %H:%M:%S')}   every {interval:g}s   "
-            "[+ slower  - faster  A mode  e events  l history  r rescan  p pause  "
-            "t theme  h help  q quit]",
+            f"mode={mode_label}   watching {len(listed)} session(s)   theme={theme}   "
+            f"every {interval:g}s{'   PAUSED' if paused else ''}",
             panel_width,
             "accent",
             color=color,
             theme=theme,
         ),
-        _panel_line(
-            f"  mode={mode_label}   watching {len(listed)} session(s)   theme={theme}",
-            panel_width,
-            "surface",
-            color=color,
-            theme=theme,
-        ),
     ]
+    for part in _wrap(
+        f"{now.astimezone().strftime('%Y-%m-%d %H:%M:%S')}  "
+        "+ slower  - faster  A mode  e events  l history  r rescan  p pause  t theme  d details",
+        max(1, panel_width - 4),
+    ):
+        lines.append(_panel_line(part, panel_width, "surface", color=color, theme=theme))
     if service_health:
         status_parts = []
         health_roles = []
@@ -345,36 +474,57 @@ def render_status(
             if "danger" in health_roles
             else ("warning" if "warning" in health_roles else "healthy")
         )
-        lines.append(
+        lines.extend(
             _panel_line(
-                "  services=" + "   ".join(status_parts),
+                part,
                 panel_width,
                 service_role,
                 color=color,
                 theme=theme,
             )
+            for part in _wrap("services=" + "   ".join(status_parts), max(1, panel_width - 4))
         )
     lines.extend(
         (
             _panel_line("", panel_width, "surface", color=color, theme=theme),
             _panel_line("SESSIONS", panel_width, "header", color=color, theme=theme),
-            _styled_row(
-                _HEADERS,
-                ("header",) * len(_HEADERS),
-                panel_width,
-                color=color,
-                theme=theme,
-            ),
-            _panel_line(
-                "─" * (panel_width - 4),
-                panel_width,
-                "structure",
-                color=color,
-                theme=theme,
-            ),
         )
     )
+    if panel_width < 168:
+        for index, session in enumerate(listed, start=1):
+            lines.extend(
+                _session_card(
+                    session,
+                    index,
+                    len(listed),
+                    now,
+                    panel_width,
+                    color=color,
+                    theme=theme,
+                )
+            )
+    if panel_width >= 168:
+        lines.extend(
+            (
+                _styled_row(
+                    _HEADERS,
+                    ("header",) * len(_HEADERS),
+                    panel_width,
+                    color=color,
+                    theme=theme,
+                ),
+                _panel_line(
+                    "─" * (panel_width - 4),
+                    panel_width,
+                    "structure",
+                    color=color,
+                    theme=theme,
+                ),
+            )
+        )
     for index, session in enumerate(listed, start=1):
+        if panel_width < 168:
+            break
         quota_value = quota_state(session.quota, now)
         values = (
             str(index),
@@ -420,10 +570,14 @@ def render_status(
             )
         )
         for detail in session_details(listed[selected], now, interval, paused):
-            lines.append(_panel_line(detail, panel_width, "text", color=color, theme=theme))
+            lines.extend(
+                _panel_line(part, panel_width, "text", color=color, theme=theme)
+                for part in _wrap(detail, max(1, panel_width - 4))
+            )
     if last_event:
-        lines.append(
-            _panel_line(f"Last: {last_event}", panel_width, "accent", color=color, theme=theme)
+        lines.extend(
+            _panel_line(part, panel_width, "accent", color=color, theme=theme)
+            for part in _wrap(f"Last: {last_event}", max(1, panel_width - 4))
         )
     if show_events and events:
         lines.append(_panel_line("", panel_width, "surface", color=color, theme=theme))
@@ -437,14 +591,9 @@ def render_status(
             )
         )
         for event in events[-history_length:]:
-            lines.append(
-                _panel_line(
-                    event[: max(20, panel_width - 6)],
-                    panel_width,
-                    "dim",
-                    color=color,
-                    theme=theme,
-                )
+            lines.extend(
+                _panel_line(part, panel_width, "dim", color=color, theme=theme)
+                for part in _wrap(event, max(1, panel_width - 4))
             )
     if show_help:
         lines.extend(
@@ -452,7 +601,7 @@ def render_status(
                 _panel_line("", panel_width, "surface", color=color, theme=theme),
                 _panel_line("KEYS", panel_width, "header", color=color, theme=theme),
                 *(
-                    _panel_line(item, panel_width, "text", color=color, theme=theme)
+                    _panel_line(part, panel_width, "text", color=color, theme=theme)
                     for item in (
                         "- / +   refresh faster / slower (0.25, 0.5, 1, 2, 3, 5, 10, 30, 60s)",
                         "A       toggle observe/full-auto; full-auto opts in Codex continuation",
@@ -462,15 +611,20 @@ def render_status(
                         "e       show/hide persisted action history",
                         "l       cycle history length: 5, 10, 20, 50",
                         "d       show/hide resume explanation; [ / ] previous/next session",
+                        "j / k   scroll down/up; g / G jump to top/end",
                         "h / ?   close this help",
                         "q       quit cleanly",
                     )
+                    for part in _wrap(item, max(1, panel_width - 4))
                 ),
             )
         )
-    bottom = "└" + "─" * (panel_width - 2) + "┘"
-    lines.append(_paint(bottom, "structure", color=color, theme=theme))
-    return "\n".join(lines)
+    hint = "j/k scroll  g/G top/end  h help  q quit"
+    if panel_width < 44:
+        hint = "j/k g/G h q"
+    bottom = "└ " + _fit(hint, max(0, panel_width - 4)) + " ┘"
+    lines.append(_paint(_fit(bottom, panel_width), "structure", color=color, theme=theme))
+    return _viewport(lines, height, scroll_offset)
 
 
 def render_line(session: SupervisedSession, now: datetime) -> str:
