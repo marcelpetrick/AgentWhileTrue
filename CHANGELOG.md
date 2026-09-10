@@ -7,6 +7,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.38.0] - 2026-09-10
+
+### Added
+
+- Save interactive theme, history length and panel visibility in an owner-only
+  atomic preferences file. Invalid files use defaults; failed saves are visible.
+- Preferences never restore input mode, authorization, selections or scan timing.
+
 ## [0.37.0] - 2026-09-10
 
 ### Added

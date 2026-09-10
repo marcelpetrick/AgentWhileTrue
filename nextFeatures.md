@@ -17,6 +17,8 @@ Completed in 0.37.0: `d` toggles details and `[` / `]` navigate sessions.
 
 ## 2. Save presentation preferences (proposal 5)
 
+Completed in 0.38.0: interactive changes are saved to `preferences.json`.
+
 - Persist theme, history length and display-panel visibility in an owner-only,
   atomically replaced local preferences file.
 - Validate a versioned allowlist; malformed, missing or unsupported files use

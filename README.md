@@ -198,6 +198,13 @@ quota source and age, exhausted windows, and next scheduled check. It labels
 old observations as stale; displayed reset/check times never promise a resume.
 The panel uses cached evidence and does not read or send terminal input.
 
+Interactive theme, history length, and history/detail/help visibility are saved
+under the configured state directory in `preferences.json` (normally
+`~/.local/state/agent-watch/preferences.json`). Changes apply immediately and
+survive restart. Invalid files fall back to defaults; save errors appear in the
+dashboard. Mode, permissions, selections, pause and scan timing are never saved
+as presentation preferences.
+
 Other modes are:
 
 ```bash

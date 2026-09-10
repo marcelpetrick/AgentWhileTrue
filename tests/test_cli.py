@@ -309,3 +309,40 @@ def test_bare_invocation_runs(sandbox: Path, out: io.StringIO, monkeypatch) -> N
 
 def test_version_string_is_reported_in_the_status_view() -> None:
     assert __version__
+
+
+@pytest.mark.parametrize("save_ok", [True, False])
+def test_interactive_preferences_round_trip_without_input(
+    tmp_path: Path, monkeypatch, save_ok: bool
+) -> None:
+    from agent_watch.preferences import load_preferences, save_preferences
+    from agent_watch.tui import DashboardState
+
+    kit = harness_module.build(tmp_path, mode=Mode.OBSERVE)
+    path = kit.supervisor.config.resolved_state_dir() / "preferences.json"
+    state = DashboardState.from_interval(2)
+    state.theme_index = 3
+    assert save_preferences(path, state)
+    pressed = iter(["t", "q"])
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(cli.TerminalKeys, "read", lambda self, timeout: next(pressed))
+    monkeypatch.setattr(cli.HealthMonitor, "start", lambda self: None)
+    if not save_ok:
+        monkeypatch.setattr(cli, "save_preferences", lambda path, state: False)
+
+    class InteractiveOutput(io.StringIO):
+        def isatty(self):
+            return True
+
+    stream = InteractiveOutput()
+    args = cli.build_parser().parse_args(["run", "--observe"])
+    lock = SingleInstanceLock.in_directory(tmp_path / "runtime")
+    assert cli._loop(kit.supervisor, kit.supervisor.config, args, stream, lock) == EXIT_OK
+    assert "theme=amber" in stream.getvalue()
+    assert "theme=plain" in stream.getvalue()
+    assert ("could not be saved" in stream.getvalue()) is (not save_ok)
+    restored = DashboardState.from_interval(2)
+    load_preferences(path, restored)
+    assert restored.theme == ("plain" if save_ok else "amber")
+    assert not lock.held
+    assert kit.sent == []

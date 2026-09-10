@@ -40,6 +40,7 @@ from agent_watch.lock import LockHeldError, SingleInstanceLock
 from agent_watch.logging_setup import read_history, setup
 from agent_watch.picker import Candidate, NumberedPicker, discover, pick_with_fzf
 from agent_watch.policy import Decision
+from agent_watch.preferences import load_preferences, save_preferences
 from agent_watch.quota import default_sources
 from agent_watch.service_health import HealthMonitor
 from agent_watch.state_store import StateStore
@@ -329,9 +330,13 @@ def _loop(
         not args.once and hasattr(stream, "isatty") and stream.isatty() and sys.stdin.isatty()
     )
     dashboard = DashboardState.from_interval(config.scan_interval)
+    preferences_path = config.resolved_state_dir() / "preferences.json"
+    if interactive:
+        load_preferences(preferences_path, dashboard)
     keys = TerminalKeys(interactive)
     color = interactive and not args.no_color and "NO_COLOR" not in os.environ
     last_event = ""
+    preferences_warning = ""
     event_history: list[str] = []
     health = HealthMonitor(interval=config.status_poll_interval)
     # command_run() has just completed initial discovery and selection.
@@ -362,7 +367,7 @@ def _loop(
                         supervisor.sessions.values(),
                         now=now,
                         config=config,
-                        last_event=last_event,
+                        last_event=preferences_warning or last_event,
                         refresh_interval=dashboard.interval,
                         paused=dashboard.paused,
                         show_help=dashboard.help_visible,
@@ -386,8 +391,15 @@ def _loop(
             if args.once:
                 return EXIT_OK
             if interactive:
-                if dashboard.handle(keys.read(dashboard.interval)):
+                key = keys.read(dashboard.interval)
+                if dashboard.handle(key):
                     return EXIT_OK
+                if key.lower() in {"t", "e", "l", "d", "h", "?"}:
+                    preferences_warning = (
+                        ""
+                        if save_preferences(preferences_path, dashboard)
+                        else "Display preferences could not be saved; current choices remain active"
+                    )
                 if dashboard.consume_mode_toggle():
                     config, last_event = _toggle_runtime_mode(supervisor, config, lock)
                     event_history = read_history(
