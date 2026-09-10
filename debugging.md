@@ -32,6 +32,7 @@ Bugs, in fix order:
 | D5 | medium | A waiting session is not observed, so manual recovery goes unseen |
 | D6 | medium | The retry budget can be exceeded |
 | D7 | low | Refusal log events have no session field |
+| D8 | high | Claude's paid-offer veto matches any `/usage-credits` text on screen, so working sessions are marked `LIMIT_BLOCKED` |
 
 D1, D2 and D3 each prevent an automatic Codex retry on their own. The required
 retry behavior is specified in
@@ -279,6 +280,41 @@ session, provider and process.
 
 **Fix.** Add `session=` (and `attempt=` where applicable) to `resume_refused`
 and all new retry events.
+
+### D8: Claude's paid-offer veto fires on ordinary screen text
+
+**What is wrong.** The pattern `claude/usage-credits-offer` matches `/upgrade`
+or `/usage-credits` anywhere in the visible screen text. At 23:33 both Claude
+sessions were working at 90-91% of their five-hour window, not blocked. The
+agent nevertheless logged `ACTIVE -> LIMIT_BLOCKED`
+`reason=paid-action-required:claude/usage-credits-offer`, then flipped back to
+`ACTIVE` seconds later:
+
+- 23:33:10 and 23:34:50, `konsole-584119` (pts/4), about 8 s each. The
+  triggering text was no longer visible when checked.
+- 23:33:31, `konsole-28816` (pts/6). This session was displaying agent log
+  output that contained `claude/usage-credits-offer`, so the agent's own reason
+  string on screen triggered the veto.
+
+**What was expected.** Only the actual limit prompt or menu that offers paid
+usage credits counts as a paid action. A working session stays `ACTIVE`
+whatever text scrolls past: log lines, documentation, or a usage warning.
+
+**Risk.** When a Claude session really hits its limit, any `/upgrade` or
+`/usage-credits` text on screen vetoes the safe "continue automatically"
+action. The menu action exempts only `claude/upgrade-plan-offer`
+(`policy.py:163-192`), so the Claude retry could fail the same way as Codex.
+This still has to be confirmed when a Claude session reaches 100%.
+
+**Where.** `providers/claude.py:177-185` (`all_of=(_pattern(r"/(?:upgrade|usage-credits)\b"),)`).
+
+**Fix.** Match the pattern only within the recognized limit prompt or menu
+region, never the whole screen, and ignore scrollback above the latest input
+prompt. Add a fixture from a real near-limit Claude screen.
+
+**Regression test.** A working Claude screen whose scrollback contains
+`paid-action-required:claude/usage-credits-offer` and `/upgrade` must be
+`ACTIVE` with no veto.
 
 ## Required retry behavior
 
