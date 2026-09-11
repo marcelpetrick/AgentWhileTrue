@@ -23,6 +23,42 @@ _CLOCK_RE = re.compile(
     r"(?:\s*\((?P<tz>[A-Za-z_]+/[A-Za-z_+-]+)\))?",
     re.IGNORECASE,
 )
+_MONTH_NAMES = {
+    "jan": 1,
+    "feb": 2,
+    "mar": 3,
+    "apr": 4,
+    "may": 5,
+    "jun": 6,
+    "jul": 7,
+    "aug": 8,
+    "sep": 9,
+    "oct": 10,
+    "nov": 11,
+    "dec": 12,
+}
+_MONTH_DATE_RE = re.compile(
+    r"\b(?P<month>Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|"
+    r"Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|"
+    r"Nov(?:ember)?|Dec(?:ember)?)\s+"
+    r"(?P<day>\d{1,2})(?:st|nd|rd|th)?(?:,\s*|\s+)"
+    r"(?P<year>\d{4})\s+"
+    r"(?P<hour>\d{1,2})[:.](?P<minute>\d{2})\s*(?P<meridiem>am|pm)?"
+    r"(?:\s*\((?P<tz>[A-Za-z_]+/[A-Za-z_+-]+)\))?",
+    re.IGNORECASE,
+)
+_ISO_DATE_RE = re.compile(
+    r"\b(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})"
+    r"(?:[ T])(?P<hour>\d{1,2})[:.](?P<minute>\d{2})\s*(?P<meridiem>am|pm)?"
+    r"(?:\s*\((?P<tz>[A-Za-z_]+/[A-Za-z_+-]+)\))?",
+    re.IGNORECASE,
+)
+_DATED_TEXT_RE = re.compile(
+    r"\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|"
+    r"Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|"
+    r"Dec(?:ember)?|\d{4}-\d{2}-\d{2})\b",
+    re.IGNORECASE,
+)
 #: "resets Mon 12:00am"
 _WEEKDAY_RE = re.compile(
     r"\b(?P<weekday>mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)[a-z]*\b", re.IGNORECASE
@@ -102,18 +138,53 @@ def parse_relative(text: str, now: datetime) -> datetime | None:
     return now + delta
 
 
+def _parse_explicit_date(text: str, now: datetime) -> tuple[bool, datetime | None]:
+    """Return whether dated text was present and its exact instant if valid."""
+    match = _MONTH_DATE_RE.search(text) or _ISO_DATE_RE.search(text)
+    if match is None:
+        return _DATED_TEXT_RE.search(text) is not None, None
+    hour = _apply_meridiem(int(match.group("hour")), match.group("meridiem"))
+    minute = int(match.group("minute"))
+    if hour is None or minute >= MINUTES_PER_HOUR:
+        return True, None
+    zone_name = match.group("tz")
+    zone = _zone(zone_name, now)
+    if zone_name and zone is None:
+        return True, None
+    effective_zone = zone or now.tzinfo
+    try:
+        month_text = match.group("month")
+        month = int(month_text) if month_text.isdigit() else _MONTH_NAMES[month_text[:3].lower()]
+        candidate = datetime(
+            int(match.group("year")),
+            month,
+            int(match.group("day")),
+            hour,
+            minute,
+            tzinfo=effective_zone,
+        )
+    except (KeyError, ValueError):
+        return True, None
+    return True, candidate.astimezone(now.tzinfo)
+
+
 def parse_reset(text: str, now: datetime) -> datetime | None:
     """Parse a reset instant out of one line of provider output.
 
-    Handles the three shapes the CLIs actually emit:
+    Handles these supported shapes:
 
     - ``resets 8:10pm (Europe/Berlin)`` - a clock time, optionally with a zone;
     - ``resets Mon 12:00am`` - a clock time on the next occurrence of a weekday;
     - ``resets in 4h51m`` - a relative offset.
+    - ``Sep 10, 2026 9:52 PM`` or ``2026-09-10 21:52`` - an explicit date.
 
-    A parsed time that has already passed today is rolled forward to tomorrow,
-    because these CLIs only ever name a reset in the future.
+    An undated clock that has passed rolls forward; callers must anchor repeated
+    observations to the first sighting. Explicit dates never roll forward.
     """
+    dated, explicit = _parse_explicit_date(text, now)
+    if dated:
+        return explicit
+
     if (relative := parse_relative(text, now)) is not None:
         return relative
 

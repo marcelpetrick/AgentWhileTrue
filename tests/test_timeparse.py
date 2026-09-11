@@ -51,6 +51,40 @@ def test_codex_try_again_at() -> None:
     assert parsed == datetime(2026, 9, 5, 20, 10, tzinfo=BERLIN)
 
 
+def test_explicit_english_date_is_authoritative() -> None:
+    parsed = parse_reset("try again at Sep 11th, 2026 4:35 AM", NOW)
+    assert parsed == datetime(2026, 9, 11, 4, 35, tzinfo=BERLIN)
+
+
+def test_explicit_long_month_and_zone_convert_to_callers_zone() -> None:
+    parsed = parse_reset("try again at September 11 2026 4:35 AM (America/New_York)", NOW)
+    assert parsed == datetime(2026, 9, 11, 10, 35, tzinfo=BERLIN)
+
+
+def test_past_explicit_date_never_rolls_forward() -> None:
+    parsed = parse_reset("try again at Sep 4th, 2026 4:35 AM", NOW)
+    assert parsed == datetime(2026, 9, 4, 4, 35, tzinfo=BERLIN)
+
+
+def test_iso_date_before_clock_is_supported() -> None:
+    parsed = parse_reset("try again at 2026-09-11 04:35", NOW)
+    assert parsed == datetime(2026, 9, 11, 4, 35, tzinfo=BERLIN)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "try again at Sep 31st, 2026 4:35 AM",
+        "try again at 2026-13-11 04:35",
+        "try again at Sep 11th 4:35 AM",
+        "try again at 11 Sep 2026 4:35 AM",
+        "try again at Sep 11th, 2026 4:35 AM (Mars/Olympus)",
+    ],
+)
+def test_invalid_or_unsupported_dated_text_does_not_fall_back_to_clock(text: str) -> None:
+    assert parse_reset(text, NOW) is None
+
+
 def test_zone_less_codex_time_uses_local_zone_when_supervisor_clock_is_utc(monkeypatch) -> None:
     monkeypatch.setattr("agent_watch.providers.timeparse._local_zone", lambda: BERLIN)
     now = datetime(2026, 9, 7, 13, 16, tzinfo=UTC)

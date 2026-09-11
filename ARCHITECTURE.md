@@ -136,7 +136,7 @@ flowchart TD
     process_type -- no --> refuse
     process_type -- yes --> prompt{"Exact current prompt<br/>recognized without veto?"}
     prompt -- no --> refuse
-    prompt -- yes --> quota{"Fresh quota exhausted or available<br/>as required, with no other limit?"}
+    prompt -- yes --> quota{"Provider confirmation or opted-in<br/>bounded Codex timed-trial gate?"}
     quota -- no or unknown --> refuse
     quota -- yes --> mode{"Mode and policy permit<br/>the exact action?"}
     mode -- no --> refuse
@@ -152,8 +152,17 @@ flowchart TD
     retry -- no --> failed
 ```
 
-Observe mode never reaches `PLANNED` or `sendText`. Unknown, stale, malformed,
-or conflicting evidence always follows a refusal edge.
+Observe mode never reaches `PLANNED` or `sendText`. Unknown/stale quota remains
+unknown/stale; it does not become available. The sole trial exception is the
+owner-requested exact Codex limit composer after an anchored reset, with the
+explicit Codex opt-in, persistent episode budget and no fresh contradictory
+limit. Claude and other actions still require provider confirmation.
+
+Waiting gates actions, not observations. Each normal scan updates displayed
+state; action/verification deadlines can wake the loop sooner. Codex reset
+anchors are bound to the selected process and reset hint; a later reset creates
+a separate episode. All open same-profile rollouts are considered for quota,
+using newest valid windowed evidence rather than file-descriptor order.
 
 ## Persisted action lifecycle
 
@@ -168,8 +177,18 @@ stateDiagram-v2
     FAILED --> [*]
 ```
 
-The state store prevents the same prompt fingerprint and process identity from
-being actioned twice. The event log records identifiers, pattern IDs, decisions,
+The state store prevents replay of unsettled action keys. Bounded Codex retries
+use a persistent session/process/reset episode and a separately reserved action
+key for each attempt, so a changed screen fingerprint cannot replenish budget.
+Episode reservations and `PLANNED` are durable before the final recheck. That
+recheck refreshes quota/prompt evidence, then directly rereads process identity
+and classification immediately before `sendText`; no disk write intervenes.
+Konsole offers no atomic compare-screen-and-send operation, so a residual
+asynchronous boundary remains and must not be described as atomic.
+
+Malformed retry state disables timed trials; pending `PLANNED` attempts are not
+replayed after restart. A pending `SENT` can be verified without another send.
+The event log records identifiers, pattern IDs, decisions,
 and lifecycle states, but never screen contents, prompts, credentials, or
 environment values.
 
@@ -206,7 +225,8 @@ ambiguous process ancestry are non-automatable.
 - Keep provider quota state distinct from terminal prompt state.
 - Bind selection to immutable process evidence, not a tab number or project path.
 - Revalidate every safety input immediately before terminal input.
-- Prefer refusal over inference when data is missing, stale, or contradictory.
+- Prefer refusal over inference; allow only the documented, explicitly opted-in
+  bounded Codex trial when availability cannot refresh while blocked.
 - Keep runtime dependencies empty and external traffic limited to compressed,
   bounded, conditional reads of public status endpoints.
 - Persist the action intent before sending so crashes cannot silently duplicate

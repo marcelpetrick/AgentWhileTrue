@@ -68,6 +68,9 @@ class ResumeRequest:
     attempts: int = 0
     actioned_fingerprints: frozenset[str] = frozenset()
     marked_unsafe: bool = False
+    #: Set only for a supervisor-bound persistent Codex blocking episode.
+    codex_retry: bool = False
+    retry_state_valid: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -222,7 +225,21 @@ def _check_not_already_actioned(request: ResumeRequest) -> str | None:
 
 
 def _check_attempts(request: ResumeRequest) -> str | None:
-    if request.attempts >= request.config.max_resume_attempts:
+    if request.codex_retry and not (
+        request.config.policy.allow_codex_auto_resume
+        and request.recognition.provider == "codex"
+        and request.recognition.retry_prompt
+        and request.recognition.reset_at is not None
+    ):
+        return "invalid-codex-retry-prompt"
+    if request.codex_retry and not request.retry_state_valid:
+        return "retry-state-unreadable"
+    budget = (
+        len(request.config.retry_schedule)
+        if request.codex_retry
+        else request.config.max_resume_attempts
+    )
+    if request.attempts >= budget:
         return "max-resume-attempts-reached"
     return None
 
@@ -239,7 +256,25 @@ def _check_no_other_limit(request: ResumeRequest) -> str | None:
         # Stale data cannot clear a limit either way; handled by the
         # authorization check, which will not reach PROVIDER_CONFIRMED.
         return None
+    if _expired_codex_windows(request):
+        return None
     return f"other-limit-still-exhausted:{','.join(sorted(still_exhausted))}"
+
+
+def _expired_codex_windows(request: ResumeRequest) -> bool:
+    """A pre-reset exhaustion sample is not a later contradictory limit."""
+    reset = request.recognition.reset_at
+    exhausted = [window for window in request.quota.windows if window.exhausted]
+    return bool(
+        request.codex_retry
+        and reset is not None
+        and exhausted
+        and request.quota.observed_at is not None
+        and request.quota.observed_at <= reset
+        and all(
+            window.resets_at is not None and window.resets_at <= request.now for window in exhausted
+        )
+    )
 
 
 _CONDITIONS: tuple[Callable[[ResumeRequest], str | None], ...] = (
@@ -297,7 +332,20 @@ def authorization_for(request: ResumeRequest) -> tuple[Authorization, datetime |
             return Authorization.PROVIDER_CONFIRMED, None
         return Authorization.NONE, None
 
+    # A sample from before the limit was reached must not override the printed
+    # reset. For opted-in bounded Codex retries the first schedule delay replaces
+    # reset grace; other paths retain their existing grace period.
+    if request.recognition.provider == "codex" and request.recognition.reset_at is not None:
+        delay = (
+            request.config.retry_schedule[0] if request.codex_retry else request.config.reset_grace
+        )
+        due = request.recognition.reset_at + timedelta(seconds=delay)
+        if request.now < due:
+            return Authorization.NONE, due
+
     if fresh and quota.availability is Availability.EXHAUSTED:
+        if _expired_codex_windows(request):
+            return Authorization.TIME_ONLY, None
         return Authorization.NONE, _resume_at(request)
 
     # The provider's own "usage limit has reset - press enter to continue" is a
@@ -307,6 +355,9 @@ def authorization_for(request: ResumeRequest) -> tuple[Authorization, datetime |
 
     if fresh and quota.availability is Availability.AVAILABLE:
         return Authorization.PROVIDER_CONFIRMED, None
+
+    if request.codex_retry and request.recognition.reset_at is not None:
+        return Authorization.TIME_ONLY, None
 
     resume_at = _resume_at(request)
     if resume_at is None:
@@ -360,7 +411,7 @@ def evaluate(request: ResumeRequest) -> Decision:
             idempotency_key=key,
         )
 
-    if mode is Mode.AUTO and authorization is Authorization.TIME_ONLY:
+    if mode is Mode.AUTO and authorization is Authorization.TIME_ONLY and not request.codex_retry:
         # DANGER 19: with no provider confirmation, auto mode fails closed and
         # the same situation merely asks in ask mode.
         return Decision(

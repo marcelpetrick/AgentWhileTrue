@@ -575,6 +575,18 @@ CONTINUE_SENT
 
 ## 20. Retry Policy
 
+Current owner-approved Codex exception (2026-09-11, [debugging.md](debugging.md)):
+full-auto plus explicit Codex opt-in may trial `continue` after an anchored reset
+on the exact tested empty composer, even while quota remains stale/unknown.
+This is a bounded trial, not inferred provider availability. Fresh later limits,
+missing reset information for an exhausted window, post-reset exhaustion,
+paid/quality-changing choices and changed identity/prompt still veto it.
+
+`RETRY_SCHEDULE=1,2,3,5,8,13,21,34,55,89,600` supplies one delay per attempt.
+The first replaces reset grace only on this path; later delays start after the
+previous verification. Episode reservations survive screen changes/restarts,
+and exhaustion stops the schedule. Other providers retain the policy below.
+
 Example default:
 
 ```text
@@ -998,10 +1010,10 @@ decide again
 
 NTP, manual time corrections, and timezone changes may affect wall-clock calculations.
 
-Use:
-
-- wall-clock timestamps for provider reset times;
-- monotonic time for local retry and delay intervals.
+Use wall-clock timestamps for provider reset times and durable retry deadlines,
+and a monotonic clock for loop waits and detection of clock jumps. After a jump,
+re-observe and revalidate; never replay a queue of missed attempts. Schedule each
+subsequent trial from its completed verification, not a nominal catch-up time.
 
 ---
 

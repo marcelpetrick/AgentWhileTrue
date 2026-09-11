@@ -31,7 +31,11 @@ when recognizer behavior changes.
 
 - Observe mode never sends input.
 - Unknown, missing, stale, or malformed quota data never means available.
-- A reset timestamp alone does not authorize auto mode.
+- A reset timestamp never means quota is available. The sole timed-retry
+  exception is explicitly opted-in Codex continuation of its exact tested limit
+  composer after an anchored reset, with a persistent bounded retry schedule,
+  no fresh contradictory quota and immediate identity/prompt/policy revalidation.
+  Claude and every other action still require provider confirmation.
 - Bind a selection to Konsole service/session plus PID, process start time, and
   TTY; never transfer an interactive selection to a replacement process.
 - Re-read session identity, process class, visible prompt, and policy directly

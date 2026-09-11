@@ -159,6 +159,10 @@ def render_summary(path: Path, *, now: datetime, days: int) -> str:
             counts["failures"] += 1
         elif item.name in _REFUSALS:
             counts["refusals"] += 1
+        elif item.name == "resume_retry_scheduled":
+            counts["scheduled"] += 1
+        elif item.name == "resume_gave_up":
+            counts["gave_up"] += 1
         measure = _interval_measure(item, now=now, window_start=window_start)
         if measure is not None:
             interval_count += 1
@@ -172,6 +176,7 @@ def render_summary(path: Path, *, now: datetime, days: int) -> str:
         f"provider-wait={counts['verified_wait']} failures={counts['failures']} "
         f"refusals={counts['refusals']}"
     )
+    lines.append(f"Retry episodes: scheduled={counts['scheduled']} gave-up={counts['gave_up']}")
     if not interval_count:
         lines.append("Measured blocked session-time: unavailable (no interval evidence)")
         lines.append("Measured observed session-time: unavailable (no interval evidence)")

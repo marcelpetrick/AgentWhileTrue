@@ -41,3 +41,37 @@ performance work is complete at v0.41.0; apply these fixes as new logical commit
 No real terminal continuation, deployment, provider settings, push or release
 is authorized by this implementation task. Leave the existing read-only
 five-minute observation running; never manufacture live quota evidence.
+
+## Completion evidence — v0.42.0 (2026-09-11)
+
+- D1–D8 have regression coverage and fixes. The eleven-attempt simulation
+  changes screen fingerprints, reloads persisted state, follows every backoff,
+  and verifies that no twelfth continuation occurs, including after 24 hours.
+- Independent review found and fixed a final-input revalidation gap, a
+  reservation/action two-write crash gap, and cancelled checks consuming the
+  typed-attempt budget. Clean pre-send cancellation now releases its reservation
+  atomically; ambiguous sends and crash windows remain conservative.
+- Claude's reported paid-offer identifier was also reproduced after the latest
+  assistant turn marker. It no longer matches as a slash command; genuine paid
+  commands and unsafe menu variants still veto input.
+- `./localPipeline.sh` passed: REUSE, lint, formatting, ShellCheck, all safety
+  simulations, profiling, source/wheel builds, the extracted source's quality
+  gate outside Git, validated SPDX/CycloneDX SBOMs, and isolated installed-wheel
+  diagnostics/simulations for both command names.
+- 549 tests pass on each of Python 3.12, 3.13 and 3.14. The normally skipped
+  opt-in Konsole integration test passes separately. Combined coverage is
+  91.70% (statements 93.17%, branches 86.90%); the enforced combined floor is
+  91%. This is not a claim that branch coverage exceeds 90% or every live
+  behavior has been tested.
+- Live doctor/status/quota diagnostics passed. Doctor correctly reports the
+  existing controller's single-instance lock. No real continuation was sent,
+  no running controller was replaced, and no provider setting was changed.
+- The post-fix synthetic profile is recorded in `PERFORMANCE.md`.
+
+Remaining operational limits: a clock-only prompt first seen after its reset,
+without persisted or corroborating absolute-date evidence, cannot safely be
+dated retroactively. Unsettled crash-window actions require manual inspection;
+Konsole offers no atomic compare-screen-and-send operation. A natural live
+quota-reset/resume cycle has not been exercised with this version. These local
+commits have not been pushed, released or deployed, so hosted CI results and
+the running controller do not yet attest to this version.

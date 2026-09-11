@@ -13,6 +13,24 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.42.0] - 2026-09-11
+
+### Added
+
+- Opted-in Codex timed retries with a configurable eleven-step backoff,
+  persistent process-bound episode budgets, restart recovery and attributable
+  lifecycle logs. Stale or unknown quota remains explicitly unconfirmed.
+
+### Fixed
+
+- Anchor clock-only reset prompts to their first observation or corroborated
+  absolute quota reset, and preserve explicit dated reset instants.
+- Prevent pre-limit available quota from triggering an early Codex resume;
+  keep observing waiting sessions so manual recovery is detected promptly.
+- Atomically persist retry reservations and action intent, then revalidate
+  immediately before input. Clean pre-send cancellations release their budget;
+  ambiguous sends and crash windows remain fail closed.
+
 ## [0.41.2] - 2026-09-11
 
 ### Fixed

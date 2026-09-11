@@ -42,6 +42,9 @@ The requested implementation is complete:
 - Resume explanations, saved presentation preferences, day/week operational
   summaries, and a responsive scrolling dashboard are implemented; the ordered
   feature plan and validation notes are in [nextFeatures.md](nextFeatures.md).
+- Measured performance, coverage, licensing and dual-format SBOM gates are
+  recorded in [maturityPlan.md](maturityPlan.md). The observed retry and Claude
+  prompt fixes are tracked in [retryFixPlan.md](retryFixPlan.md).
 
 ## Remaining acceptance gate
 

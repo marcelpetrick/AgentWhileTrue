@@ -138,6 +138,7 @@ def test_model_downgrade_is_never_automated() -> None:
 def test_codex_resume_needs_its_own_opt_in() -> None:
     codex = Classification(ProcessClass.CODEX, Confidence.HIGH, ("comm=codex", "argv0=codex"))
     recognition = providers.CODEX.recognise(screens.CODEX_USAGE_LIMIT, now=NOW)
+    recognition = replace(recognition, reset_at=NOW - timedelta(minutes=2))
     request = make_request(
         classification=codex,
         recognition=recognition,
@@ -154,6 +155,7 @@ def test_codex_resume_needs_its_own_opt_in() -> None:
 
 def test_codex_paid_links_are_passive_only_on_exact_usage_limit_banner() -> None:
     recognition = providers.CODEX.recognise(screens.CODEX_USAGE_LIMIT_WITH_PURCHASE_LINKS, now=NOW)
+    recognition = replace(recognition, reset_at=NOW - timedelta(minutes=2))
     allowed = evaluate(
         _codex_request(recognition=recognition, quota=replace(QUOTA_AVAILABLE, provider="codex"))
     )
@@ -165,7 +167,7 @@ def test_codex_paid_links_are_passive_only_on_exact_usage_limit_banner() -> None
     stale = replace(QUOTA_AVAILABLE, provider="codex", observed_at=NOW - timedelta(hours=3))
     refused = evaluate(_codex_request(recognition=recognition, quota=stale))
     assert not refused.allowed
-    assert refused.reason == "usage-not-confirmed-available"
+    assert refused.reason == "auto-mode-requires-provider-confirmation"
 
 
 def test_codex_other_paid_vetoes_remain_unconditional_with_a_limit_banner() -> None:
@@ -296,7 +298,7 @@ def _codex_request(**overrides):
 
 def test_unknown_quota_never_means_available() -> None:
     # DANGER 19, on a blocked screen with no reset time to fall back on.
-    blocked = providers.CODEX.recognise(["You've hit your usage limit.", "> "], now=NOW)
+    blocked = providers.CODEX.recognise(["You've hit your usage limit.", "› "], now=NOW)
     decision = evaluate(_codex_request(recognition=blocked, quota=QUOTA_UNKNOWN))
     assert not decision.allowed
     assert decision.reason == "usage-not-confirmed-available"
@@ -307,7 +309,7 @@ def test_time_only_authorization_is_refused_in_auto_but_offered_in_ask() -> None
     # DANGER 19: an unknown provider state waits, asks, or fails closed
     # depending on the configured mode.
     past_reset = providers.CODEX.recognise(
-        ["You've hit your usage limit. Try again at 8:10 PM.", "> "], now=NOW - timedelta(days=1)
+        ["You've hit your usage limit. Try again at 8:10 PM.", "› "], now=NOW - timedelta(days=1)
     )
     request = _codex_request(recognition=past_reset, quota=QUOTA_UNKNOWN)
     auto = evaluate(request)

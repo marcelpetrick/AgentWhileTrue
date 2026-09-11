@@ -161,3 +161,10 @@ Presentation keys now redraw cached observations until the next scheduled scan.
 A deterministic 20-key scroll burst previously caused 21 terminal/quota scans;
 it now causes one. Explicit rescan, resume, interval and mode changes still
 request fresh work, and every input action retains immediate safety revalidation.
+
+After the retry fixes, a five-iteration Python 3.13.14 synthetic profile on
+2026-09-11 measured 0.251 seconds for 200 dashboard frames, 0.375 seconds for
+500 combined quota/history reads, and 0.073 seconds for the safety simulations.
+Five on-demand summaries of 10,000 log records took 2.121 seconds under
+profiling; summary parsing is not part of the dashboard polling loop. These
+are workload-specific measurements, not cross-version speedup claims.

@@ -29,8 +29,10 @@ revalidated from scratch (DANGER 9 and 10).
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
@@ -43,6 +45,7 @@ from agent_watch.proc import ProcessGoneError, ProcessIdentity, ProcessInfo
 from agent_watch.proc import identify as proc_identify
 from agent_watch.proc import inspect as proc_inspect
 from agent_watch.providers.base import ProviderAdapter, Recognition
+from agent_watch.providers.timeparse import parse_reset
 from agent_watch.quota import QuotaSnapshot, QuotaSource, unknown
 from agent_watch.state_store import StateStore
 from agent_watch.states import ActionState, SessionState
@@ -122,6 +125,9 @@ class SupervisedSession:
     reported_refusal: str = ""
     last_fingerprint: str = ""
     pending_key: str = ""
+    reset_prompt_key: str = ""
+    reset_first_seen: datetime | None = None
+    retry_episode_key: str = ""
     verify_after: datetime | None = None
     #: Sends since the last verified resume. The store counts attempts per
     #: prompt; this counts them per session, so a screen that keeps changing
@@ -305,7 +311,15 @@ class Supervisor:
                 else ""
             )
             if refusal and refusal != session.reported_refusal:
-                self.log.info("resume_refused", provider=session.provider_name, reason=refusal)
+                self.log.info(
+                    "resume_refused",
+                    provider=session.provider_name,
+                    reason=refusal,
+                    session=session.ref.key(),
+                    process=session.describe_process(),
+                    episode=session.retry_episode_key,
+                    attempt=self._retry_attempt(session),
+                )
             session.reported_refusal = refusal
             decisions.append(decision)
         return decisions
@@ -346,11 +360,37 @@ class Supervisor:
                 return self._skip(session, "verifying")
             return self._verify(session, now)
 
-        if session.next_check_at is not None and now < session.next_check_at:
-            return self._skip(session, "waiting-for-reset")
-
-        observation = self.observe(session.ref, now=now)
+        previous_deadline = session.next_check_at
+        observation = self._anchor_reset(session, self.observe(session.ref, now=now))
+        if (
+            observation.identity == session.identity
+            and observation.recognition is not None
+            and observation.recognition.provider == "codex"
+            and observation.recognition.state in {SessionState.ACTIVE, SessionState.LIMIT_WARNING}
+            and observation.recognition.active_evidence
+        ):
+            self._finish_episode(session)
+        self._prepare_retry(session, observation)
+        episode = self.store.get_episode(session.retry_episode_key)
+        if episode and episode.pending_key:
+            pending = self.store.records.get(episode.pending_key)
+            if pending is not None and pending.state is ActionState.SENT:
+                session.pending_key = pending.key
+                return self._verify(session, now)
         decision = self._decide(session, observation)
+        # Waiting gates input, never observation. New/manual activity is always
+        # reflected even when a provider reset is hours away.
+        if (
+            not episode
+            and previous_deadline is not None
+            and now < previous_deadline
+            and decision.allowed
+            and observation.recognition is not None
+            and observation.recognition.screen_fingerprint == session.last_fingerprint
+        ):
+            decision = replace(
+                decision, allowed=False, reason="waiting-for-reset", retry_at=previous_deadline
+            )
         self._record_state(session, observation, decision)
 
         if not decision.allowed:
@@ -360,6 +400,7 @@ class Supervisor:
                 "resume_declined_by_user",
                 provider=session.provider_name,
                 session=session.ref.key(),
+                process=session.describe_process(),
             )
             return Decision(allowed=False, reason="declined-by-user", action=decision.action)
 
@@ -382,13 +423,165 @@ class Supervisor:
                 else f"not-automatable:{observation.classification.blocker or 'unknown'}"
             )
             return Decision(allowed=False, reason=reason)
-        return evaluate(self._request(session, observation))
+        decision = evaluate(self._request(session, observation))
+        episode = self.store.get_episode(session.retry_episode_key)
+        if episode and observation.identity == session.identity:
+            if episode.pending_key:
+                return Decision(allowed=False, reason="retry-attempt-unsettled")
+            if episode.exhausted or episode.completed:
+                return Decision(allowed=False, reason="retry-budget-exhausted")
+            if episode.next_retry_at:
+                due = datetime.fromisoformat(episode.next_retry_at)
+                if observation.at < due and decision.allowed:
+                    return replace(
+                        decision, allowed=False, reason="waiting-for-reset", retry_at=due
+                    )
+        return decision
+
+    def _retry_attempt(self, session: SupervisedSession) -> str:
+        episode = self.store.get_episode(session.retry_episode_key)
+        return f"{episode.attempts if episode else 0}/{len(self.config.retry_schedule)}"
+
+    def _anchor_reset(self, session: SupervisedSession, observation: Observation) -> Observation:
+        recognition = observation.recognition
+        if (
+            recognition is None
+            or recognition.provider != "codex"
+            or observation.identity != session.identity
+        ):
+            return observation
+        if recognition.reset_at is None:
+            return observation
+        texts = sorted(
+            {
+                " ".join(
+                    (
+                        match.line if parse_reset(match.line, observation.at) else match.context
+                    ).split()
+                )
+                for match in recognition.matches
+                if match.id == "codex/try-again-at"
+            }
+        )
+        if not texts:
+            return observation
+        hint = hashlib.sha256(json.dumps(texts).encode()).hexdigest()
+        saved = self.store.find_episode(
+            provider="codex",
+            session=session.ref.key(),
+            process=session.describe_process(),
+            prompt_key=hint,
+        )
+        if hint == session.reset_prompt_key and session.reset_at is not None:
+            reset = session.reset_at
+        elif saved is not None:
+            reset = datetime.fromisoformat(saved.reset_at)
+            session.reset_first_seen = datetime.fromisoformat(saved.first_seen_at)
+        else:
+            reference = session.reset_first_seen or observation.at
+            if session.reset_first_seen is None:
+                # Absolute window timestamps can date a prompt on restart.
+                # Even stale evidence may anchor a date, never availability.
+                dated = [
+                    window.resets_at
+                    for window in observation.quota.windows
+                    if window.resets_at is not None
+                    and abs((observation.at - window.resets_at).total_seconds()) <= 86400
+                    and all(
+                        parse_reset(
+                            text,
+                            window.resets_at.replace(second=0, microsecond=0)
+                            - timedelta(seconds=1),
+                        )
+                        == window.resets_at.replace(second=0, microsecond=0)
+                        for text in texts
+                    )
+                ]
+                if dated:
+                    reference = max(dated).replace(second=0, microsecond=0) - timedelta(seconds=1)
+            parsed = [
+                value for text in texts if (value := parse_reset(text, reference)) is not None
+            ]
+            if not parsed:
+                return observation
+            reset = max(parsed)
+            session.reset_first_seen = reference
+            session.retry_episode_key = ""
+        session.reset_prompt_key = hint
+        session.reset_at = reset
+        return replace(observation, recognition=replace(recognition, reset_at=reset))
+
+    def _finish_episode(self, session: SupervisedSession) -> None:
+        if session.retry_episode_key and self.config.mode is Mode.AUTO:
+            self.store.update_episode(
+                session.retry_episode_key, completed=True, pending_key="", next_retry_at=""
+            )
+        session.retry_episode_key = ""
+        session.reset_prompt_key = ""
+        session.reset_first_seen = None
+        session.reset_at = None
+        session.next_check_at = None
+
+    def _prepare_retry(self, session: SupervisedSession, observation: Observation) -> None:
+        recognition = observation.recognition
+        if not (
+            self.config.mode is Mode.AUTO
+            and self.config.policy.allow_codex_auto_resume
+            and recognition is not None
+            and recognition.retry_prompt
+            and recognition.reset_at is not None
+            and session.reset_first_seen is not None
+            and observation.identity == session.identity
+            and self.store.retry_state_valid
+        ):
+            return
+        key = hashlib.sha256(
+            json.dumps(
+                [
+                    "codex",
+                    session.ref.key(),
+                    session.describe_process(),
+                    recognition.reset_at.isoformat(),
+                ]
+            ).encode()
+        ).hexdigest()
+        episode = self.store.ensure_episode(
+            key,
+            provider="codex",
+            session=session.ref.key(),
+            process=session.describe_process(),
+            prompt_key=session.reset_prompt_key,
+            reset_at=recognition.reset_at.isoformat(),
+            first_seen_at=session.reset_first_seen.isoformat(),
+        )
+        session.retry_episode_key = key
+        if not episode.next_retry_at and not episode.attempts and not episode.completed:
+            due = recognition.reset_at + timedelta(seconds=self.config.retry_schedule[0])
+            self.store.update_episode(key, next_retry_at=due.isoformat())
+            self.log.info(
+                "resume_retry_scheduled",
+                provider="codex",
+                session=session.ref.key(),
+                process=session.describe_process(),
+                episode=key,
+                attempt=f"1/{len(self.config.retry_schedule)}",
+                due_at=due,
+                delay=self.config.retry_schedule[0],
+            )
 
     def _request(self, session: SupervisedSession, observation: Observation) -> ResumeRequest:
         # _decide has already established that a recognition exists.
         recognition = observation.recognition
         if recognition is None:  # pragma: no cover - unreachable via _decide
             raise ValueError("cannot build a resume request without a recognition")
+        episode = self.store.get_episode(session.retry_episode_key)
+        timed = (
+            self.config.mode is Mode.AUTO
+            and self.config.policy.allow_codex_auto_resume
+            and recognition.provider == "codex"
+            and recognition.retry_prompt
+            and recognition.reset_at is not None
+        )
         return ResumeRequest(
             now=observation.at,
             config=self.config,
@@ -400,12 +593,16 @@ class Supervisor:
             classification=observation.classification,
             recognition=recognition,
             quota=observation.quota,
-            attempts=max(
+            attempts=episode.attempts
+            if timed and episode
+            else max(
                 self.store.attempts_for(session.pending_key) if session.pending_key else 0,
                 session.attempts_since_success,
             ),
             actioned_fingerprints=self.store.already_actioned(),
             marked_unsafe=session.marked_unsafe,
+            codex_retry=timed,
+            retry_state_valid=self.store.retry_state_valid and (not timed or episode is not None),
         )
 
     def _record_state(
@@ -469,7 +666,7 @@ class Supervisor:
         prompt may have changed; all of that is re-read here, and any drift
         cancels the action.
         """
-        fresh = self.observe(session.ref)
+        fresh = self._anchor_reset(session, self.observe(session.ref))
         self._remember_observation(session, fresh)
         recheck = self._decide(session, fresh)
         if not recheck.allowed:
@@ -479,6 +676,9 @@ class Supervisor:
                 session=session.ref.key(),
                 reason=recheck.reason,
                 planned=decision.reason,
+                process=session.describe_process(),
+                episode=session.retry_episode_key,
+                attempt=self._retry_attempt(session),
             )
             return Decision(allowed=False, reason=f"revalidation-failed:{recheck.reason}")
         if recheck.idempotency_key != decision.idempotency_key:
@@ -487,6 +687,9 @@ class Supervisor:
                 "resume_cancelled_prompt_changed",
                 provider=session.provider_name,
                 session=session.ref.key(),
+                process=session.describe_process(),
+                episode=session.retry_episode_key,
+                attempt=self._retry_attempt(session),
             )
             return Decision(allowed=False, reason="revalidation-failed:prompt-changed")
 
@@ -495,15 +698,44 @@ class Supervisor:
             return Decision(allowed=False, reason="revalidation-failed:no-action")
 
         key = recheck.idempotency_key
+        episode = self.store.get_episode(session.retry_episode_key)
+        if episode is not None:
+            key = f"{episode.key}-{episode.attempts + 1}"
         session.pending_key = key
         # Persist the intent before sending. If the process dies here, the
         # restart sees PLANNED and refuses rather than typing a second time.
-        self.store.plan(
-            key,
-            provider=session.provider_name,
-            session=session.ref.key(),
-            process=session.describe_process(),
-        )
+        if episode is not None:
+            self.store.plan_episode_attempt(
+                episode.key,
+                key,
+                provider=session.provider_name,
+                session=session.ref.key(),
+                process=session.describe_process(),
+            )
+        else:
+            self.store.plan(
+                key,
+                provider=session.provider_name,
+                session=session.ref.key(),
+                process=session.describe_process(),
+            )
+        final = self._final_recheck(session, key, recheck, episode is not None)
+        if not final.allowed:
+            if episode is not None:
+                self.store.release_unsent_episode_attempt(episode.key, key, result=final.reason)
+                self._schedule_retry(session, self.now_fn())
+            else:
+                self.store.mark(key, ActionState.FAILED, result=final.reason)
+            self.log.warning(
+                "resume_cancelled_on_revalidation",
+                provider=session.provider_name,
+                session=session.ref.key(),
+                process=session.describe_process(),
+                episode=session.retry_episode_key,
+                attempt=self._retry_attempt(session),
+                reason=final.reason,
+            )
+            return Decision(allowed=False, reason=f"revalidation-failed:{final.reason}")
         try:
             self.terminal.send_text(session.ref, action.keystrokes())
         except TerminalError as exc:
@@ -514,13 +746,20 @@ class Supervisor:
                 provider=session.provider_name,
                 session=session.ref.key(),
                 error=type(exc).__name__,
+                process=session.describe_process(),
+                episode=session.retry_episode_key,
+                attempt=self._retry_attempt(session),
             )
+            if episode is not None:
+                self._schedule_retry(session, fresh.at)
             return Decision(allowed=False, reason="send-failed")
 
         self.store.mark(key, ActionState.SENT)
         session.attempts_since_success += 1
         session.state = SessionState.CONTINUE_SENT
-        session.verify_after = fresh.at + timedelta(seconds=self.verify_delay)
+        session.verify_after = fresh.at + timedelta(
+            seconds=min(self.verify_delay, 1) if episode else self.verify_delay
+        )
         self.log.info(
             "resume_sent",
             provider=session.provider_name,
@@ -528,10 +767,55 @@ class Supervisor:
             process=session.describe_process(),
             action=action.kind.value,
             authorization=recheck.authorization.value,
-            attempt=self.store.attempts_for(key),
+            attempt=self._retry_attempt(session) if episode else self.store.attempts_for(key),
+            episode=session.retry_episode_key,
             screen=fresh.recognition.screen_fingerprint if fresh.recognition else "",
         )
         return Decision(allowed=True, reason="resume-sent", action=action, idempotency_key=key)
+
+    def _final_recheck(
+        self, session: SupervisedSession, key: str, proposal: Decision, reserved: bool
+    ) -> Decision:
+        """Revalidate after durable writes; the last external read is identity.
+
+        D-Bus cannot atomically compare a screen and send text. Minimize that
+        unavoidable boundary: perform no persistence between this check and send.
+        """
+        fresh = self._anchor_reset(session, self.observe(session.ref))
+        self._remember_observation(session, fresh)
+        if fresh.recognition is None:
+            return Decision(False, "process-gone")
+        request = self._request(session, fresh)
+        episode = self.store.get_episode(session.retry_episode_key)
+        if reserved and episode is not None and episode.next_retry_at:
+            due = datetime.fromisoformat(episode.next_retry_at)
+            if fresh.at < due:
+                return Decision(False, "retry-not-due", retry_at=due)
+        # This is verification of our reserved attempt, not a request for a
+        # second one. Other persisted action keys remain vetoes.
+        request = replace(
+            request,
+            attempts=max(0, request.attempts - 1) if reserved else request.attempts,
+            actioned_fingerprints=request.actioned_fingerprints - {key},
+        )
+        final = evaluate(request)
+        if not final.allowed:
+            return final
+        if final.idempotency_key != proposal.idempotency_key or final.action != proposal.action:
+            return Decision(False, "prompt-changed")
+        try:
+            live = self.inspector.inspect(self.terminal.foreground_pid(session.ref))
+        except (TerminalError, OSError):
+            live = None
+        if live is None or live.identity != session.identity:
+            return Decision(False, "process-identity-changed")
+        classification = classify(live)
+        if (
+            not classification.automatable
+            or classification.process_class.value.lower() != session.provider_name
+        ):
+            return Decision(False, "process-classification-changed")
+        return final
 
     # -- verification ------------------------------------------------------
 
@@ -541,16 +825,27 @@ class Supervisor:
         Sending is not succeeding: the prompt has to go away.
         """
         session.verify_after = None
-        observation = self.observe(session.ref, now=now)
+        observation = self._anchor_reset(session, self.observe(session.ref, now=now))
         key = session.pending_key
         self._remember_observation(session, observation)
 
-        if observation.recognition is None:
+        if self.config.mode is Mode.OBSERVE:
+            # The input lock has been released. Do not overwrite retry state
+            # another controller might now own; verify on reacquiring it.
+            return Decision(allowed=False, reason="observe-mode")
+
+        if observation.recognition is None or observation.identity != session.identity:
             # The agent is gone. That is not a failure of the keystroke, but it
             # is certainly not a verified resume either.
             self.store.mark(key, ActionState.FAILED, result="process-gone")
             self.log.warning(
-                "resume_verification_failed", provider=session.provider_name, reason="process-gone"
+                "resume_verification_failed",
+                provider=session.provider_name,
+                reason="process-gone",
+                session=session.ref.key(),
+                process=session.describe_process(),
+                episode=session.retry_episode_key,
+                attempt=self._retry_attempt(session),
             )
             session.state = SessionState.PROCESS_GONE
             return Decision(allowed=False, reason="verify:process-gone")
@@ -560,6 +855,8 @@ class Supervisor:
             SessionState.ACTIVE,
             SessionState.LIMIT_WARNING,
         }
+        if session.retry_episode_key and not observation.recognition.active_evidence:
+            resumed = False
         if resumed:
             result = "armed-provider-wait" if armed_self_resume else "resumed"
             self.store.mark(key, ActionState.VERIFIED, result=result)
@@ -575,7 +872,11 @@ class Supervisor:
                 provider=session.provider_name,
                 session=session.ref.key(),
                 result=result,
+                process=session.describe_process(),
+                episode=session.retry_episode_key,
+                attempt=self._retry_attempt(session),
             )
+            self._finish_episode(session)
             reason = "verify:armed-provider-wait" if armed_self_resume else "resume-verified"
             return Decision(allowed=True, reason=reason)
 
@@ -584,17 +885,55 @@ class Supervisor:
         session.state = observation.recognition.state
         # Back off on the monotonic-derived schedule rather than retrying at
         # once; the wall clock is not trustworthy for short intervals.
-        session.next_check_at = now + timedelta(seconds=self.config.retry_delay(attempts))
+        if session.retry_episode_key:
+            self._schedule_retry(session, now)
+        else:
+            session.next_check_at = now + timedelta(seconds=self.config.retry_delay(attempts))
         self.log.warning(
             "resume_not_verified",
             provider=session.provider_name,
             session=session.ref.key(),
-            attempt=attempts,
+            attempt=self._retry_attempt(session) if session.retry_episode_key else attempts,
             state=session.state.value,
             retry_at=session.next_check_at,
+            next_retry_at=session.next_check_at,
+            process=session.describe_process(),
+            episode=session.retry_episode_key,
         )
         return Decision(
             allowed=False, reason="verify:still-blocked", retry_at=session.next_check_at
+        )
+
+    def _schedule_retry(self, session: SupervisedSession, now: datetime) -> None:
+        episode = self.store.get_episode(session.retry_episode_key)
+        if episode is None:
+            return
+        budget = len(self.config.retry_schedule)
+        if episode.attempts >= budget:
+            self.store.update_episode(episode.key, exhausted=True, pending_key="", next_retry_at="")
+            session.next_check_at = None
+            self.log.warning(
+                "resume_gave_up",
+                provider="codex",
+                session=session.ref.key(),
+                process=session.describe_process(),
+                episode=episode.key,
+                attempt=f"{episode.attempts}/{budget}",
+            )
+            return
+        delay = self.config.retry_schedule[episode.attempts]
+        due = now + timedelta(seconds=delay)
+        self.store.update_episode(episode.key, pending_key="", next_retry_at=due.isoformat())
+        session.next_check_at = due
+        self.log.info(
+            "resume_retry_scheduled",
+            provider="codex",
+            session=session.ref.key(),
+            process=session.describe_process(),
+            episode=episode.key,
+            attempt=f"{episode.attempts + 1}/{budget}",
+            due_at=due,
+            delay=delay,
         )
 
     # -- rediscovery -------------------------------------------------------

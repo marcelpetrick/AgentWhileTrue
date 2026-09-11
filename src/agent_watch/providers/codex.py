@@ -19,6 +19,7 @@ user opts in, even though the rest of the machinery is identical.
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from datetime import datetime
 from typing import Final
 
@@ -32,7 +33,7 @@ from agent_watch.providers.base import (
 )
 
 NAME: Final = "codex"
-PATTERNS_VERSION: Final = "codex-0.153.x/2"
+PATTERNS_VERSION: Final = "codex-0.154.x/3"
 VERIFIED_AGAINST: Final = "Codex CLI 0.153.2 and 0.153.4"
 
 # Codex's compact blocking composer fits inside eight rows, including the
@@ -170,4 +171,50 @@ class CodexAdapter(ProviderAdapter):
         live_lines: int = CODEX_LIVE_LINES,
     ) -> Recognition:
         """Restrict Codex decisions to its immediate prompt area."""
-        return super().recognise(lines, now=now, live_lines=live_lines)
+        result = super().recognise(lines, now=now, live_lines=live_lines)
+        live = lines[-live_lines:]
+        # Timed trials require the tested empty composer (or its known
+        # placeholder), not merely quoted limit words or a draft being edited.
+        composer = next(
+            (
+                index
+                for index in range(len(live) - 1, -1, -1)
+                if live[index].strip().startswith("\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}")
+            ),
+            -1,
+        )
+        empty = composer >= 0 and live[composer].strip() in {
+            "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}",
+            "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK} Ask Codex to do anything",
+        }
+        banner = next(
+            (
+                index
+                for index, line in enumerate(live)
+                if re.match(r"^\s*[▌■]\s+You've hit your usage limit\.", line)
+            ),
+            -1,
+        )
+        exact = (
+            empty
+            and banner >= 0
+            and banner < composer
+            and result.reset_at is not None
+            and {"codex/limit-usage", "codex/try-again-at"}.issubset(result.matched_ids)
+            and not any(
+                re.search(r"\b(?:Working|Explored|Ran|Thinking)\b", line)
+                for line in live[banner + 1 :]
+            )
+        )
+        active = any(
+            re.match(r"^\s*[•●]\s+(?:Working|Explored|Ran|Thinking|Finished)\b", line)
+            for line in live
+        )
+        active_rows = [index for index, line in enumerate(live) if re.match(r"^\s*[•●]\s+", line)]
+        if active_rows and active_rows[-1] > banner:
+            # New assistant output below a historical limit is a different
+            # turn, even before that old banner scrolls out of the live window.
+            result = super().recognise(live[active_rows[-1] :], now=now, live_lines=live_lines)
+            exact = False
+            active = True
+        return replace(result, retry_prompt=exact, active_evidence=active, input_ready=empty)

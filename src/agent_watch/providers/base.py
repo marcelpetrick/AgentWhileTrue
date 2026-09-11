@@ -162,6 +162,10 @@ class Recognition:
     screen_fingerprint: str = ""
     blocked_scopes: frozenset[str] = frozenset()
     vetoes: tuple[str, ...] = ()
+    #: An adapter-validated exact prompt shape eligible for bounded Codex trials.
+    retry_prompt: bool = False
+    active_evidence: bool = False
+    input_ready: bool = True
 
     @property
     def matched_ids(self) -> tuple[str, ...]:
@@ -174,6 +178,8 @@ class Recognition:
         Ambiguity is not resolved by preference order: two patterns proposing
         different actions means the screen was not understood.
         """
+        if not self.input_ready:
+            return None
         actions = [match.pattern.action for match in self.matches if match.pattern.action]
         unique = {(action.kind, action.text) for action in actions}
         if len(unique) != 1:

@@ -310,6 +310,9 @@ def _toggle_runtime_mode(
         mode=Mode.AUTO,
         policy=replace(config.policy, allow_codex_auto_resume=True),
     )
+    # A previous observe period may have overlapped another input controller.
+    # Reload its durable action/episode budget only after acquiring the lock.
+    supervisor.store.load()
     supervisor.config = updated
     supervisor.log.info(
         "mode_changed",
@@ -381,7 +384,7 @@ def _loop(
                 # Presentation keys redraw cached observations, not terminal/quota
                 # reads. Schedule from completion so slow scans never catch up in
                 # a busy loop. Input authorization still revalidates in Supervisor.
-                next_scan = time.monotonic() + dashboard.interval
+                next_scan = time.monotonic() + _scan_delay(supervisor, dashboard.interval)
             now = datetime.now(UTC)
             if interactive or config.mode is not Mode.OBSERVE:
                 if interactive:
@@ -458,7 +461,7 @@ def _loop(
                         config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
                     )
             else:
-                time.sleep(dashboard.interval)
+                time.sleep(max(0.0, next_scan - time.monotonic()))
         return EXIT_INTERRUPTED
     finally:
         metrics.reset()
@@ -466,6 +469,18 @@ def _loop(
         if interactive:
             stream.write(SHOW_CURSOR + "\n")
             stream.flush()
+
+
+def _scan_delay(supervisor: Supervisor, interval: float) -> float:
+    """Wake for a near action/verification deadline without catch-up polling."""
+    now = supervisor.now_fn()
+    future = [
+        (due - now).total_seconds()
+        for session in supervisor.sessions.values()
+        for due in (session.verify_after, session.next_check_at)
+        if due is not None and due > now
+    ]
+    return min(interval, *future) if future else interval
 
 
 def _sync_all_sessions(supervisor: Supervisor, *, show_accounts: bool = False) -> None:
@@ -573,6 +588,10 @@ RESET_GRACE=60s
 
 MAX_RESUME_ATTEMPTS=3
 RETRY_DELAYS=5s 30s 60s
+
+# Opted-in Codex timed retries: first delay after anchored reset, subsequent
+# delays after verification. Other providers retain MAX_RESUME_ATTEMPTS above.
+RETRY_SCHEDULE=1,2,3,5,8,13,21,34,55,89,600
 
 # Nothing below costs money or changes model quality unless you turn it on.
 RESUME_AFTER_RESET=true

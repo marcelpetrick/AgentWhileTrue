@@ -13,6 +13,7 @@ type into terminals.
 
 from __future__ import annotations
 
+import math
 import os
 import re
 from dataclasses import dataclass, fields, replace
@@ -119,6 +120,7 @@ class Config:
     reset_grace: float = 60.0
     max_resume_attempts: int = 3
     retry_delays: tuple[float, ...] = (5.0, 30.0, 60.0)
+    retry_schedule: tuple[float, ...] = (1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 600)
     visible_lines: int = 40
     log_file: Path | None = None
     state_dir: Path | None = None
@@ -126,6 +128,13 @@ class Config:
     allow_root: bool = False
     use_fzf: bool = True
     policy: Policy = Policy()
+
+    def __post_init__(self) -> None:
+        if not 1 <= len(self.retry_schedule) <= 32 or any(
+            type(delay) not in {int, float} or not math.isfinite(delay) or not 1 <= delay <= 86400
+            for delay in self.retry_schedule
+        ):
+            raise ConfigError("RETRY_SCHEDULE needs 1-32 finite delays between 1s and 24h")
 
     def resolved_state_dir(self) -> Path:
         return self.state_dir or default_state_dir()
@@ -154,6 +163,7 @@ _KEYS: dict[str, tuple[str, str]] = {
     "RESET_GRACE": ("reset_grace", "duration"),
     "MAX_RESUME_ATTEMPTS": ("max_resume_attempts", "int"),
     "RETRY_DELAYS": ("retry_delays", "durations"),
+    "RETRY_SCHEDULE": ("retry_schedule", "durations"),
     "VISIBLE_LINES": ("visible_lines", "int"),
     "LOG_FILE": ("log_file", "path"),
     "STATE_DIR": ("state_dir", "path"),

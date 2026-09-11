@@ -36,7 +36,8 @@ when you're ready. Your agents get a babysitter. You get your attention back.
 - **One view across your agents.** Track selected Codex and Claude sessions,
   their accounts, five-hour and weekly usage meters, and provider service health.
 - **Resume with guardrails.** Observe without typing, confirm each action, or
-  allow automatic continuation for exact, tested prompts and fresh quota data.
+  allow automatic continuation for exact tested prompts, including bounded,
+  explicitly opted-in Codex retries after an anchored reset.
 - **Answers when an agent waits.** Open session details to see the latest
   decision, quota freshness, blocking windows, and next scheduled check.
 - **A TUI that fits your setup.** Switch themes, scroll through narrow session
@@ -109,7 +110,9 @@ Claude pts/4 PID 769257
 
 Provider state and terminal state are intentionally separate. A quota may be
 available while a terminal is active, or a terminal may show an old limit while
-provider data is unavailable. Unknown or stale quota data never authorizes input.
+provider data is unavailable. Unknown or stale quota never means available;
+the narrow [Codex timed-retry exception](#codex-timed-retries) below permits a
+bounded trial, not a claim that the provider's quota has refreshed.
 For Codex, a process whose rollout stopped updating may use a fresher observation
 from another live process only when both rollouts resolve to the same validated
 local account and rate-limit identity. Unidentified and different accounts are
@@ -219,8 +222,8 @@ by the supplied configuration.
 Current Codex versions may append Pro and credit-purchase links to the ordinary
 usage-limit message. Those links are passive text above a separate composer:
 Agent While True may type its configured continuation into that composer only
-after the exact tested limit/reset message and fresh provider availability both
-agree. It never follows or selects a paid link, and any additional paid,
+after the exact tested limit/reset message and either fresh provider availability
+or the opted-in bounded retry gate agree. It never follows or selects a paid link, and any additional paid,
 reset-credit, or model-changing prompt still vetoes the action.
 
 Codex treats a rapid text-and-Enter stream as a paste and turns that Enter into
@@ -314,6 +317,39 @@ a crash can lose the unflushed tail. Reports cover retained evidence only:
 older logs lack interval/refusal evidence, and rotation can remove events.
 Multiple observers contribute separate samples, so use one watcher for a
 non-overlapping session-time report.
+
+## Codex timed retries
+
+With full-auto and `ALLOW_CODEX_AUTO_RESUME=true` (also enabled by `Shift+A`),
+the exact tested Codex limit banner and empty composer may receive a bounded
+trial continuation after their anchored reset. A stale/unknown quota display
+stays stale/unknown. This deliberate exception does not apply to Claude.
+
+`RETRY_SCHEDULE=1,2,3,5,8,13,21,34,55,89,600` configures 11 attempts. The first
+delay replaces reset grace on this path; subsequent delays begin after the
+previous attempt's verification finishes. Verification normally waits one
+second, so actual send times include that time and processing latency—the
+delays are not absolute offsets from the reset. Near deadlines wake the scan
+loop sooner than its ordinary interval, without scroll keys multiplying scans.
+
+The same prompt keeps its first observed reset date across midnight and
+restarts. On a late first sighting, a matching absolute quota-window timestamp
+can corroborate the date, even when its availability sample is stale. Without
+a reliable date, the watcher does not guess a past reset. A pre-limit available
+sample never permits input before the printed reset. Fresh exhausted later
+windows, an unknown exhausted-window reset, or a new post-reset exhaustion
+sample still veto the trial.
+
+Attempts are reserved persistently before sending and belong to the session,
+process identity and reset episode—not the changing screen fingerprint. An
+unsettled `PLANNED` attempt after a crash stays blocked rather than being replayed;
+corrupt retry state disables timed trials. After the budget is exhausted the
+detail view reports `retry-budget-exhausted`. Manual recovery or a changed,
+later reset ends or replaces the episode. Waiting sessions remain observed.
+
+Logs include session, process, episode, attempt and next deadline; summaries
+count scheduled attempts and exhausted episodes. No terminal content is stored.
+Neither this feature nor its tests select upgrades, credits or another model.
 
 ## Claude quota bridge
 
@@ -430,10 +466,10 @@ Immediately before any input, Agent While True re-reads and verifies:
 - the explicitly selected Konsole session;
 - PID, process start time, TTY, and provider classification;
 - a current, known prompt and its permitted action;
-- fresh provider quota with no other exhausted window;
+- fresh provider quota, or the narrowly opted-in Codex timed-trial gate;
 - the persisted prompt fingerprint and retry budget.
 
-SSH, containers, tmux/screen, unknown prompts, stale quota, provider errors,
+SSH, containers, tmux/screen, unknown prompts, contradictory fresh quota,
 process replacement, and paid or quality-changing choices all fail closed. A
 single-instance lock and persisted `PLANNED -> SENT -> VERIFIED|FAILED` action
 lifecycle prevent duplicate input across concurrent processes and crashes.
