@@ -36,6 +36,26 @@ Correct refusal for stale, unknown, malformed, conflicting, or unsupported
 evidence does not satisfy this acceptance item. It remains the correct runtime
 behavior and must not be weakened merely to close the test.
 
+## Impact-ordered execution plan
+
+1. **Critical — put the verified release under observation.** Install the
+   published v0.42.1 wheel whose hash matches the release SBOM, run `doctor`,
+   `status`, `quota`, and `simulate --all`, then start the existing explicitly
+   opted-in full-auto user service. Do not disturb live agent processes.
+2. **Critical — capture the natural reset.** Let that service observe only the
+   already intended eligible sessions until one reaches an exact supported
+   limit and naturally resets. Do not fabricate evidence or manually continue
+   the chosen session during the acceptance window.
+3. **Critical — validate safety and uniqueness.** Correlate privacy-safe
+   provider/session/process/episode/attempt identifiers; require one permitted
+   send and a verified recovery, with no duplicate, paid, or quality-changing
+   action. A correct refusal leaves O1 open for the next genuine event.
+4. **High — close and publish the evidence.** Recheck the latest structured
+   events for sensitive-content absence, record timestamps and the released
+   version here, rerun the relevant release checks, and commit the completed
+   acceptance record. If the live event exposes a defect, add a redacted fixture
+   and regression test before the smallest safety-preserving fix.
+
 ## Known conservative boundaries
 
 These are deliberate limits, not pending implementation bugs:
