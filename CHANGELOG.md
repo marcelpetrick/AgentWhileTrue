@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.41.1] - 2026-09-11
+
+### Fixed
+
+- Select the freshest valid windowed Codex quota event across open rollouts
+  in the selected process profile, instead of trusting file-descriptor order.
+- Reject malformed quota percentages and implausibly future observations as
+  authorization evidence; keep reads bounded and account/profile state isolated.
+
 ## [0.41.0] - 2026-09-10
 
 ### Added

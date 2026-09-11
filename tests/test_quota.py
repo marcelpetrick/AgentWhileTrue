@@ -12,8 +12,11 @@ its status-line command.
 from __future__ import annotations
 
 import json
+import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+
+import pytest
 
 from agent_watch import quota
 from agent_watch.quota import (
@@ -26,6 +29,23 @@ from agent_watch.quota import (
 )
 
 NOW = datetime(2026, 9, 5, 20, 50, tzinfo=UTC)
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -1, True, "broken"])
+def test_malformed_window_never_means_available(tmp_path, monkeypatch, value) -> None:
+    document = json.loads(json.dumps(CLAUDE_STATUSLINE))
+    document["seven_day"]["used_percentage"] = value
+    path = tmp_path / "claude.json"
+    path.write_text(json.dumps(document))
+    assert ClaudeStatuslineSource(path).snapshot().availability is Availability.UNKNOWN
+
+    event = json.loads(json.dumps(CODEX_EVENT))
+    event["payload"]["rate_limits"]["secondary"]["used_percent"] = value
+    rollout = tmp_path / "rollout.jsonl"
+    rollout.write_text(json.dumps(event))
+    monkeypatch.setattr(quota, "find_codex_rollout", lambda pid: rollout)
+    assert CodexRolloutSource().snapshot(pid=1).availability is Availability.UNKNOWN
+
 
 CODEX_EVENT = {
     "timestamp": "2026-09-05T20:50:00.073Z",
@@ -68,6 +88,19 @@ def _write_account_rollout(root: Path, account_id: str, event: dict) -> Path:
     return path
 
 
+def _attach_rollouts(proc: Path, pid: int, *rollouts: Path, codex_home: Path | None = None) -> None:
+    process = proc / str(pid)
+    (process / "task" / str(pid)).mkdir(parents=True)
+    (process / "task" / str(pid) / "children").write_text("")
+    (process / "environ").write_bytes(
+        f"CODEX_HOME={codex_home}\0".encode() if codex_home is not None else b""
+    )
+    fd = process / "fd"
+    fd.mkdir()
+    for number, rollout in enumerate(rollouts, start=10):
+        (fd / str(number)).symlink_to(rollout)
+
+
 def test_codex_rollout_is_parsed_into_windows(tmp_path: Path, monkeypatch) -> None:
     path = _write_rollout(tmp_path, CODEX_EVENT)
     monkeypatch.setattr(quota, "find_codex_rollout", lambda pid: path)
@@ -82,6 +115,7 @@ def test_codex_rollout_is_found_below_the_node_launcher(tmp_path: Path, monkeypa
     child_file = proc / "123/task/123/children"
     child_file.parent.mkdir(parents=True)
     child_file.write_text("456\n")
+    (proc / "123/environ").write_bytes(f"CODEX_HOME={tmp_path}\0".encode())
     (proc / "456/task/456").mkdir(parents=True)
     (proc / "456/task/456/children").write_text("")
     fd = proc / "456/fd"
@@ -93,6 +127,139 @@ def test_codex_rollout_is_found_below_the_node_launcher(tmp_path: Path, monkeypa
     monkeypatch.setattr(quota, "PROC", proc)
 
     assert quota.find_codex_rollout(123) == rollout
+    assert CodexRolloutSource().snapshot(pid=123).availability is Availability.AVAILABLE
+
+
+def test_codex_selects_freshest_windowed_event_across_open_descriptors(
+    tmp_path: Path, monkeypatch
+) -> None:
+    older = json.loads(json.dumps(CODEX_EVENT))
+    older["timestamp"] = "2026-09-05T18:00:00Z"
+    newer = json.loads(json.dumps(CODEX_EVENT))
+    newer["timestamp"] = "2026-09-05T20:55:00Z"
+    newer["payload"]["rate_limits"]["primary"]["used_percent"] = 100.0
+    home = tmp_path / "codex"
+    old_rollout = _write_account_rollout(home, "account", older)
+    new_rollout = home / "sessions/2026/09/05/rollout-new.jsonl"
+    new_rollout.write_text(json.dumps(newer) + "\n")
+    proc = tmp_path / "proc"
+    _attach_rollouts(proc, 123, old_rollout, new_rollout, codex_home=home)
+    monkeypatch.setattr(quota, "PROC", proc)
+
+    assert quota.find_codex_rollout(123) == new_rollout
+    snapshot = CodexRolloutSource().snapshot(pid=123)
+    assert snapshot.availability is Availability.EXHAUSTED
+    assert snapshot.observed_at == datetime(2026, 9, 5, 20, 55, tzinfo=UTC)
+
+
+def test_codex_malformed_newer_timestamp_does_not_beat_valid_evidence(
+    tmp_path: Path, monkeypatch
+) -> None:
+    valid = json.loads(json.dumps(CODEX_EVENT))
+    malformed = json.loads(json.dumps(CODEX_EVENT))
+    malformed["timestamp"] = "newer-but-not-a-timestamp"
+    malformed["payload"]["rate_limits"]["primary"]["used_percent"] = 100.0
+    home = tmp_path / "codex"
+    valid_rollout = _write_account_rollout(home, "account", valid)
+    malformed_rollout = home / "sessions/2026/09/05/rollout-malformed.jsonl"
+    malformed_rollout.write_text(json.dumps(malformed) + "\n")
+    os.utime(malformed_rollout, (2_000_000_000, 2_000_000_000))
+    proc = tmp_path / "proc"
+    _attach_rollouts(proc, 123, valid_rollout, malformed_rollout, codex_home=home)
+    monkeypatch.setattr(quota, "PROC", proc)
+
+    assert quota.find_codex_rollout(123) == valid_rollout
+
+
+def test_codex_uses_mtime_only_when_no_rollout_has_timestamped_evidence(
+    tmp_path: Path, monkeypatch
+) -> None:
+    first = json.loads(json.dumps(CODEX_EVENT))
+    second = json.loads(json.dumps(CODEX_EVENT))
+    first["timestamp"] = "invalid"
+    second["timestamp"] = "also-invalid"
+    home = tmp_path / "codex"
+    first_rollout = _write_account_rollout(home, "account", first)
+    second_rollout = home / "sessions/2026/09/05/rollout-newest-mtime.jsonl"
+    second_rollout.write_text(json.dumps(second) + "\n")
+    os.utime(first_rollout, (1_000_000_000, 1_000_000_000))
+    os.utime(second_rollout, (2_000_000_000, 2_000_000_000))
+    proc = tmp_path / "proc"
+    _attach_rollouts(proc, 123, first_rollout, second_rollout, codex_home=home)
+    monkeypatch.setattr(quota, "PROC", proc)
+
+    assert quota.find_codex_rollout(123) == second_rollout
+
+
+def test_codex_rollout_discovery_does_not_cross_profile_home(tmp_path: Path, monkeypatch) -> None:
+    selected = json.loads(json.dumps(CODEX_EVENT))
+    other = json.loads(json.dumps(CODEX_EVENT))
+    other["timestamp"] = "2026-09-05T20:59:00Z"
+    other["payload"]["rate_limits"]["primary"]["used_percent"] = 100.0
+    selected_home = tmp_path / "codex-selected"
+    other_home = tmp_path / "codex-other"
+    selected_rollout = _write_account_rollout(selected_home, "selected", selected)
+    other_rollout = _write_account_rollout(other_home, "other", other)
+    proc = tmp_path / "proc"
+    _attach_rollouts(
+        proc,
+        123,
+        selected_rollout,
+        other_rollout,
+        codex_home=selected_home,
+    )
+    monkeypatch.setattr(quota, "PROC", proc)
+
+    assert quota.find_codex_rollout(123) == selected_rollout
+    assert CodexRolloutSource().snapshot(pid=123).availability is Availability.AVAILABLE
+
+
+def test_codex_child_with_another_explicit_profile_cannot_override_root(
+    tmp_path: Path, monkeypatch
+) -> None:
+    selected = json.loads(json.dumps(CODEX_EVENT))
+    other = json.loads(json.dumps(CODEX_EVENT))
+    other["timestamp"] = "2026-09-05T20:59:00Z"
+    other["payload"]["rate_limits"]["primary"]["used_percent"] = 100.0
+    selected_home = tmp_path / "codex-selected"
+    other_home = tmp_path / "codex-other"
+    selected_rollout = _write_account_rollout(selected_home, "selected", selected)
+    other_rollout = _write_account_rollout(other_home, "other", other)
+    proc = tmp_path / "proc"
+    _attach_rollouts(proc, 123, selected_rollout, codex_home=selected_home)
+    _attach_rollouts(proc, 456, other_rollout, codex_home=other_home)
+    (proc / "123/task/123/children").write_text("456\n")
+    monkeypatch.setattr(quota, "PROC", proc)
+
+    assert quota.find_codex_rollout(123) == selected_rollout
+    assert CodexRolloutSource().snapshot(pid=123).availability is Availability.AVAILABLE
+
+
+def test_codex_future_timestamp_does_not_outrank_current_evidence(
+    tmp_path: Path, monkeypatch
+) -> None:
+    current = json.loads(json.dumps(CODEX_EVENT))
+    current["timestamp"] = datetime.now(UTC).isoformat()
+    future = json.loads(json.dumps(CODEX_EVENT))
+    future["timestamp"] = (datetime.now(UTC) + timedelta(hours=1)).isoformat()
+    future["payload"]["rate_limits"]["primary"]["used_percent"] = 100.0
+    home = tmp_path / "codex"
+    current_rollout = _write_account_rollout(home, "account", current)
+    future_rollout = home / "sessions/2026/09/05/rollout-future.jsonl"
+    future_rollout.write_text(json.dumps(future) + "\n")
+    proc = tmp_path / "proc"
+    _attach_rollouts(proc, 123, current_rollout, future_rollout, codex_home=home)
+    monkeypatch.setattr(quota, "PROC", proc)
+
+    assert quota.find_codex_rollout(123) == current_rollout
+
+
+def test_codex_non_object_event_does_not_erase_valid_windows(tmp_path: Path, monkeypatch) -> None:
+    path = _write_rollout(tmp_path, CODEX_EVENT)
+    with path.open("a", encoding="utf-8") as stream:
+        stream.write('["rate_limits", "malformed"]\n')
+    monkeypatch.setattr(quota, "find_codex_rollout", lambda pid: path)
+
     assert CodexRolloutSource().snapshot(pid=123).availability is Availability.AVAILABLE
 
 
@@ -116,6 +283,21 @@ def test_codex_transient_empty_event_falls_back_to_last_usable_state(
 
     snapshot = CodexRolloutSource().snapshot(pid=123)
     assert snapshot.availability is Availability.AVAILABLE
+    assert {window.scope for window in snapshot.windows} == {"session", "weekly"}
+
+
+def test_codex_premium_event_without_windows_does_not_erase_valid_windows(
+    tmp_path: Path, monkeypatch
+) -> None:
+    premium = {
+        "timestamp": "2026-09-05T20:59:00Z",
+        "payload": {"rate_limits": {"limit_id": "premium", "credits": {}}},
+    }
+    path = _write_rollout(tmp_path, CODEX_EVENT, premium)
+    monkeypatch.setattr(quota, "find_codex_rollout", lambda pid: path)
+
+    snapshot = CodexRolloutSource().snapshot(pid=123)
+    assert snapshot.observed_at == datetime(2026, 9, 5, 20, 50, 0, 73000, tzinfo=UTC)
     assert {window.scope for window in snapshot.windows} == {"session", "weekly"}
 
 
@@ -288,6 +470,16 @@ def test_staleness_is_detected() -> None:
 
 def test_a_snapshot_without_a_timestamp_is_stale() -> None:
     snapshot = QuotaSnapshot(provider="claude", availability=Availability.UNKNOWN, source="test")
+    assert snapshot.is_stale(NOW)
+
+
+def test_a_snapshot_far_in_the_future_is_stale() -> None:
+    snapshot = QuotaSnapshot(
+        provider="codex",
+        availability=Availability.AVAILABLE,
+        source="test",
+        observed_at=NOW + timedelta(hours=1),
+    )
     assert snapshot.is_stale(NOW)
 
 

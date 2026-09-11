@@ -33,9 +33,10 @@ from __future__ import annotations
 
 import enum
 import json
+import math
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from agent_watch.identity import codex_account_key
@@ -51,6 +52,8 @@ DEFAULT_MAX_AGE_SECONDS = 15 * 60.0
 
 #: How much of a rollout file's tail to scan for the newest rate-limit event.
 _ROLLOUT_TAIL_BYTES = 256 * 1024
+_PROCESS_ENVIRONMENT_BYTES = 64 * 1024
+_MAX_CLOCK_SKEW_SECONDS = 5 * 60.0
 
 _MINUTES_PER_WEEK = 10080
 
@@ -107,7 +110,8 @@ class QuotaSnapshot:
     def is_stale(self, now: datetime, max_age: float = DEFAULT_MAX_AGE_SECONDS) -> bool:
         if self.observed_at is None:
             return True
-        return (now - self.observed_at).total_seconds() > max_age
+        age = (now - self.observed_at).total_seconds()
+        return age > max_age or age < -_MAX_CLOCK_SKEW_SECONDS
 
 
 def unknown(provider: str, source: str, note: str) -> QuotaSnapshot:
@@ -140,9 +144,14 @@ def _timestamp(value: object) -> datetime | None:
 
 
 def _percent(value: object) -> float | None:
-    if isinstance(value, int | float):
-        return float(value)
-    return None
+    if value is None:
+        return None
+    if type(value) not in {int, float}:
+        raise ValueError("invalid quota percentage")
+    percent = float(value)
+    if not math.isfinite(percent) or percent < 0:
+        raise ValueError("invalid quota percentage")
+    return percent
 
 
 class QuotaSource:
@@ -163,14 +172,35 @@ class QuotaSource:
 # -- Codex ----------------------------------------------------------------
 
 
-def find_codex_rollout(pid: int) -> Path | None:
-    """Return the rollout opened by a Codex process or one of its children.
+def _process_codex_home(pid: int) -> Path | None:
+    """Read only CODEX_HOME from a bounded process environment snapshot."""
+    try:
+        with (PROC / str(pid) / "environ").open("rb") as handle:
+            raw = handle.read(_PROCESS_ENVIRONMENT_BYTES + 1)
+    except OSError:
+        return None
+    if len(raw) > _PROCESS_ENVIRONMENT_BYTES:
+        return None
+    prefix = b"CODEX_HOME="
+    for entry in raw.split(b"\0"):
+        if entry.startswith(prefix):
+            value = entry[len(prefix) :].decode(errors="replace")
+            return Path(value).expanduser() if value else None
+    return None
 
-    Konsole normally reports Codex's Node launcher as the foreground PID. The
-    native child, not that launcher, owns the rollout descriptor, so checking
-    only the foreground process makes every real Codex quota look unavailable.
-    Linux exposes direct children without invoking or parsing ``ps``.
-    """
+
+def _codex_home_from_rollout(rollout: Path) -> Path | None:
+    for parent in rollout.parents:
+        if parent.name == "sessions":
+            return parent.parent
+    return None
+
+
+def _find_codex_rollouts(pid: int) -> tuple[Path, ...]:
+    """Return every profile-matching rollout open in the process tree."""
+    found: list[Path] = []
+    found_set: set[Path] = set()
+    selected_home = _process_codex_home(pid) or Path.home() / ".codex"
     pending = [pid]
     seen: set[int] = set()
     while pending and len(seen) < 64:
@@ -178,6 +208,8 @@ def find_codex_rollout(pid: int) -> Path | None:
         if current in seen:
             continue
         seen.add(current)
+        process_home = _process_codex_home(current)
+        profile_matches = process_home is None or process_home == selected_home
         fd_dir = PROC / str(current) / "fd"
         try:
             entries = list(fd_dir.iterdir())
@@ -185,18 +217,52 @@ def find_codex_rollout(pid: int) -> Path | None:
             entries = []
         for entry in entries:
             try:
-                target = entry.readlink()
+                target = Path(entry.readlink())
             except OSError:
                 continue
             text = str(target)
-            if "/sessions/" in text and text.endswith(".jsonl") and "rollout-" in text:
-                return Path(text)
+            if not ("/sessions/" in text and text.endswith(".jsonl") and "rollout-" in text):
+                continue
+            rollout_home = _codex_home_from_rollout(target)
+            if not profile_matches or rollout_home != selected_home:
+                continue
+            if target not in found_set:
+                found.append(target)
+                found_set.add(target)
         children = PROC / str(current) / "task" / str(current) / "children"
         try:
             pending.extend(int(value) for value in children.read_text().split())
         except (OSError, ValueError):
             continue
-    return None
+    return tuple(found)
+
+
+def find_codex_rollout(pid: int) -> Path | None:
+    """Return the freshest usable rollout opened in a Codex process tree.
+
+    Konsole normally reports Codex's Node launcher as the foreground PID. The
+    native child, not that launcher, owns the rollout descriptor, so checking
+    only the foreground process makes every real Codex quota look unavailable.
+    A process may keep several rollouts open; a valid windowed event timestamp
+    wins over descriptor order and file mtime.
+    """
+    candidates = _find_codex_rollouts(pid)
+    evidence: list[tuple[datetime, Path]] = []
+    newest_plausible = datetime.now(UTC) + timedelta(seconds=_MAX_CLOCK_SKEW_SECONDS)
+    for path in candidates:
+        found = _last_rate_limits(path)
+        if found is not None and found[1] is not None and found[1] <= newest_plausible:
+            evidence.append((found[1], path))
+    if evidence:
+        return max(evidence, key=lambda item: (item[0], str(item[1])))[1]
+
+    by_mtime: list[tuple[int, Path]] = []
+    for path in candidates:
+        try:
+            by_mtime.append((path.stat().st_mtime_ns, path))
+        except OSError:
+            continue
+    return max(by_mtime, default=(0, None), key=lambda item: (item[0], str(item[1])))[1]
 
 
 def _last_rate_limits(path: Path) -> tuple[dict, datetime | None] | None:
@@ -206,9 +272,11 @@ def _last_rate_limits(path: Path) -> tuple[dict, datetime | None] | None:
             handle.seek(0, 2)
             size = handle.tell()
             handle.seek(max(0, size - _ROLLOUT_TAIL_BYTES))
-            tail = handle.read()
+            tail = handle.read(_ROLLOUT_TAIL_BYTES)
     except OSError:
         return None
+    fallback: tuple[dict, None] | None = None
+    newest: tuple[dict, datetime] | None = None
     # A partial first line is expected after seeking; it simply fails to parse.
     for raw in reversed(tail.split(b"\n")):
         if b"rate_limits" not in raw:
@@ -216,6 +284,8 @@ def _last_rate_limits(path: Path) -> tuple[dict, datetime | None] | None:
         try:
             event = json.loads(raw.decode("utf-8", errors="replace"))
         except (ValueError, UnicodeDecodeError):
+            continue
+        if not isinstance(event, dict):
             continue
         payload = event.get("payload")
         if not isinstance(payload, dict):
@@ -225,8 +295,12 @@ def _last_rate_limits(path: Path) -> tuple[dict, datetime | None] | None:
         # after a perfectly usable event. Keep scanning backward rather than
         # allowing that transient shape to erase known provider state.
         if isinstance(limits, dict) and _codex_windows(limits):
-            return limits, _timestamp(event.get("timestamp"))
-    return None
+            observed_at = _timestamp(event.get("timestamp"))
+            if observed_at is None:
+                fallback = fallback or (limits, None)
+            elif newest is None or observed_at > newest[1]:
+                newest = limits, observed_at
+    return newest or fallback
 
 
 def _codex_windows(limits: dict) -> list[QuotaWindow]:
@@ -254,10 +328,8 @@ def _codex_windows(limits: dict) -> list[QuotaWindow]:
 
 def _codex_auth_file(rollout: Path) -> Path | None:
     """Find the auth file belonging to the exact home that owns a rollout."""
-    for parent in rollout.parents:
-        if parent.name == "sessions":
-            return parent.parent / "auth.json"
-    return None
+    home = _codex_home_from_rollout(rollout)
+    return home / "auth.json" if home is not None else None
 
 
 def _newer_snapshot(first: QuotaSnapshot, second: QuotaSnapshot) -> QuotaSnapshot:
