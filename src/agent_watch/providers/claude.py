@@ -22,18 +22,21 @@ moved to the background, will *not* resume on its own.
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from typing import Final
 
 from agent_watch.providers.base import (
+    DEFAULT_LIVE_LINES,
     ActionKind,
     PromptKind,
     PromptPattern,
     ProviderAdapter,
+    Recognition,
     ResumeAction,
 )
 
 NAME: Final = "claude"
-PATTERNS_VERSION: Final = "claude-2.1.x/2"
+PATTERNS_VERSION: Final = "claude-2.1.x/4"
 VERIFIED_AGAINST: Final = "Claude Code 2.1.261"
 
 
@@ -179,7 +182,7 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         provider=NAME,
         kind=PromptKind.PAID_ACTION_REQUIRED,
         scope="credits",
-        all_of=(_pattern(r"/(?:upgrade|usage-credits)\b"),),
+        all_of=(_pattern(r"(?<![\w/])/(?:upgrade|usage-credits)\b"),),
         note="Offers paid continuation. Never automated.",
         verified_against=VERIFIED_AGAINST,
     ),
@@ -216,3 +219,49 @@ class ClaudeAdapter(ProviderAdapter):
 
     def executable_names(self) -> frozenset[str]:
         return frozenset({"claude"})
+
+    def recognise(
+        self,
+        lines: list[str],
+        *,
+        now: datetime,
+        live_lines: int = DEFAULT_LIVE_LINES,
+    ) -> Recognition:
+        """Recognise only the newest Claude turn or blocking prompt region.
+
+        Konsole's visible screen can retain a complete paid-offer block above a
+        later working turn. Claude's assistant marker or a submitted composer
+        line starts a new region. An empty composer and the exact menu cursor
+        do not: both belong to the blocking prompt immediately above them.
+        Earlier limit scopes in one region remain useful, but command links
+        before its newest limit headline are historical and cannot veto.
+        """
+        latest_turn = 0
+        menu_cursor = re.compile(
+            r"^\s*\N{HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT}"
+            r"\s*1\.\s*Stop and wait for limit to reset",
+            re.IGNORECASE,
+        )
+        submitted = re.compile(r"^\s*\N{HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT}\s+\S")
+        limit_headline = re.compile(
+            r"You've hit your (?:session|weekly|Opus|Sonnet|fast) limit",
+            re.IGNORECASE,
+        )
+        for index, line in enumerate(lines):
+            stripped = line.lstrip()
+            if stripped.startswith("●") or (
+                submitted.search(line) and not menu_cursor.search(line)
+            ):
+                latest_turn = index
+        live = lines[latest_turn:]
+        latest_limit = 0
+        for index, line in enumerate(live):
+            if limit_headline.search(line):
+                latest_limit = index
+        scoped = [
+            re.sub(r"/(?:upgrade|usage-credits)\b", "/historical-command", line)
+            if index < latest_limit
+            else line
+            for index, line in enumerate(live)
+        ]
+        return super().recognise(scoped, now=now, live_lines=live_lines)

@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.41.2] - 2026-09-11
+
+### Fixed
+
+- Scope Claude limit recognition to the active turn and blocking prompt, so
+  historical paid-offer text does not obstruct the exact safe wait menu.
+- Exclude logged pattern identifiers from paid-command matches while retaining
+  genuine paid, credit and model-changing choice vetoes.
+
 ## [0.41.1] - 2026-09-11
 
 ### Fixed
