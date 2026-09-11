@@ -474,10 +474,10 @@ process replacement, and paid or quality-changing choices all fail closed. A
 single-instance lock and persisted `PLANNED -> SENT -> VERIFIED|FAILED` action
 lifecycle prevent duplicate input across concurrent processes and crashes.
 
-See [vision.md](vision.md) for product intent, [PLAN.md](PLAN.md) for the
-implementation sequence, [ARCHITECTURE.md](ARCHITECTURE.md) for the C4 model and
-runtime safety flows, [PERFORMANCE.md](PERFORMANCE.md) for measured workload,
-and [todo.md](todo.md) for the remaining live-machine acceptance steps.
+See the [product vision](docs/vision.md), [implementation plan](docs/PLAN.md),
+[architecture](docs/ARCHITECTURE.md), and [performance evaluation](docs/PERFORMANCE.md).
+The [open-issues document](docs/OPEN_ISSUES.md) is the single authoritative list
+of remaining acceptance and maintenance work.
 
 ## Development and release
 
@@ -497,7 +497,7 @@ GitHub Actions runs this same script on Python 3.12, 3.13, and 3.14.
 Synthetic application profiles run in the pipeline and are retained alongside
 coverage reports. Timing results are diagnostic; deterministic operation-count
 tests guard performance without flaky machine-speed thresholds. See
-[PERFORMANCE.md](PERFORMANCE.md) for workloads, measured improvements and limits.
+[performance evaluation](docs/PERFORMANCE.md) for workloads, measured improvements and limits.
 The installed-package smoke tests run outside the checkout with `PYTHONPATH`
 removed. The default build constructs the wheel from the source distribution;
 the freshly extracted source archive also runs its own quality gate outside Git.

@@ -113,5 +113,6 @@ of presentation preferences and reports.
 ### Verdict
 
 The four requested features are implemented, reviewed and verified for local
-use. The separate genuine provider-reset acceptance gate in `todo.md` remains
-open; these presentation/reporting tests do not claim to close it.
+use. The separate genuine provider-reset acceptance gate in
+[../OPEN_ISSUES.md](../OPEN_ISSUES.md) remains open; these
+presentation/reporting tests do not claim to close it.

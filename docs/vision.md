@@ -9,7 +9,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 This document is the long-lived product and safety vision. For current delivery
 status, see [PLAN.md](PLAN.md); for the implemented C4 model and runtime flows,
 see [ARCHITECTURE.md](ARCHITECTURE.md); for the final live-machine acceptance
-gate, see [todo.md](todo.md).
+gate, see [OPEN_ISSUES.md](OPEN_ISSUES.md).
 
 ## 1. Purpose
 
@@ -575,7 +575,8 @@ CONTINUE_SENT
 
 ## 20. Retry Policy
 
-Current owner-approved Codex exception (2026-09-11, [debugging.md](debugging.md)):
+Current owner-approved Codex exception (2026-09-11; incident summary in
+[OPEN_ISSUES.md](OPEN_ISSUES.md)):
 full-auto plus explicit Codex opt-in may trial `continue` after an anchored reset
 on the exact tested empty composer, even while quota remains stale/unknown.
 This is a bounded trial, not inferred provider availability. Fresh later limits,

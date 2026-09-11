@@ -15,7 +15,7 @@ LINK = re.compile(r"\]\((?P<target>[^)]+)\)")
 
 
 def _markdown_files() -> list[Path]:
-    return sorted(PROJECT_ROOT.glob("*.md"))
+    return sorted([*PROJECT_ROOT.glob("*.md"), *(PROJECT_ROOT / "docs").rglob("*.md")])
 
 
 def test_relative_documentation_links_exist() -> None:
@@ -28,7 +28,7 @@ def test_relative_documentation_links_exist() -> None:
                 continue
             linked_path = document.parent / unquote(parsed.path)
             if not linked_path.exists():
-                missing.append(f"{document.name}: {target}")
+                missing.append(f"{document.relative_to(PROJECT_ROOT)}: {target}")
 
     assert not missing, "broken relative documentation links:\n" + "\n".join(missing)
 

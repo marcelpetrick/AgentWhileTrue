@@ -92,7 +92,8 @@ Completed on 2026-09-10 for v0.41.0:
   future work should prioritize their OS/process failure branches over cosmetic
   percentage increases. No runtime code was excluded to meet the new floor.
 - The opt-in live Konsole test and doctor/status/quota checks pass locally;
-  the genuine provider-reset acceptance in todo.md remains intentionally open.
+  the genuine provider-reset acceptance in [../OPEN_ISSUES.md](../OPEN_ISSUES.md)
+  remains intentionally open.
 - CI runs the canonical gate on Python 3.12/3.13/3.14, stores coverage/profile/
   SBOM artifacts, and publishes SBOMs on releases. Dependency auditing is a
   separate network-dependent push/PR/weekly job. New workflows require a push

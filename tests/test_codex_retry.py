@@ -15,7 +15,7 @@ from agent_watch.state_store import StateStore
 from agent_watch.states import SessionState
 from tests.harness import build
 
-# The observed banner wording is transcribed in debugging.md. The empty
+# The observed banner wording is summarized in docs/OPEN_ISSUES.md. The empty
 # composer is the existing tested Codex shape, not a claimed full live capture.
 COMPOSER = "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK} "
 TONIGHTS_LIMIT = ["▌ You've hit your usage limit. Try again at 9:52 PM.", "", COMPOSER]

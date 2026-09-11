@@ -15,7 +15,7 @@ Konsole. Correct refusal is more important than eager automation. Keep provider
 quota state separate from terminal prompt state, revalidate immediately before
 input, and fail closed on ambiguity.
 
-Read `vision.md`, `PLAN.md`, and `README.md` before changing runtime behavior.
+Read `docs/vision.md`, `docs/PLAN.md`, and `README.md` before changing runtime behavior.
 The real prompt captures in `media/` are evidence; transcribe them into fixtures
 when recognizer behavior changes.
 

@@ -5,7 +5,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Live retry bug-fix plan (D1–D8)
 
-The evidence and requested behavior are in [debugging.md](debugging.md).
+The incident and its resolved issues are summarized in
+[../OPEN_ISSUES.md](../OPEN_ISSUES.md).
 Preserve its investigation commits on `debug/codex-retry`. The maturity and
 performance work is complete at v0.41.0; apply these fixes as new logical commits.
 
@@ -32,7 +33,7 @@ performance work is complete at v0.41.0; apply these fixes as new logical commit
    Stop on manual recovery, unsafe state, process replacement or exhausted budget;
    an explicitly later reset creates a new blocking episode.
 7. Update AGENTS/vision/architecture/README to document the narrow safety-policy
-   change authorized through debugging.md, without changing Claude's quota gate
+   change authorized through the recorded incident, without changing Claude's quota gate
    or allowing any paid, upgrade, reset-credit or model-changing choice.
 8. Independently review the changes and adversarial/restart/revalidation tests;
    fix confirmed urgent/high issues and run the complete maturity pipeline,
@@ -66,7 +67,7 @@ five-minute observation running; never manufacture live quota evidence.
 - Live doctor/status/quota diagnostics passed. Doctor correctly reports the
   existing controller's single-instance lock. No real continuation was sent,
   no running controller was replaced, and no provider setting was changed.
-- The post-fix synthetic profile is recorded in `PERFORMANCE.md`.
+- The post-fix synthetic profile is recorded in [../PERFORMANCE.md](../PERFORMANCE.md).
 
 Remaining operational limits: a clock-only prompt first seen after its reset,
 without persisted or corroborating absolute-date evidence, cannot safely be

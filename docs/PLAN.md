@@ -9,7 +9,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 This plan tracks the current implementation and the work that remains. Product
 intent and safety requirements live in [vision.md](vision.md); implemented
 structure and data flows live in [ARCHITECTURE.md](ARCHITECTURE.md); the one
-remaining machine-level validation is detailed in [todo.md](todo.md).
+remaining machine-level validation is detailed in [OPEN_ISSUES.md](OPEN_ISSUES.md).
 
 ## Current status
 
@@ -41,10 +41,11 @@ The requested implementation is complete:
   adapter test are part of the release gate.
 - Resume explanations, saved presentation preferences, day/week operational
   summaries, and a responsive scrolling dashboard are implemented; the ordered
-  feature plan and validation notes are in [nextFeatures.md](nextFeatures.md).
+  feature plan and validation notes are in [history/nextFeatures.md](history/nextFeatures.md).
 - Measured performance, coverage, licensing and dual-format SBOM gates are
-  recorded in [maturityPlan.md](maturityPlan.md). The observed retry and Claude
-  prompt fixes are tracked in [retryFixPlan.md](retryFixPlan.md).
+  recorded in [history/maturityPlan.md](history/maturityPlan.md). The observed
+  retry and Claude prompt fixes are tracked in
+  [history/retryFixPlan.md](history/retryFixPlan.md).
 
 ## Remaining acceptance gate
 
