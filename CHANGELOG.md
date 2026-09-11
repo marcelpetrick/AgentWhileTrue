@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.42.1] - 2026-09-11
+
+### Fixed
+
+- Bootstrap the isolated dependency-audit environment with pinned pip 26.2.1,
+  replacing the hosted Python runner's vulnerable bundled installer without
+  suppressing vulnerability findings or changing application dependencies.
+
 ## [0.42.0] - 2026-09-11
 
 ### Added
