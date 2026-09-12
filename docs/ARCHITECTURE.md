@@ -126,6 +126,15 @@ The abstractions in `terminal/base.py` and `providers/base.py` keep terminal
 transport separate from provider-specific prompts. Deterministic fake-terminal
 tests exercise the same supervisor and policy paths as the Konsole adapter.
 
+Claude's status-line bridge hashes the stable Claude session identifier and
+writes one owner-only quota document per session. The document also carries the
+Claude PID and kernel process start time captured from the status-line parent;
+`quota.py` requires both to match the selected process. The installer requests
+a 60-second status-line refresh while preserving existing status-line options,
+preventing idle quota evidence from silently crossing the 15-minute freshness
+limit. A legacy unbound file may be displayed only when no process is supplied
+and can never authorize an action for a selected session.
+
 ## Guarded resume flow
 
 ```mermaid

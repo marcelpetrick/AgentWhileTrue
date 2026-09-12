@@ -29,28 +29,46 @@ if ! jq -e 'type == "object"' "$SETTINGS" > /dev/null; then
     printf 'Claude settings are not a valid JSON object: %s\n' "$SETTINGS" >&2
     exit 1
 fi
+if ! jq -e '(.statusLine // {}) | type == "object"' "$SETTINGS" > /dev/null; then
+    printf 'Claude statusLine settings are not a JSON object: %s\n' "$SETTINGS" >&2
+    exit 1
+fi
 
 install -d -m 700 -- "$TARGET_DIR"
 install -m 755 -- "$SOURCE" "$TARGET"
 
 current="$(jq -r '.statusLine.command // empty' "$SETTINGS")"
-if [[ "$current" == *claude-statusline-proxy.sh* ]]; then
+refresh="$(jq -r '.statusLine.refreshInterval // empty' "$SETTINGS")"
+pid_marker="AGENT_WATCH_CLAUDE_PID=\$PPID"
+if [[ "$current" == *claude-statusline-proxy.sh* ]] \
+    && [[ "$current" == *"$pid_marker"* ]] \
+    && [[ "$refresh" =~ ^[0-9]+$ ]] \
+    && [ "$refresh" -ge 1 ] \
+    && [ "$refresh" -le 60 ]; then
     printf 'Claude quota bridge is already configured: %s\n' "$TARGET"
     exit 0
 fi
 
-if [ -n "$current" ]; then
+if [[ "$current" == *claude-statusline-proxy.sh* ]]; then
+    replacement="$pid_marker $current"
+elif [ -n "$current" ]; then
     printf -v quoted_current '%q' "$current"
-    replacement="AGENT_WATCH_STATUSLINE_CHAIN=$quoted_current $TARGET"
+    replacement="AGENT_WATCH_CLAUDE_PID=\$PPID AGENT_WATCH_STATUSLINE_CHAIN=$quoted_current $TARGET"
 else
-    replacement="$TARGET"
+    replacement="AGENT_WATCH_CLAUDE_PID=\$PPID $TARGET"
 fi
 
 backup="$SETTINGS.agent-watch-backup.$(date +%Y%m%d-%H%M%S).$$"
 cp -p -- "$SETTINGS" "$backup"
 temporary="$(mktemp "$SETTINGS.tmp.XXXXXX")"
 if ! jq --arg command "$replacement" \
-    '.statusLine = {"type": "command", "command": $command}' \
+    '.statusLine = ((.statusLine // {}) + {"type": "command", "command": $command})
+     | .statusLine.refreshInterval = (
+         if (.statusLine.refreshInterval | type) == "number"
+            and .statusLine.refreshInterval >= 1
+            and .statusLine.refreshInterval <= 60
+         then .statusLine.refreshInterval else 60 end
+       )' \
     "$SETTINGS" > "$temporary"; then
     rm -f -- "$temporary"
     exit 1

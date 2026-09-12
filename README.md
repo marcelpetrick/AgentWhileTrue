@@ -356,8 +356,10 @@ Neither this feature nor its tests select upgrades, credits or another model.
 The bridge is the supplied `scripts/claude-statusline-proxy.sh`, not another
 package, daemon, plugin, or network service. Claude Code exposes quota data only
 to its configured status-line command. The bridge receives that JSON, copies
-only the usage windows and reset timestamps to Agent While True's state directory,
-and then runs your existing status line with the original JSON.
+only the usage windows, reset timestamps, a hashed session identifier, and the
+Claude process identity to Agent While True's state directory, and then runs
+your existing status line with the original JSON. Each selected session accepts
+only the quota file bound to its exact PID and process start time.
 
 Without it, `agent-while-true quota` honestly reports Claude as `UNKNOWN` with
 `no-statusline-file`. Prompt detection still works, but automatic mode will not
@@ -369,9 +371,10 @@ Install and safely chain the supplied file in one command:
 scripts/install-claude-bridge.sh
 ```
 
-The installer copies the proxy, backs up `~/.claude/settings.json`, and preserves
-the existing status-line command through the chain. To do those steps manually,
-install the one supplied file:
+The installer copies the proxy, backs up `~/.claude/settings.json`, preserves
+the existing status-line command and other status-line settings, and configures
+a 60-second refresh so quota stays current while Claude is idle. To do those
+steps manually, install the one supplied file:
 
 ```bash
 install -Dm755 scripts/claude-statusline-proxy.sh \
@@ -384,7 +387,8 @@ Configure it as Claude's `statusLine` command in `~/.claude/settings.json`:
 {
   "statusLine": {
     "type": "command",
-    "command": "~/.local/share/agent-watch/claude-statusline-proxy.sh"
+    "command": "AGENT_WATCH_CLAUDE_PID=$PPID ~/.local/share/agent-watch/claude-statusline-proxy.sh",
+    "refreshInterval": 60
   }
 }
 ```
@@ -396,7 +400,8 @@ If a status line already exists, preserve it through
 {
   "statusLine": {
     "type": "command",
-    "command": "AGENT_WATCH_STATUSLINE_CHAIN=~/.claude/my-statusline.sh ~/.local/share/agent-watch/claude-statusline-proxy.sh"
+    "command": "AGENT_WATCH_CLAUDE_PID=$PPID AGENT_WATCH_STATUSLINE_CHAIN=~/.claude/my-statusline.sh ~/.local/share/agent-watch/claude-statusline-proxy.sh",
+    "refreshInterval": 60
   }
 }
 ```
@@ -408,7 +413,8 @@ For example, if the current command is
 {
   "statusLine": {
     "type": "command",
-    "command": "AGENT_WATCH_STATUSLINE_CHAIN=~/.claude/abtop-combined-statusline.sh ~/.local/share/agent-watch/claude-statusline-proxy.sh"
+    "command": "AGENT_WATCH_CLAUDE_PID=$PPID AGENT_WATCH_STATUSLINE_CHAIN=~/.claude/abtop-combined-statusline.sh ~/.local/share/agent-watch/claude-statusline-proxy.sh",
+    "refreshInterval": 60
   }
 }
 ```
@@ -418,12 +424,13 @@ render, then verify the bridge without enabling automation:
 
 ```bash
 agent-while-true quota
-ls -l ~/.local/state/agent-watch/quota/claude.json
+ls -l ~/.local/state/agent-watch/quota/claude-*.json
 ```
 
-The bridge writes an owner-only, atomically replaced quota document at
-`~/.local/state/agent-watch/quota/claude.json`. Failures do not prevent the
-existing status line from running.
+The bridge writes one owner-only, atomically replaced quota document per Claude
+session under `~/.local/state/agent-watch/quota/claude-*.json`. Legacy global
+files are display-only and cannot authorize an action for a selected process.
+Failures do not prevent the existing status line from running.
 
 ## Background service
 

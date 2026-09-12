@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.42.3] - 2026-09-13
+
+### Fixed
+
+- Bind Claude quota snapshots to its stable status-line session and exact
+  process start identity, preventing another Claude session from supplying
+  authorization evidence.
+- Preserve existing Claude status-line settings while adding a one-minute idle
+  refresh, so quota evidence does not silently age out during long waits.
+
 ## [0.42.2] - 2026-09-13
 
 ### Changed

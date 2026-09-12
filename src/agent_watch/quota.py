@@ -40,7 +40,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from agent_watch.identity import codex_account_key
-from agent_watch.proc import PROC
+from agent_watch.proc import PROC, ProcessGoneError, read_start_time
 
 #: A window at or above this percentage is treated as exhausted.
 EXHAUSTED_PERCENT = 100.0
@@ -405,18 +405,48 @@ _CLAUDE_SCOPES = {
 
 @dataclass(slots=True)
 class ClaudeStatuslineSource(QuotaSource):
-    """Read the file written by the status-line proxy in ``scripts/``."""
+    """Read process-bound files written by the status-line proxy in ``scripts/``."""
 
     path: Path
     provider: str = "claude"
     name: str = "claude-statusline"
 
     def snapshot(self, *, pid: int | None = None) -> QuotaSnapshot:
-        del pid  # The status-line file is per-account, not per-process.
         try:
-            if not self.path.is_file():
+            candidates = tuple(self.path.parent.glob("claude-*.json"))
+            if pid is None and self.path.is_file():
+                candidates = (*candidates, self.path)
+            if not candidates:
                 return unknown(self.provider, self.name, "no-statusline-file")
-            document = json.loads(self.path.read_text(encoding="utf-8"))
+            expected_start = read_start_time(pid) if pid is not None else None
+            documents = []
+            for candidate in candidates:
+                try:
+                    if candidate.stat().st_size > 64 * 1024:
+                        continue
+                    document = json.loads(candidate.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError):
+                    continue
+                if not isinstance(document, dict) or document.get("source") != "claude":
+                    continue
+                if pid is not None:
+                    process = document.get("process")
+                    if not isinstance(process, dict):
+                        continue
+                    if process.get("pid") != pid or process.get("start_time") != expected_start:
+                        continue
+                documents.append(document)
+            if not documents:
+                note = (
+                    "no-process-bound-statusline-file" if pid is not None else "no-statusline-file"
+                )
+                return unknown(self.provider, self.name, note)
+            document = max(
+                documents,
+                key=lambda item: (
+                    _timestamp(item.get("updated_at")) or datetime.min.replace(tzinfo=UTC)
+                ),
+            )
             if not isinstance(document, dict):
                 return unknown(self.provider, self.name, "unrecognised-statusline-shape")
             windows = []
@@ -445,6 +475,8 @@ class ClaudeStatuslineSource(QuotaSource):
                 observed_at=_timestamp(document.get("updated_at")),
                 windows=tuple(windows),
             )
+        except ProcessGoneError:
+            return unknown(self.provider, self.name, "process-gone")
         except Exception as exc:  # a source must never break the supervision loop
             return unknown(self.provider, self.name, f"error:{type(exc).__name__}")
 

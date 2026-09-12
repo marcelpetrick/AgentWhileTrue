@@ -409,10 +409,46 @@ def test_claude_statusline_is_parsed(tmp_path: Path) -> None:
 def test_claude_statusline_accepts_the_utilization_spelling(tmp_path: Path) -> None:
     path = tmp_path / "claude.json"
     path.write_text(
-        json.dumps({"updated_at": 1788641342, "five_hour": {"utilization": 100}}), encoding="utf-8"
+        json.dumps(
+            {
+                "source": "claude",
+                "updated_at": 1788641342,
+                "five_hour": {"utilization": 100},
+            }
+        ),
+        encoding="utf-8",
     )
     snapshot = ClaudeStatuslineSource(path=path).snapshot()
     assert snapshot.exhausted_scopes == {"session"}
+
+
+def test_claude_statusline_is_bound_to_process_start_time(tmp_path: Path, monkeypatch) -> None:
+    path = tmp_path / "claude.json"
+    bound = {
+        **CLAUDE_STATUSLINE,
+        "process": {"pid": 123, "start_time": 456},
+        "session_key": "a" * 64,
+    }
+    (tmp_path / f"claude-{'a' * 64}.json").write_text(json.dumps(bound), encoding="utf-8")
+    monkeypatch.setattr(quota, "read_start_time", lambda pid: 456 if pid == 123 else 789)
+
+    snapshot = ClaudeStatuslineSource(path=path).snapshot(pid=123)
+    assert snapshot.availability is Availability.AVAILABLE
+    wrong_process = ClaudeStatuslineSource(path=path).snapshot(pid=999)
+    assert wrong_process.availability is Availability.UNKNOWN
+    assert wrong_process.note == "no-process-bound-statusline-file"
+
+
+def test_claude_statusline_refuses_legacy_global_file_for_a_process(
+    tmp_path: Path, monkeypatch
+) -> None:
+    path = tmp_path / "claude.json"
+    path.write_text(json.dumps(CLAUDE_STATUSLINE), encoding="utf-8")
+    monkeypatch.setattr(quota, "read_start_time", lambda pid: 456)
+
+    snapshot = ClaudeStatuslineSource(path=path).snapshot(pid=123)
+    assert snapshot.availability is Availability.UNKNOWN
+    assert snapshot.note == "no-statusline-file"
 
 
 def test_missing_statusline_file_is_unknown(tmp_path: Path) -> None:
