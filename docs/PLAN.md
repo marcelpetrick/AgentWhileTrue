@@ -28,7 +28,8 @@ The requested implementation is complete:
   upgrade, reset-credit, and quality-changing choices.
 - Codex quota is read from its local rollout stream and bound to a validated
   account/rate-limit identity.
-- Claude quota is projected by the owner-only status-line bridge.
+- Claude quota is projected by the owner-only status-line bridge into
+  idle-refreshed, hashed-session files bound to PID and process start time.
 - Five-hour and weekly usage meters show compact reset countdowns.
 - Official Codex API and Claude Code/API status components are polled
   independently once per second with bounded, compressed, conditional requests.
@@ -36,6 +37,9 @@ The requested implementation is complete:
   uppercase `A` deliberately toggles observe/full-auto in the TUI.
 - The action lifecycle is persisted as `PLANNED -> SENT -> VERIFIED|FAILED` and
   the TUI retains the latest 50 privacy-preserving history entries.
+- Generic and timed Claude automatic-wait confirmations both verify as
+  provider-armed waits; current extra-usage, early-reset and lower-priority
+  choices are explicit non-automatable vetoes.
 - The single-instance lock permits at most one input-capable watcher.
 - Deterministic simulations, package smoke tests, and a live read-only Konsole
   adapter test are part of the release gate.

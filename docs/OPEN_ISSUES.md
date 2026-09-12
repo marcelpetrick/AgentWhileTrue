@@ -16,14 +16,14 @@ backlogs.
 ### O1 — Validate one natural provider reset end to end
 
 Priority: critical acceptance evidence. Implementation status: complete in the
-public v0.42.1 release; natural live acceptance remains outstanding.
+v0.42.4 release candidate; natural live acceptance remains outstanding.
 
 The released build must supervise an intended Codex or Claude session through a
 real quota exhaustion and reset, without fabricated quota data, process
 replacement, unsafe input, or a paid/quality-changing choice. Acceptance needs
 all of the following:
 
-- run v0.42.1 or later in full-auto mode with only intended sessions selected;
+- run v0.42.4 or later in full-auto mode with only intended sessions selected;
 - observe a supported, exact blocking prompt and a naturally eligible reset;
 - confirm exactly one policy-approved continuation is sent;
 - confirm the lifecycle is `PLANNED -> SENT -> VERIFIED`, or records an honest
@@ -39,7 +39,7 @@ behavior and must not be weakened merely to close the test.
 ## Impact-ordered execution plan
 
 1. **Critical — put the verified release under observation.** Install the
-   published v0.42.1 wheel whose hash matches the release SBOM, run `doctor`,
+   published v0.42.4 wheel whose hash matches the release SBOM, run `doctor`,
    `status`, `quota`, and `simulate --all`, then start the existing explicitly
    opted-in full-auto user service. Do not disturb live agent processes.
 2. **Critical — capture the natural reset.** Let that service observe only the
@@ -90,10 +90,11 @@ mistaken for current work:
 | D8 | Claude recognition is scoped to the active prompt region and ignores logged paid-pattern identifiers while retaining real paid-choice vetoes. |
 
 Regression coverage includes changed fingerprints, restart recovery, the full
-retry budget, final revalidation cancellation, stale/fresh quota conflicts, and
-Claude log-text false positives. The v0.42.1 release passed 549 tests on Python
-3.12, 3.13, and 3.14, the live read-only Konsole integration check, the full
-packaging pipeline, SPDX/CycloneDX validation, and the hosted dependency audit.
+retry budget, final revalidation cancellation, stale/fresh quota conflicts,
+Claude process-bound quota files, timed automatic-wait verification, current
+paid/quality vetoes, and log-text false positives. Release evidence is recorded
+by the v0.42.4 tag workflow; the natural reset remains a separate acceptance
+event and cannot be replaced by deterministic tests.
 
 ## Maintenance triggers
 
