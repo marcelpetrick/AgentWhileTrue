@@ -6,8 +6,9 @@
 
 The Claude blocks are transcribed from a screenshot of an actual five-hour limit
 event on Claude Code 2.1.261; the wording of the other blocks comes from the
-strings shipped inside the Claude Code 2.1.261 and Codex CLI 0.153.2 binaries.
-Keeping them here, verbatim, is what makes the recognizer tests meaningful.
+strings shipped inside the Claude Code 2.1.261/2.1.270 and Codex CLI 0.153.2
+binaries. Keeping them here, verbatim, is what makes the recognizer tests
+meaningful.
 """
 
 from __future__ import annotations
@@ -76,6 +77,27 @@ CLAUDE_SPEND_LIMIT = [
 CLAUDE_MODEL_DOWNGRADE = [
     "● You've hit your Opus limit · resets 8:10pm",
     "  Switch to another model to keep going",
+    "",
+    "❯ ",
+]
+
+CLAUDE_EXTRA_USAGE = [
+    "● Usage limit reached · resets 8:10pm",
+    "  Run /extra-usage to continue now",
+    "",
+    "❯ ",
+]
+
+CLAUDE_SESSION_LIMIT_RESET = [
+    "● Usage limit reached · resets 8:10pm",
+    "  Reset your session limit now and keep working; once a week, still counts toward your weekly limit",
+    "",
+    "❯ ",
+]
+
+CLAUDE_LOWER_PRIORITY = [
+    "● Usage limit reached · resets 8:10pm",
+    "  Continue now at lower priority",
     "",
     "❯ ",
 ]

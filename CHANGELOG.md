@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.42.4] - 2026-09-13
+
+### Fixed
+
+- Verify both generic and timed Claude automatic-wait banners as successful
+  provider arming instead of recording the timed transition as a failed send.
+- Explicitly veto Claude 2.1.270 extra-usage, early session-limit reset, and
+  lower-priority continuation choices as paid or quality-changing actions.
+
 ## [0.42.3] - 2026-09-13
 
 ### Fixed

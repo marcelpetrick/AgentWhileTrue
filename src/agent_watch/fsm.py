@@ -44,7 +44,7 @@ from agent_watch.policy import Decision, ResumeRequest, evaluate
 from agent_watch.proc import ProcessGoneError, ProcessIdentity, ProcessInfo
 from agent_watch.proc import identify as proc_identify
 from agent_watch.proc import inspect as proc_inspect
-from agent_watch.providers.base import ProviderAdapter, Recognition
+from agent_watch.providers.base import PromptKind, ProviderAdapter, Recognition
 from agent_watch.providers.timeparse import parse_reset
 from agent_watch.quota import QuotaSnapshot, QuotaSource, unknown
 from agent_watch.state_store import StateStore
@@ -850,7 +850,10 @@ class Supervisor:
             session.state = SessionState.PROCESS_GONE
             return Decision(allowed=False, reason="verify:process-gone")
 
-        armed_self_resume = "claude/self-healing" in observation.recognition.matched_ids
+        armed_self_resume = any(
+            match.pattern.kind is PromptKind.SELF_HEALING
+            for match in observation.recognition.matches
+        )
         resumed = armed_self_resume or observation.recognition.state in {
             SessionState.ACTIVE,
             SessionState.LIMIT_WARNING,

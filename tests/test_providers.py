@@ -101,6 +101,24 @@ def test_claude_model_downgrade_offer_is_vetoed() -> None:
     assert any(veto.startswith("model-downgrade-offer") for veto in result.vetoes)
 
 
+def test_claude_extra_usage_offer_is_vetoed() -> None:
+    result = providers.CLAUDE.recognise(screens.CLAUDE_EXTRA_USAGE, now=NOW)
+    assert result.vetoes == ("paid-action-required:claude/usage-credits-offer",)
+    assert result.action is None
+
+
+def test_claude_session_limit_reset_is_vetoed() -> None:
+    result = providers.CLAUDE.recognise(screens.CLAUDE_SESSION_LIMIT_RESET, now=NOW)
+    assert result.vetoes == ("paid-action-required:claude/session-limit-reset",)
+    assert result.action is None
+
+
+def test_claude_lower_priority_continuation_is_vetoed() -> None:
+    result = providers.CLAUDE.recognise(screens.CLAUDE_LOWER_PRIORITY, now=NOW)
+    assert result.vetoes == ("model-downgrade-offer:claude/lower-priority",)
+    assert result.action is None
+
+
 def test_claude_active_screen_proposes_nothing() -> None:
     result = providers.CLAUDE.recognise(screens.CLAUDE_ACTIVE, now=NOW)
     assert result.state is SessionState.ACTIVE

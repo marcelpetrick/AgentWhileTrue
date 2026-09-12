@@ -59,6 +59,24 @@ def test_claude_limit_menu_arms_provider_auto_wait_and_verifies(tmp_path: Path) 
     assert session.state is SessionState.WAITING_FOR_RESET
 
 
+def test_claude_timed_auto_wait_banner_verifies_the_menu_action(tmp_path: Path) -> None:
+    kit, _ = _claude_session(tmp_path, screen=list(screens.CLAUDE_LIMIT_MENU))
+    kit.quota["claude"].availability = Availability.EXHAUSTED
+
+    assert kit.supervisor.tick()[0].allowed
+    pending_key = next(iter(kit.supervisor.sessions.values())).pending_key
+    kit.terminal.set_screen(
+        SESSION,
+        ["Claude Code will continue automatically at 3:20am. Keep this session open."],
+    )
+    kit.clock.advance(5)
+    harness_module.refresh_quota(kit)
+
+    verified = kit.supervisor.tick()
+    assert verified[0].reason == "verify:armed-provider-wait"
+    assert kit.supervisor.store.records[pending_key].state is ActionState.VERIFIED
+
+
 def test_an_outstanding_action_is_not_repeated_while_it_is_unverified(tmp_path: Path) -> None:
     # DANGER 17: one logical prompt has one action outstanding at a time,
     # however many times the same screen is scanned.

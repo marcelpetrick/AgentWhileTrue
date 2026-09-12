@@ -5,8 +5,8 @@
 """Claude Code prompt recognition.
 
 Every pattern below was taken from the strings shipped inside the Claude Code
-2.1.261 executable and cross-checked against a screenshot of a real five-hour
-limit event, rather than being guessed from documentation.
+2.1.261 and 2.1.270 executables and cross-checked against a screenshot of a real
+five-hour limit event, rather than being guessed from documentation.
 
 The most important entry is not a limit pattern at all: since 2.1.234 Claude
 Code resumes itself when the limit resets, and advertises that with
@@ -36,8 +36,8 @@ from agent_watch.providers.base import (
 )
 
 NAME: Final = "claude"
-PATTERNS_VERSION: Final = "claude-2.1.x/4"
-VERIFIED_AGAINST: Final = "Claude Code 2.1.261"
+PATTERNS_VERSION: Final = "claude-2.1.x/5"
+VERIFIED_AGAINST: Final = "Claude Code 2.1.261 and 2.1.270"
 
 
 def _pattern(text: str) -> re.Pattern[str]:
@@ -182,7 +182,7 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         provider=NAME,
         kind=PromptKind.PAID_ACTION_REQUIRED,
         scope="credits",
-        all_of=(_pattern(r"(?<![\w/])/(?:upgrade|usage-credits)\b"),),
+        all_of=(_pattern(r"(?<![\w/])/(?:upgrade|usage-credits|extra-usage)\b"),),
         note="Offers paid continuation. Never automated.",
         verified_against=VERIFIED_AGAINST,
     ),
@@ -193,6 +193,24 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         scope="credits",
         all_of=(_pattern(r"Upgrade your plan"),),
         note="Interactive paid upgrade choice. Never selected automatically.",
+        verified_against=VERIFIED_AGAINST,
+    ),
+    PromptPattern(
+        id="claude/session-limit-reset",
+        provider=NAME,
+        kind=PromptKind.PAID_ACTION_REQUIRED,
+        scope="reset-credit",
+        all_of=(_pattern(r"Reset your session limit now"),),
+        note="Consumes the provider's limited early-reset affordance. Never automated.",
+        verified_against=VERIFIED_AGAINST,
+    ),
+    PromptPattern(
+        id="claude/lower-priority",
+        provider=NAME,
+        kind=PromptKind.MODEL_DOWNGRADE_OFFER,
+        scope="model",
+        all_of=(_pattern(r"Continue now at lower priority"),),
+        note="Changes service quality. Never automated.",
         verified_against=VERIFIED_AGAINST,
     ),
     PromptPattern(
@@ -259,7 +277,7 @@ class ClaudeAdapter(ProviderAdapter):
             if limit_headline.search(line):
                 latest_limit = index
         scoped = [
-            re.sub(r"/(?:upgrade|usage-credits)\b", "/historical-command", line)
+            re.sub(r"/(?:upgrade|usage-credits|extra-usage)\b", "/historical-command", line)
             if index < latest_limit
             else line
             for index, line in enumerate(live)
