@@ -30,7 +30,7 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = [
-    "pytest==9.1.1", "pytest-cov==7.1.0", "ruff==0.16.6", "build==1.6.0",
+    "pytest==9.1.1", "pytest-cov==7.1.0", "ruff==0.16.7", "build==1.6.1",
     "reuse==6.2.0", "pip-audit==2.10.1",
     "spdx-tools==0.8.5", "cyclonedx-python-lib[validation]==11.12.0",
 ]

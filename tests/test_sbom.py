@@ -59,7 +59,7 @@ def test_documents_inventory_release_artifacts_and_no_runtime_dependencies(
 ) -> None:
     wheel, sdist = _artifacts(
         tmp_path,
-        requirements=("pytest==9.1.1; extra == 'dev'", "ruff==0.16.6; extra == 'dev'"),
+        requirements=("pytest==9.1.1; extra == 'dev'", "ruff==0.16.7; extra == 'dev'"),
     )
     monkeypatch.setenv("SOURCE_DATE_EPOCH", "1767326646")
     spdx, cyclonedx = sbom.make_documents(sbom.inspect_artifacts(wheel, sdist))

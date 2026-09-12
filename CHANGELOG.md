@@ -13,6 +13,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.42.2] - 2026-09-13
+
+### Changed
+
+- Updated the pinned development toolchain to Ruff 0.16.7 and build 1.6.1;
+  every other Python and GitHub Actions dependency was already current.
+
 ## [0.42.1] - 2026-09-11
 
 ### Fixed
