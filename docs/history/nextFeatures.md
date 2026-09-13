@@ -103,8 +103,8 @@ of presentation preferences and reports.
 - Separate live Konsole adapter check: one passed; no continuation sent.
 - `./localPipeline.sh`: PASS, including coverage, all 12 safety simulations,
   wheel/sdist build and isolated installation of version 0.40.2.
-- Installed command and compatibility alias passed version/simulation smoke
-  checks; installed diagnostics and day/week summary commands also passed.
+- The installed command passed version/simulation smoke checks; installed
+  diagnostics and day/week summary commands also passed.
 - Direct `doctor`: exit 0. Another watcher holds the input lock; it was left
   running. No deployment, push or tag was performed.
 - End-to-end fake-terminal navigation verifies detail/help focus, scrolling

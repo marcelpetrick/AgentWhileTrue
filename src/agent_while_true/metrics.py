@@ -10,10 +10,10 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 
-from agent_watch.fsm import SupervisedSession
-from agent_watch.logging_setup import EventLogger
-from agent_watch.proc import ProcessIdentity
-from agent_watch.terminal.base import SessionRef
+from agent_while_true.fsm import SupervisedSession
+from agent_while_true.logging_setup import EventLogger
+from agent_while_true.proc import ProcessIdentity
+from agent_while_true.terminal.base import SessionRef
 
 _BLOCKED = {"LIMIT_BLOCKED", "WAITING_FOR_RESET", "RESET_GRACE_PERIOD", "READY_TO_RESUME"}
 _KNOWN = _BLOCKED | {"ACTIVE", "LIMIT_WARNING"}

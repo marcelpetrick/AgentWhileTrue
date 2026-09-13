@@ -36,20 +36,20 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
-from agent_watch import providers as provider_registry
-from agent_watch.classify import Classification, Confidence, ProcessClass, classify
-from agent_watch.config import Config, Mode
-from agent_watch.logging_setup import EventLogger, get_logger
-from agent_watch.policy import Decision, ResumeRequest, evaluate
-from agent_watch.proc import ProcessGoneError, ProcessIdentity, ProcessInfo
-from agent_watch.proc import identify as proc_identify
-from agent_watch.proc import inspect as proc_inspect
-from agent_watch.providers.base import PromptKind, ProviderAdapter, Recognition
-from agent_watch.providers.timeparse import parse_reset
-from agent_watch.quota import QuotaSnapshot, QuotaSource, unknown
-from agent_watch.state_store import StateStore
-from agent_watch.states import ActionState, SessionState
-from agent_watch.terminal.base import SessionRef, TerminalAdapter, TerminalError
+from agent_while_true import providers as provider_registry
+from agent_while_true.classify import Classification, Confidence, ProcessClass, classify
+from agent_while_true.config import Config, Mode
+from agent_while_true.logging_setup import EventLogger, get_logger
+from agent_while_true.policy import Decision, ResumeRequest, evaluate
+from agent_while_true.proc import ProcessGoneError, ProcessIdentity, ProcessInfo
+from agent_while_true.proc import identify as proc_identify
+from agent_while_true.proc import inspect as proc_inspect
+from agent_while_true.providers.base import PromptKind, ProviderAdapter, Recognition
+from agent_while_true.providers.timeparse import parse_reset
+from agent_while_true.quota import QuotaSnapshot, QuotaSource, unknown
+from agent_while_true.state_store import StateStore
+from agent_while_true.states import ActionState, SessionState
+from agent_while_true.terminal.base import SessionRef, TerminalAdapter, TerminalError
 
 #: A wall-clock/monotonic divergence above this many seconds across one tick is
 #: read as suspend/resume or a clock correction rather than as elapsed time.

@@ -4,7 +4,7 @@
 
 from __future__ import annotations
 
-from agent_watch import ui
+from agent_while_true import ui
 
 
 def test_ascii_fit_and_wrap_skip_unicode_database(monkeypatch) -> None:

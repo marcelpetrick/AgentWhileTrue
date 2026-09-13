@@ -22,8 +22,8 @@ import enum
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from agent_watch import proc
-from agent_watch.proc import ProcessInfo
+from agent_while_true import proc
+from agent_while_true.proc import ProcessInfo
 
 #: Two independent signals are required before a verdict may drive automation.
 MIN_SIGNALS_FOR_HIGH_CONFIDENCE = 2
@@ -63,7 +63,7 @@ class Classification:
     """The verdict plus the evidence that produced it.
 
     The signal list exists so that a refusal can be explained in the log and in
-    ``agent-watch doctor`` without ever quoting terminal content.
+    ``agent-while-true doctor`` without ever quoting terminal content.
     """
 
     process_class: ProcessClass

@@ -108,7 +108,7 @@ fi
 
 step "pytest"
 if [ "$COVERAGE" -eq 1 ]; then
-    run_tool pytest --cov=agent_watch --cov-report=term-missing --cov-report=xml \
+    run_tool pytest --cov=agent_while_true --cov-report=term-missing --cov-report=xml \
         --cov-report=json --cov-fail-under=91 \
         || fail "pytest"
 else
@@ -122,7 +122,7 @@ import re
 import sys
 
 sys.path.insert(0, "src")
-from agent_watch.version import __version__
+from agent_while_true.version import __version__
 
 changelog = pathlib.Path("CHANGELOG.md").read_text(encoding="utf-8")
 match = re.search(r"^## \[([^\]]+)\]", changelog, flags=re.MULTILINE)

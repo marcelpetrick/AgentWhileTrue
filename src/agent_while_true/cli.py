@@ -29,8 +29,8 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
-from agent_watch import doctor as doctor_module
-from agent_watch.config import (
+from agent_while_true import doctor as doctor_module
+from agent_while_true.config import (
     Config,
     ConfigError,
     Mode,
@@ -38,21 +38,21 @@ from agent_watch.config import (
     describe,
     load,
 )
-from agent_watch.fsm import Observation, Supervisor, SystemInspector
-from agent_watch.identity import session_account
-from agent_watch.lock import LockHeldError, SingleInstanceLock
-from agent_watch.logging_setup import read_history, setup
-from agent_watch.metrics import ObservationMetrics
-from agent_watch.picker import Candidate, NumberedPicker, discover, pick_with_fzf
-from agent_watch.policy import Decision
-from agent_watch.preferences import load_preferences, save_preferences
-from agent_watch.quota import default_sources
-from agent_watch.service_health import HealthMonitor
-from agent_watch.state_store import StateStore
-from agent_watch.summary import render_summary
-from agent_watch.terminal.konsole import KonsoleAdapter
-from agent_watch.tui import MAX_HISTORY_ENTRIES, DashboardState, TerminalKeys
-from agent_watch.ui import (
+from agent_while_true.fsm import Observation, Supervisor, SystemInspector
+from agent_while_true.identity import session_account
+from agent_while_true.lock import LockHeldError, SingleInstanceLock
+from agent_while_true.logging_setup import read_history, setup
+from agent_while_true.metrics import ObservationMetrics
+from agent_while_true.picker import Candidate, NumberedPicker, discover, pick_with_fzf
+from agent_while_true.policy import Decision
+from agent_while_true.preferences import load_preferences, save_preferences
+from agent_while_true.quota import default_sources
+from agent_while_true.service_health import HealthMonitor
+from agent_while_true.state_store import StateStore
+from agent_while_true.summary import render_summary
+from agent_while_true.terminal.konsole import KonsoleAdapter
+from agent_while_true.tui import MAX_HISTORY_ENTRIES, DashboardState, TerminalKeys
+from agent_while_true.ui import (
     CLEAR_SCREEN,
     HIDE_CURSOR,
     SHOW_CURSOR,
@@ -62,7 +62,7 @@ from agent_watch.ui import (
     render_status,
     render_viewport,
 )
-from agent_watch.version import __version__
+from agent_while_true.version import __version__
 
 EXIT_OK = 0
 EXIT_ERROR = 1
@@ -651,7 +651,7 @@ def command_simulate(args: argparse.Namespace, stream) -> int:
     This is the honest way to gain confidence in a tool that types into
     terminals: watch a specific danger play out and read the decisions it made.
     """
-    from agent_watch import simulate
+    from agent_while_true import simulate
 
     if args.run_all:
         results = simulate.run_all()

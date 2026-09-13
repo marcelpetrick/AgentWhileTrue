@@ -15,8 +15,8 @@ from pathlib import Path
 
 import pytest
 
-from agent_watch import simulate
-from agent_watch.cli import EXIT_ERROR, EXIT_OK, main
+from agent_while_true import simulate
+from agent_while_true.cli import EXIT_ERROR, EXIT_OK, main
 
 
 @pytest.mark.parametrize("name", sorted(simulate.SCENARIOS))

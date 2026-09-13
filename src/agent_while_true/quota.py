@@ -39,8 +39,8 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from agent_watch.identity import codex_account_key
-from agent_watch.proc import PROC, ProcessGoneError, read_start_time
+from agent_while_true.identity import codex_account_key
+from agent_while_true.proc import PROC, ProcessGoneError, read_start_time
 
 #: A window at or above this percentage is treated as exhausted.
 EXHAUSTED_PERCENT = 100.0

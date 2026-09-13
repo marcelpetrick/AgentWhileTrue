@@ -23,7 +23,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-LOGGER_NAME = "agent_watch"
+LOGGER_NAME = "agent_while_true"
 
 #: Vision section 31.
 MAX_LOG_BYTES = 10 * 1024 * 1024

@@ -12,7 +12,7 @@ action - if any - the pattern says would resume the session.
 Two rules from the vision are structural here:
 
 * a single regex match never authorises input, so an action is only ever
-  *proposed*; the policy gate in :mod:`agent_watch.policy` decides;
+  *proposed*; the policy gate in :mod:`agent_while_true.policy` decides;
 * unknown layouts produce no action at all rather than a guessed one.
 """
 
@@ -24,9 +24,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from agent_watch.logging_setup import fingerprint
-from agent_watch.providers.timeparse import parse_reset
-from agent_watch.states import SessionState
+from agent_while_true.logging_setup import fingerprint
+from agent_while_true.providers.timeparse import parse_reset
+from agent_while_true.states import SessionState
 
 #: How many of the most recent displayed lines count as "live". Text above this
 #: is treated as scrolled-away history and cannot trigger anything, which is the
@@ -80,7 +80,7 @@ class ResumeAction:
 
     kind: ActionKind
     text: str = ""
-    #: Name of the :class:`~agent_watch.config.Policy` flag that must be true
+    #: Name of the :class:`~agent_while_true.config.Policy` flag that must be true
     #: before this action may run unattended. ``None`` means the general
     #: ``resume_after_reset`` policy is enough.
     requires_policy: str | None = None

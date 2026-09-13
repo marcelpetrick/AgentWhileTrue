@@ -78,7 +78,7 @@ printf '\n%s\n' '[2/6] Running the complete release gate'
 PATH="$PROJECT_ROOT/.venv/bin:$PATH" PYTHON="$VENV_PYTHON" ./localPipeline.sh --noRun
 
 version="$(PYTHONPATH=src "$VENV_PYTHON" -c \
-    'from agent_watch.version import __version__; print(__version__)')"
+    'from agent_while_true.version import __version__; print(__version__)')"
 wheel="$PROJECT_ROOT/dist/agent_while_true-$version-py3-none-any.whl"
 if [[ ! -f "$wheel" ]]; then
     printf 'verified wheel was not produced: %s\n' "$wheel" >&2
@@ -121,5 +121,5 @@ if grep -Eq '^Single instance[[:space:]]+WARN' <<< "$doctor_output"; then
 fi
 
 printf '\n%s\n' '[6/6] Opening the full auto-mode dashboard'
-export AGENT_WATCH_ALLOW_CODEX_AUTO_RESUME=true
+export AGENT_WHILE_TRUE_ALLOW_CODEX_AUTO_RESUME=true
 exec "$cli" run --auto --all --no-fzf

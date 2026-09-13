@@ -13,8 +13,8 @@ from __future__ import annotations
 
 import pytest
 
-from agent_watch import classify as classify_module
-from agent_watch.classify import Confidence, ProcessClass, classify
+from agent_while_true import classify as classify_module
+from agent_while_true.classify import Confidence, ProcessClass, classify
 
 CLAUDE_EXE = "/home/user/.local/share/claude/versions/2.1.261"
 CODEX_SHIM = "/run/user/1000/fnm_multishells/631816_1788536739178/bin/codex"

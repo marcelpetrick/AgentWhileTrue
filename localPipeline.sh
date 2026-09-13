@@ -21,7 +21,7 @@ Runs the same complete gate used by GitHub Actions:
   3. Run every safety simulation
   4. Build the source distribution and wheel
   5. Install the wheel in an isolated environment
-  6. Smoke-test both command names, doctor, status, quota, and all simulations
+  6. Smoke-test the canonical command, doctor, status, quota, and all simulations
 
 --noRun is accepted for consistency with this repository's other local
 pipelines. Agent While True has no final interactive launch, so it is a no-op.
@@ -93,7 +93,7 @@ PIPELINE_RESULTS+=("Python baseline  : PASS (3.12+)")
 scripts/quality.sh
 PIPELINE_RESULTS+=("Quality gate     : PASS (Ruff, format, ShellCheck, pytest coverage)")
 
-PYTHONPATH=src "$PYTHON_BIN" -m agent_watch.cli simulate --all
+PYTHONPATH=src "$PYTHON_BIN" -m agent_while_true.cli simulate --all
 PIPELINE_RESULTS+=("Safety scenarios : PASS (all)")
 
 mkdir -p artifacts
@@ -135,17 +135,16 @@ PIPELINE_RESULTS+=("Release SBOMs    : PASS (SPDX 2.3 and CycloneDX 1.6 validate
 "$PYTHON_BIN" -m venv "$TEMP_ROOT/smoke"
 "$TEMP_ROOT/smoke/bin/python" -m pip install --disable-pip-version-check --no-deps \
     "$ARTIFACT_DIR"/*.whl
-expected_version="$(PYTHONPATH=src "$PYTHON_BIN" -c 'from agent_watch.version import __version__; print(__version__)')"
+expected_version="$(PYTHONPATH=src "$PYTHON_BIN" -c 'from agent_while_true.version import __version__; print(__version__)')"
 # Neither the checkout nor an inherited PYTHONPATH may satisfy these imports.
 pushd "$TEMP_ROOT" > /dev/null
 unset PYTHONPATH
 [[ "$("$TEMP_ROOT/smoke/bin/agent-while-true" --version)" == *"$expected_version"* ]]
-[[ "$("$TEMP_ROOT/smoke/bin/agent-watch" --version)" == *"$expected_version"* ]]
 "$TEMP_ROOT/smoke/bin/agent-while-true" simulate --all
 smoke_command "$TEMP_ROOT/smoke/bin/agent-while-true" doctor
 smoke_command "$TEMP_ROOT/smoke/bin/agent-while-true" status
 smoke_command "$TEMP_ROOT/smoke/bin/agent-while-true" quota
 "$TEMP_ROOT/smoke/bin/agent-while-true" --log-file "$TEMP_ROOT/no-events.log" summary
-"$TEMP_ROOT/smoke/bin/agent-watch" --log-file "$TEMP_ROOT/no-events.log" summary --days 7
+"$TEMP_ROOT/smoke/bin/agent-while-true" --log-file "$TEMP_ROOT/no-events.log" summary --days 7
 PIPELINE_RESULTS+=("Installed wheel  : PASS (commands, diagnostics, simulations)")
 popd > /dev/null

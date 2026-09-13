@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from agent_watch.lock import LockHeldError, SingleInstanceLock
+from agent_while_true.lock import LockHeldError, SingleInstanceLock
 
 # The lock must exclude a separate *process*; two flocks from one process on
 # separate descriptors do not conflict, so this has to be a real subprocess.
@@ -22,7 +22,7 @@ _CHILD = textwrap.dedent(
     """
     import sys
     sys.path.insert(0, sys.argv[2])
-    from agent_watch.lock import LockHeldError, SingleInstanceLock
+    from agent_while_true.lock import LockHeldError, SingleInstanceLock
     from pathlib import Path
     try:
         SingleInstanceLock(path=Path(sys.argv[1])).acquire()
@@ -46,7 +46,7 @@ def _child_can_lock(path: Path) -> bool:
 
 
 def test_lock_excludes_a_second_process(tmp_path: Path) -> None:
-    path = tmp_path / "agent-watch.lock"
+    path = tmp_path / "agent-while-true.lock"
     assert _child_can_lock(path)  # nobody holds it yet
     with SingleInstanceLock(path=path) as lock:
         assert lock.held
@@ -55,7 +55,7 @@ def test_lock_excludes_a_second_process(tmp_path: Path) -> None:
 
 
 def test_acquire_twice_raises(tmp_path: Path) -> None:
-    path = tmp_path / "agent-watch.lock"
+    path = tmp_path / "agent-while-true.lock"
     with SingleInstanceLock(path=path), pytest.raises(LockHeldError):
         SingleInstanceLock(path=path).acquire()
 
@@ -68,7 +68,7 @@ def test_lock_file_is_owner_only(tmp_path: Path) -> None:
 
 
 def test_release_is_idempotent(tmp_path: Path) -> None:
-    lock = SingleInstanceLock(path=tmp_path / "agent-watch.lock")
+    lock = SingleInstanceLock(path=tmp_path / "agent-while-true.lock")
     lock.acquire()
     lock.release()
     lock.release()
@@ -76,5 +76,5 @@ def test_release_is_idempotent(tmp_path: Path) -> None:
 
 
 def test_pid_is_written_for_diagnostics(tmp_path: Path) -> None:
-    with SingleInstanceLock(path=tmp_path / "agent-watch.lock") as lock:
+    with SingleInstanceLock(path=tmp_path / "agent-while-true.lock") as lock:
         assert lock.path.read_text().strip() == str(os.getpid())

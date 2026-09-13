@@ -20,11 +20,11 @@ import subprocess
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 
-from agent_watch.classify import Classification, classify
-from agent_watch.fsm import ProcessInspector
-from agent_watch.proc import ProcessGoneError, ProcessInfo
-from agent_watch.providers import for_process_class
-from agent_watch.terminal.base import TerminalAdapter, TerminalError, TerminalSession
+from agent_while_true.classify import Classification, classify
+from agent_while_true.fsm import ProcessInspector
+from agent_while_true.proc import ProcessGoneError, ProcessInfo
+from agent_while_true.providers import for_process_class
+from agent_while_true.terminal.base import TerminalAdapter, TerminalError, TerminalSession
 
 #: Interactive commands. Kept as data so the help text and the parser cannot
 #: drift apart.

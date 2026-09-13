@@ -16,14 +16,14 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from agent_watch import providers
-from agent_watch.classify import Classification, Confidence, ProcessClass
-from agent_watch.config import Config, Mode, Policy
-from agent_watch.policy import Authorization, ResumeRequest, evaluate, idempotency_key
-from agent_watch.proc import ProcessIdentity
-from agent_watch.providers import ActionKind
-from agent_watch.quota import Availability, QuotaSnapshot, QuotaWindow
-from agent_watch.terminal.base import SessionRef
+from agent_while_true import providers
+from agent_while_true.classify import Classification, Confidence, ProcessClass
+from agent_while_true.config import Config, Mode, Policy
+from agent_while_true.policy import Authorization, ResumeRequest, evaluate, idempotency_key
+from agent_while_true.proc import ProcessIdentity
+from agent_while_true.providers import ActionKind
+from agent_while_true.quota import Availability, QuotaSnapshot, QuotaWindow
+from agent_while_true.terminal.base import SessionRef
 from tests import screens
 
 NOW = datetime(2026, 9, 5, 20, 30, tzinfo=UTC)

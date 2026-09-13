@@ -20,13 +20,13 @@ from dataclasses import dataclass, fields, replace
 from enum import StrEnum
 from pathlib import Path
 
-APP_NAME = "agent-watch"
+APP_NAME = "agent-while-true"
 
 _DURATION_RE = re.compile(r"^(?P<value>\d+(?:\.\d+)?)(?P<unit>ms|s|m|h)?$", re.IGNORECASE)
 _UNIT_SECONDS = {"ms": 0.001, "s": 1.0, "m": 60.0, "h": 3600.0}
 _TRUE = {"1", "true", "yes", "on"}
 _FALSE = {"0", "false", "no", "off"}
-_ENV_PREFIX = "AGENT_WATCH_"
+_ENV_PREFIX = "AGENT_WHILE_TRUE_"
 
 
 class ConfigError(ValueError):
@@ -247,7 +247,7 @@ def _apply(config: Config, values: dict[str, str], source: str) -> Config:
 
 
 def from_environ(environ: dict[str, str] | None = None) -> dict[str, str]:
-    """Collect ``AGENT_WATCH_*`` variables, plus the bare names from the vision.
+    """Collect ``AGENT_WHILE_TRUE_*`` variables, plus the bare names from the vision.
 
     The vision's example config uses bare names such as ``RESET_GRACE``; those
     are honoured too, but only for keys this tool actually owns, so an unrelated
@@ -272,7 +272,7 @@ def load(
     """Build the effective configuration.
 
     Precedence, lowest to highest: dataclass defaults, the config file, the
-    ``AGENT_WATCH_*`` environment, then explicit CLI overrides.
+    ``AGENT_WHILE_TRUE_*`` environment, then explicit CLI overrides.
     """
     config = Config()
     path = config_path or default_config_path()
@@ -285,7 +285,7 @@ def load(
 
 
 def describe(config: Config) -> list[tuple[str, str]]:
-    """Flatten the configuration for ``agent-watch config``."""
+    """Flatten the configuration for ``agent-while-true config``."""
     rows: list[tuple[str, str]] = []
     for spec in fields(Config):
         if spec.name == "policy":

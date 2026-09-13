@@ -18,8 +18,8 @@ from pathlib import Path
 
 import pytest
 
-from agent_watch import quota
-from agent_watch.quota import (
+from agent_while_true import quota
+from agent_while_true.quota import (
     Availability,
     ClaudeStatuslineSource,
     CodexRolloutSource,

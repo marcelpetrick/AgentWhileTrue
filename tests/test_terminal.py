@@ -14,9 +14,9 @@ import os
 
 import pytest
 
-from agent_watch.terminal.base import SessionRef, TerminalUnavailableError
-from agent_watch.terminal.fake import FakeAdapter
-from agent_watch.terminal.konsole import KonsoleAdapter
+from agent_while_true.terminal.base import SessionRef, TerminalUnavailableError
+from agent_while_true.terminal.fake import FakeAdapter
+from agent_while_true.terminal.konsole import KonsoleAdapter
 
 QDBUS_RESPONSES = {
     (): " org.kde.konsole-4452\n org.freedesktop.DBus\n org.kde.konsole\n",
@@ -114,8 +114,8 @@ def test_fake_adapter_models_a_closed_tab() -> None:
 
 @pytest.mark.konsole
 @pytest.mark.skipif(
-    not os.environ.get("AGENT_WATCH_LIVE_KONSOLE"),
-    reason="set AGENT_WATCH_LIVE_KONSOLE=1 to exercise the real D-Bus interface",
+    not os.environ.get("AGENT_WHILE_TRUE_LIVE_KONSOLE"),
+    reason="set AGENT_WHILE_TRUE_LIVE_KONSOLE=1 to exercise the real D-Bus interface",
 )
 def test_live_konsole_enumeration() -> None:
     adapter = KonsoleAdapter()

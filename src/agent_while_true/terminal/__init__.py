@@ -11,7 +11,7 @@ and so tests can drive the whole system through :class:`FakeAdapter`.
 
 from __future__ import annotations
 
-from agent_watch.terminal.base import (
+from agent_while_true.terminal.base import (
     SessionRef,
     TerminalAdapter,
     TerminalError,

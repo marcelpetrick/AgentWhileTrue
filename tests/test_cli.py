@@ -17,13 +17,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from agent_watch import cli
-from agent_watch.cli import EXIT_ERROR, EXIT_OK, main
-from agent_watch.config import Config, Mode
-from agent_watch.lock import LockHeldError, SingleInstanceLock
-from agent_watch.quota import Availability, QuotaSnapshot
-from agent_watch.terminal.fake import FakeAdapter
-from agent_watch.version import __version__
+from agent_while_true import cli
+from agent_while_true.cli import EXIT_ERROR, EXIT_OK, main
+from agent_while_true.config import Config, Mode
+from agent_while_true.lock import LockHeldError, SingleInstanceLock
+from agent_while_true.quota import Availability, QuotaSnapshot
+from agent_while_true.terminal.fake import FakeAdapter
+from agent_while_true.version import __version__
 from tests import harness as harness_module
 from tests import screens
 
@@ -73,7 +73,7 @@ def test_config_lists_the_effective_settings(sandbox: Path, out: io.StringIO) ->
 
 
 def test_init_writes_a_config_and_does_not_clobber_it(sandbox: Path, out: io.StringIO) -> None:
-    path = sandbox / "config" / "agent-watch" / "config"
+    path = sandbox / "config" / "agent-while-true" / "config"
     assert main(["init"], stream=out) == EXIT_OK
     assert path.is_file()
     first = path.read_text()
@@ -88,7 +88,7 @@ def test_the_written_config_parses_back(sandbox: Path, out: io.StringIO) -> None
     # A default config the tool itself cannot read would be an unpleasant
     # first experience.
     main(["init"], stream=out)
-    path = sandbox / "config" / "agent-watch" / "config"
+    path = sandbox / "config" / "agent-while-true" / "config"
     assert main(["--config", str(path), "config"], stream=out) == EXIT_OK
 
 
@@ -179,8 +179,8 @@ def test_all_mode_discovers_new_agents(tmp_path: Path) -> None:
 def test_a_second_instance_is_refused_but_observe_is_not(
     sandbox: Path, out: io.StringIO, monkeypatch
 ) -> None:
-    from agent_watch.config import load
-    from agent_watch.lock import SingleInstanceLock
+    from agent_while_true.config import load
+    from agent_while_true.lock import SingleInstanceLock
 
     _fake_world(monkeypatch)
     held = SingleInstanceLock.in_directory(load().resolved_runtime_dir())
@@ -210,7 +210,7 @@ def test_tui_toggle_takes_lock_and_explicitly_enables_full_auto(tmp_path: Path) 
     assert kit.supervisor.config is disabled
     assert not lock.held
     assert "observe mode" in message
-    history = (tmp_path / "agent-watch.log").read_text()
+    history = (tmp_path / "agent-while-true.log").read_text()
     assert history.count("event=mode_changed") == 2
 
 
@@ -231,7 +231,7 @@ def test_tui_toggle_stays_read_only_when_input_lock_is_held(tmp_path: Path) -> N
     assert unchanged.mode is Mode.OBSERVE
     assert kit.supervisor.config.mode is Mode.OBSERVE
     assert "refused" in message
-    assert "event=mode_change_refused" in (tmp_path / "agent-watch.log").read_text()
+    assert "event=mode_change_refused" in (tmp_path / "agent-while-true.log").read_text()
 
 
 def test_quitting_the_picker_watches_nothing(sandbox: Path, out: io.StringIO, monkeypatch) -> None:
@@ -330,8 +330,8 @@ def test_version_string_is_reported_in_the_status_view() -> None:
 def test_interactive_preferences_round_trip_without_input(
     tmp_path: Path, monkeypatch, save_ok: bool
 ) -> None:
-    from agent_watch.preferences import load_preferences, save_preferences
-    from agent_watch.tui import DashboardState
+    from agent_while_true.preferences import load_preferences, save_preferences
+    from agent_while_true.tui import DashboardState
 
     kit = harness_module.build(tmp_path, mode=Mode.OBSERVE)
     path = kit.supervisor.config.resolved_state_dir() / "preferences.json"
@@ -366,8 +366,8 @@ def test_interactive_preferences_round_trip_without_input(
 def test_interactive_preferences_retry_after_transient_save_failure(
     tmp_path: Path, monkeypatch
 ) -> None:
-    from agent_watch.preferences import load_preferences, save_preferences
-    from agent_watch.tui import DashboardState
+    from agent_while_true.preferences import load_preferences, save_preferences
+    from agent_while_true.tui import DashboardState
 
     kit = harness_module.build(tmp_path, mode=Mode.OBSERVE)
     path = kit.supervisor.config.resolved_state_dir() / "preferences.json"
@@ -405,8 +405,8 @@ def test_fake_harness_never_uses_live_default_paths(tmp_path: Path) -> None:
 
 
 def test_every_documented_display_preference_survives_restart(tmp_path: Path, monkeypatch) -> None:
-    from agent_watch.preferences import load_preferences
-    from agent_watch.tui import DashboardState
+    from agent_while_true.preferences import load_preferences
+    from agent_while_true.tui import DashboardState
 
     kit = harness_module.build(tmp_path, mode=Mode.OBSERVE)
     path = kit.supervisor.config.resolved_state_dir() / "preferences.json"

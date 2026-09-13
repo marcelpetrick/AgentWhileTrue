@@ -13,14 +13,14 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from agent_watch.config import Config, Mode
-from agent_watch.fsm import SupervisedSession
-from agent_watch.proc import ProcessIdentity
-from agent_watch.quota import Availability, QuotaSnapshot, QuotaWindow
-from agent_watch.service_health import HealthState, ProviderHealth
-from agent_watch.states import SessionState
-from agent_watch.terminal.base import SessionRef
-from agent_watch.ui import (
+from agent_while_true.config import Config, Mode
+from agent_while_true.fsm import SupervisedSession
+from agent_while_true.proc import ProcessIdentity
+from agent_while_true.quota import Availability, QuotaSnapshot, QuotaWindow
+from agent_while_true.service_health import HealthState, ProviderHealth
+from agent_while_true.states import SessionState
+from agent_while_true.terminal.base import SessionRef
+from agent_while_true.ui import (
     format_reset,
     format_reset_in,
     render_line,
@@ -392,7 +392,7 @@ def test_small_colored_viewports_never_overflow(width: int, height: int) -> None
 
 
 def test_scrolling_makes_every_body_line_accessible() -> None:
-    from agent_watch.ui import render_viewport
+    from agent_while_true.ui import render_viewport
 
     frame = render_status(
         [_session()],
@@ -412,8 +412,8 @@ def test_scrolling_makes_every_body_line_accessible() -> None:
 
 
 def test_end_jump_can_scroll_back_and_resize_clamps_offset() -> None:
-    from agent_watch.tui import DashboardState
-    from agent_watch.ui import clamp_scroll_offset
+    from agent_while_true.tui import DashboardState
+    from agent_while_true.ui import clamp_scroll_offset
 
     state = DashboardState.from_interval(2)
     state.handle("G")

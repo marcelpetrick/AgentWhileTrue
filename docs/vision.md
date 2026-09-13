@@ -98,7 +98,7 @@ Automatic input should require multiple independent checks.
 The simplest usable workflow should be:
 
 ```text
-agent-watch
+agent-while-true
 ```
 
 Startup flow:
@@ -118,7 +118,7 @@ Startup flow:
 Example picker:
 
 ```text
-Agent Watch
+Agent While True
 
 Select sessions to watch:
 
@@ -143,7 +143,7 @@ Plain shell sessions should never be selected automatically.
 ### 6.1 Observe Mode
 
 ```text
-agent-watch --observe
+agent-while-true --observe
 ```
 
 No terminal input is ever sent.
@@ -164,7 +164,7 @@ This is the default development and validation mode.
 ### 6.2 Ask Mode
 
 ```text
-agent-watch --ask
+agent-while-true --ask
 ```
 
 When a safe continuation is possible:
@@ -180,7 +180,7 @@ Resume this session? [Y/n]
 ### 6.3 Auto Mode
 
 ```text
-agent-watch --auto
+agent-while-true --auto
 ```
 
 Only explicitly allowed safe actions are automated.
@@ -234,7 +234,7 @@ Example:
 
 ```text
 WARNING:
-agent-watch should normally run as your KDE desktop user.
+agent-while-true should normally run as your KDE desktop user.
 
 Running as root can:
 - break access to the user's D-Bus session;
@@ -685,7 +685,7 @@ Claude Code
     |
     | status-line JSON
     v
-agent-watch statusline proxy
+agent-while-true statusline proxy
     |
     +--> watcher state
     |
@@ -923,7 +923,7 @@ Two watcher instances could send duplicate input.
 Use a per-user lock, for example:
 
 ```text
-$XDG_RUNTIME_DIR/agent-watch.lock
+$XDG_RUNTIME_DIR/agent-while-true.lock
 ```
 
 Possible implementation:
@@ -1218,13 +1218,13 @@ prompt fingerprint
 Longer-term version should store minimal state under:
 
 ```text
-$XDG_STATE_HOME/agent-watch/
+$XDG_STATE_HOME/agent-while-true/
 ```
 
 normally:
 
 ```text
-~/.local/state/agent-watch/
+~/.local/state/agent-while-true/
 ```
 
 Possible state:
@@ -1260,7 +1260,7 @@ Claude adapter failure must not stop Codex monitoring.
 Default log:
 
 ```text
-~/.local/state/agent-watch/agent-watch.log
+~/.local/state/agent-while-true/agent-while-true.log
 ```
 
 Configurable:
@@ -1341,7 +1341,7 @@ may add it to the tracked `.gitignore`.
 Simple v0 configuration:
 
 ```text
-~/.config/agent-watch/config
+~/.config/agent-while-true/config
 ```
 
 Example:
@@ -1351,7 +1351,7 @@ SCAN_INTERVAL=2
 USAGE_POLL_INTERVAL=60
 RESET_GRACE=60
 MODE=ask
-LOG_FILE="$HOME/.local/state/agent-watch/agent-watch.log"
+LOG_FILE="$HOME/.local/state/agent-while-true/agent-while-true.log"
 MAX_RESUME_ATTEMPTS=3
 ```
 
@@ -1365,7 +1365,7 @@ terminal_scan_interval = "2s"
 usage_poll_interval = "60s"
 max_resume_attempts = 3
 
-log_file = "~/.local/state/agent-watch/agent-watch.log"
+log_file = "~/.local/state/agent-while-true/agent-while-true.log"
 
 [providers.codex]
 enabled = true
@@ -1399,29 +1399,29 @@ CLI arguments
 ## 34. Suggested CLI
 
 ```text
-agent-watch
-agent-watch run
-agent-watch run --observe
-agent-watch run --ask
-agent-watch run --auto
-agent-watch status
-agent-watch doctor
-agent-watch init
-agent-watch logs
-agent-watch config
+agent-while-true
+agent-while-true run
+agent-while-true run --observe
+agent-while-true run --ask
+agent-while-true run --auto
+agent-while-true status
+agent-while-true doctor
+agent-while-true init
+agent-while-true logs
+agent-while-true config
 ```
 
 Optional later:
 
 ```text
-agent-watch run --daemon
+agent-while-true run --daemon
 ```
 
 ---
 
 ## 35. `doctor` Command
 
-`agent-watch doctor` should check:
+`agent-while-true doctor` should check:
 
 ```text
 Linux distribution
@@ -1444,7 +1444,7 @@ single-instance lock
 Example:
 
 ```text
-Agent Watch Doctor
+Agent While True Doctor
 
 Linux               OK
 KDE Plasma          OK
@@ -1468,7 +1468,7 @@ The MVP does not need a full TUI framework.
 Simple ANSI output is enough:
 
 ```text
-Agent Watch 0.1
+Agent While True 0.1
 
 Watching 3 sessions
 
@@ -1524,7 +1524,7 @@ The first release may simply run in the foreground.
 Longer-term preferred deployment:
 
 ```text
-systemctl --user enable --now agent-watch.service
+systemctl --user enable --now agent-while-true.service
 ```
 
 A user-level systemd service is preferred over a root service because it naturally runs with:
@@ -1623,7 +1623,7 @@ model downgrade prompt
 Dry-run mode:
 
 ```text
-agent-watch --observe
+agent-while-true --observe
 ```
 
 must execute all detection logic but never inject input.
@@ -1811,7 +1811,7 @@ Bash TUI
 ### v1
 
 ```text
-agent-watch supervisor
+agent-while-true supervisor
         |
         +--> Konsole adapter
         |

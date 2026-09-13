@@ -12,8 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from agent_watch.state_store import ActionRecord, RetryEpisode, StateStore
-from agent_watch.states import ActionState
+from agent_while_true.state_store import ActionRecord, RetryEpisode, StateStore
+from agent_while_true.states import ActionState
 
 KEY = "abc123"
 PROMPT_KEY = "a" * 64

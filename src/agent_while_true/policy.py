@@ -25,13 +25,13 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from agent_watch.classify import Classification
-from agent_watch.config import Config, Mode
-from agent_watch.proc import ProcessIdentity
-from agent_watch.providers.base import ActionKind, Recognition, ResumeAction
-from agent_watch.quota import Availability, QuotaSnapshot
-from agent_watch.states import SessionState
-from agent_watch.terminal.base import SessionRef
+from agent_while_true.classify import Classification
+from agent_while_true.config import Config, Mode
+from agent_while_true.proc import ProcessIdentity
+from agent_while_true.providers.base import ActionKind, Recognition, ResumeAction
+from agent_while_true.quota import Availability, QuotaSnapshot
+from agent_while_true.states import SessionState
+from agent_while_true.terminal.base import SessionRef
 
 
 class Authorization(enum.StrEnum):

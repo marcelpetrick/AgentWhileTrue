@@ -6,8 +6,8 @@
 
 import pytest
 
-from agent_watch import tui
-from agent_watch.tui import INTERVALS, THEMES, DashboardState
+from agent_while_true import tui
+from agent_while_true.tui import INTERVALS, THEMES, DashboardState
 
 
 @pytest.mark.parametrize("ready", [False, True])

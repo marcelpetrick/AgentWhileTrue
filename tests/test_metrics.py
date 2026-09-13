@@ -6,10 +6,10 @@
 
 from datetime import UTC, datetime, timedelta
 
-from agent_watch.fsm import SupervisedSession
-from agent_watch.metrics import ObservationMetrics
-from agent_watch.proc import ProcessIdentity
-from agent_watch.terminal.base import SessionRef
+from agent_while_true.fsm import SupervisedSession
+from agent_while_true.metrics import ObservationMetrics
+from agent_while_true.proc import ProcessIdentity
+from agent_while_true.terminal.base import SessionRef
 
 NOW = datetime(2026, 9, 10, tzinfo=UTC)
 

@@ -4,7 +4,7 @@
 
 """Environment diagnostics.
 
-``agent-watch doctor`` exists so that an unsupported environment says so in one
+``agent-while-true doctor`` exists so that an unsupported environment says so in one
 screen instead of being discovered as a silent no-op hours later. It reports on
 everything the supervisor depends on, and - importantly - states whether
 automatic mode is currently safe, since that is the question the user actually
@@ -22,9 +22,9 @@ from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
-from agent_watch.config import Config
-from agent_watch.lock import LockHeldError, SingleInstanceLock
-from agent_watch.terminal.konsole import KonsoleAdapter, find_qdbus
+from agent_while_true.config import Config
+from agent_while_true.lock import LockHeldError, SingleInstanceLock
+from agent_while_true.terminal.konsole import KonsoleAdapter, find_qdbus
 
 _VERSION_TIMEOUT_SECONDS = 15.0
 
@@ -68,7 +68,7 @@ def _writable_dir(label: str, path: Path) -> Check:
     """Check that a directory exists, is ours, and can be written to.
 
     The label is passed in because all three of these directories can resolve
-    to the same place, and three rows reading "agent-watch" would tell the
+    to the same place, and three rows reading "agent-while-true" would tell the
     reader nothing about which one is which.
     """
     name = label
@@ -165,7 +165,7 @@ def check_lock(config: Config) -> Check:
     try:
         lock.acquire()
     except LockHeldError:
-        return Check("Single instance", Status.WARN, "another agent-watch is running")
+        return Check("Single instance", Status.WARN, "another agent-while-true is running")
     except OSError as exc:
         return Check("Single instance", Status.FAIL, str(exc))
     lock.release()

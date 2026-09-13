@@ -8,24 +8,24 @@
 # Claude Code status-line proxy.
 #
 # Claude Code pipes a JSON document to its configured status-line command on
-# every render. That document carries the usage numbers agent-watch wants:
+# every render. That document carries the usage numbers agent-while-true wants:
 # five-hour and seven-day utilisation and their reset timestamps. This script
-# captures those into a process-bound, per-session file that agent-watch reads
+# captures those into a process-bound, per-session file that agent-while-true reads
 # passively, then hands the untouched JSON to whatever status-line command the
 # user already had, so an existing status line keeps working exactly as before.
 #
 # Install:
 #   1. Note your current statusLine command from ~/.claude/settings.json.
 #   2. Point statusLine at this script.
-#   3. Set AGENT_WATCH_STATUSLINE_CHAIN to your original command.
+#   3. Set AGENT_WHILE_TRUE_STATUSLINE_CHAIN to your original command.
 #
 # Example ~/.claude/settings.json fragment:
 #
 #   "statusLine": {
 #     "type": "command",
-#     "command": "AGENT_WATCH_CLAUDE_PID=$PPID \
-#                 AGENT_WATCH_STATUSLINE_CHAIN=~/.claude/my-statusline.sh \
-#                 ~/.local/share/agent-watch/claude-statusline-proxy.sh"
+#     "command": "AGENT_WHILE_TRUE_CLAUDE_PID=$PPID \
+#                 AGENT_WHILE_TRUE_STATUSLINE_CHAIN=~/.claude/my-statusline.sh \
+#                 ~/.local/share/agent-while-true/claude-statusline-proxy.sh"
 #   }
 #
 # The proxy must never be the reason a status line stops rendering, so every
@@ -34,9 +34,9 @@
 set -uo pipefail
 umask 077
 
-STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/agent-watch"
-CHAIN="${AGENT_WATCH_STATUSLINE_CHAIN:-}"
-CLAUDE_PID="${AGENT_WATCH_CLAUDE_PID:-}"
+STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/agent-while-true"
+CHAIN="${AGENT_WHILE_TRUE_STATUSLINE_CHAIN:-}"
+CLAUDE_PID="${AGENT_WHILE_TRUE_CLAUDE_PID:-}"
 
 payload="$(cat)"
 

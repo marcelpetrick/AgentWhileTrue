@@ -16,12 +16,12 @@ import unicodedata
 from collections.abc import Iterable, Sequence
 from datetime import datetime
 
-from agent_watch.config import Config, Mode
-from agent_watch.fsm import SupervisedSession
-from agent_watch.quota import Availability, QuotaSnapshot
-from agent_watch.service_health import HealthState, ProviderHealth
-from agent_watch.states import SessionState
-from agent_watch.version import __version__
+from agent_while_true.config import Config, Mode
+from agent_while_true.fsm import SupervisedSession
+from agent_while_true.quota import Availability, QuotaSnapshot
+from agent_while_true.service_health import HealthState, ProviderHealth
+from agent_while_true.states import SessionState
+from agent_while_true.version import __version__
 
 CLEAR_SCREEN = "\x1b[H\x1b[2J"
 HIDE_CURSOR = "\x1b[?25l"

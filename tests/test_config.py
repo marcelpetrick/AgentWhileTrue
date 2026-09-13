@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-from agent_watch import config as config_module
-from agent_watch.config import Config, ConfigError, Mode, load, parse_bool, parse_duration
+from agent_while_true import config as config_module
+from agent_while_true.config import Config, ConfigError, Mode, load, parse_bool, parse_duration
 
 
 @pytest.mark.parametrize(
@@ -83,7 +83,7 @@ def test_malformed_line_is_an_error(tmp_path: Path) -> None:
 def test_environment_overrides_the_file(tmp_path: Path) -> None:
     path = tmp_path / "config"
     path.write_text("RESET_GRACE=90\n")
-    config = load(config_path=path, environ={"AGENT_WATCH_RESET_GRACE": "5m"})
+    config = load(config_path=path, environ={"AGENT_WHILE_TRUE_RESET_GRACE": "5m"})
     assert config.reset_grace == 300.0
 
 
@@ -92,7 +92,7 @@ def test_cli_overrides_the_environment(tmp_path: Path) -> None:
     path.write_text("RESET_GRACE=90\n")
     config = load(
         config_path=path,
-        environ={"AGENT_WATCH_RESET_GRACE": "5m"},
+        environ={"AGENT_WHILE_TRUE_RESET_GRACE": "5m"},
         overrides={"reset_grace": "10"},
     )
     assert config.reset_grace == 10.0
@@ -107,7 +107,7 @@ def test_unrelated_environment_variables_are_ignored() -> None:
 def test_retry_delays_parse_as_a_list() -> None:
     config = load(
         config_path=Path("/nonexistent"),
-        environ={"AGENT_WATCH_RETRY_DELAYS": "5s, 30s, 60s"},
+        environ={"AGENT_WHILE_TRUE_RETRY_DELAYS": "5s, 30s, 60s"},
     )
     assert config.retry_delays == (5.0, 30.0, 60.0)
 
@@ -129,11 +129,11 @@ def test_observe_mode_may_not_send_input() -> None:
 def test_runtime_dir_falls_back_to_state_dir(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.delenv("XDG_RUNTIME_DIR", raising=False)
     monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path))
-    assert config_module.default_runtime_dir() == tmp_path / "agent-watch"
+    assert config_module.default_runtime_dir() == tmp_path / "agent-while-true"
 
 
 def test_describe_lists_policy_and_resolved_paths() -> None:
     rows = dict(config_module.describe(Config()))
     assert rows["mode"] == "ask"
     assert rows["policy.auto_buy_credits"] == "False"
-    assert rows["resolved_log_file"].endswith("agent-watch.log")
+    assert rows["resolved_log_file"].endswith("agent-while-true.log")

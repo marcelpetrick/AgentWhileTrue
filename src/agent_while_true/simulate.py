@@ -11,7 +11,7 @@ the whole supervisor against an in-memory terminal and a controllable clock, so
 each one runs in milliseconds.
 
 They exist for two audiences. The test suite asserts on them, which is how the
-guarantees stay true as the code changes. And ``agent-watch simulate <name>``
+guarantees stay true as the code changes. And ``agent-while-true simulate <name>``
 lets a person watch a specific danger play out and read the decisions the
 supervisor made, which is a far better way to gain confidence in a tool that
 types into terminals than reading its source.
@@ -25,13 +25,13 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
-from agent_watch.config import Config, Mode, Policy
-from agent_watch.fsm import Supervisor
-from agent_watch.logging_setup import setup
-from agent_watch.proc import ProcessIdentity, ProcessInfo
-from agent_watch.quota import Availability, QuotaSnapshot, QuotaSource, QuotaWindow, unknown
-from agent_watch.state_store import StateStore
-from agent_watch.terminal.fake import FakeAdapter
+from agent_while_true.config import Config, Mode, Policy
+from agent_while_true.fsm import Supervisor
+from agent_while_true.logging_setup import setup
+from agent_while_true.proc import ProcessIdentity, ProcessInfo
+from agent_while_true.quota import Availability, QuotaSnapshot, QuotaSource, QuotaWindow, unknown
+from agent_while_true.state_store import StateStore
+from agent_while_true.terminal.fake import FakeAdapter
 
 SESSION = "/Sessions/1"
 AGENT_PID = 15102

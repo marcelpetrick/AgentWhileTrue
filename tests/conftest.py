@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from agent_watch.proc import ProcessIdentity, ProcessInfo
+from agent_while_true.proc import ProcessIdentity, ProcessInfo
 
 
 def make_info(
@@ -50,7 +50,7 @@ def _isolate_process_tree(monkeypatch):
 
     Individual tests opt back in by patching these again.
     """
-    from agent_watch import classify as classify_module
+    from agent_while_true import classify as classify_module
 
     monkeypatch.setattr(classify_module, "_child_comms", lambda pid: ())
     monkeypatch.setattr(classify_module, "_ancestor_blocker", lambda info: None)

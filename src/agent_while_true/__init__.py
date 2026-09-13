@@ -12,6 +12,6 @@ for the design and ``docs/vision.md`` for the product intent.
 
 from __future__ import annotations
 
-from agent_watch.version import __version__
+from agent_while_true.version import __version__
 
 __all__ = ["__version__"]

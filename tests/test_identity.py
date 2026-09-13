@@ -11,7 +11,7 @@ import json
 import subprocess
 from pathlib import Path
 
-from agent_watch import identity
+from agent_while_true import identity
 
 
 def _jwt(payload: dict[str, object]) -> str:

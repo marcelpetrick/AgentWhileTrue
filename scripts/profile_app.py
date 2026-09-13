@@ -18,15 +18,15 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from agent_watch.config import Config  # noqa: E402
-from agent_watch.fsm import SupervisedSession  # noqa: E402
-from agent_watch.logging_setup import read_history  # noqa: E402
-from agent_watch.proc import ProcessIdentity  # noqa: E402
-from agent_watch.quota import ClaudeStatuslineSource, _last_rate_limits  # noqa: E402
-from agent_watch.simulate import run_all  # noqa: E402
-from agent_watch.summary import render_summary  # noqa: E402
-from agent_watch.terminal.base import SessionRef  # noqa: E402
-from agent_watch.ui import render_status  # noqa: E402
+from agent_while_true.config import Config  # noqa: E402
+from agent_while_true.fsm import SupervisedSession  # noqa: E402
+from agent_while_true.logging_setup import read_history  # noqa: E402
+from agent_while_true.proc import ProcessIdentity  # noqa: E402
+from agent_while_true.quota import ClaudeStatuslineSource, _last_rate_limits  # noqa: E402
+from agent_while_true.simulate import run_all  # noqa: E402
+from agent_while_true.summary import render_summary  # noqa: E402
+from agent_while_true.terminal.base import SessionRef  # noqa: E402
+from agent_while_true.ui import render_status  # noqa: E402
 
 NOW = datetime(2026, 9, 5, 20, 0, tzinfo=UTC)
 
@@ -141,7 +141,7 @@ def main() -> int:
         parser.error("--render-frames must be positive")
     if args.render_width is not None and args.render_width < 1:
         parser.error("--render-width must be positive")
-    with tempfile.TemporaryDirectory(prefix="agent-watch-profile-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="agent-while-true-profile-") as temporary:
         profiler = cProfile.Profile()
         timings = profiler.runcall(
             workload,

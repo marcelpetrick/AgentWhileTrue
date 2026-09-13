@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
 
-LOCK_FILENAME = "agent-watch.lock"
+LOCK_FILENAME = "agent-while-true.lock"
 
 
 class LockHeldError(RuntimeError):
@@ -52,7 +52,7 @@ class SingleInstanceLock:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except OSError as exc:
             os.close(fd)
-            raise LockHeldError(f"another agent-watch holds {self.path}") from exc
+            raise LockHeldError(f"another agent-while-true holds {self.path}") from exc
         os.ftruncate(fd, 0)
         os.write(fd, f"{os.getpid()}\n".encode())
         self._fd = fd

@@ -13,6 +13,22 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.44.0] - 2026-09-13
+
+### Changed
+
+- Complete the canonical naming migration across the Python package, command,
+  environment variables, XDG paths, logs, documentation, deployment scripts,
+  and systemd unit. Only `agent-while-true` remains as an installed command.
+- Add an explicit service-installer auto mode that creates a managed systemd
+  drop-in, enables the user service at login, and keeps Codex composer resume a
+  separate deliberate opt-in.
+
+### Fixed
+
+- Prevent packaging, documentation, and deployment regressions from
+  reintroducing superseded command or package namespaces.
+
 ## [0.43.1] - 2026-09-13
 
 ### Fixed
@@ -595,8 +611,8 @@ increment and the patch version for fixes.
 
 ### Changed
 
-- The supplied systemd unit and installation guidance use the primary
-  `agent-while-true` command while retaining `agent-watch` compatibility.
+- The supplied systemd unit and installation guidance use the
+  `agent-while-true` command.
 
 ## [0.26.0] - 2026-09-06
 
@@ -651,8 +667,7 @@ increment and the patch version for fixes.
 
 - The product is now consistently named **Agent While True**, described as an
   agent budget watch and babysitter. The primary installed command is
-  `agent-while-true`; `agent-watch` remains a fully compatible alias and the
-  established config/state paths remain unchanged.
+  `agent-while-true`.
 
 ## [0.21.0] - 2026-09-05
 
@@ -725,7 +740,7 @@ increment and the patch version for fixes.
 
 ### Added
 
-- `agent-watch quota` reports live Codex and Claude availability, source errors,
+- `agent-while-true quota` reports live Codex and Claude availability, source errors,
   usage percentages and reset times without sending terminal input.
 - The running status table and observe output show provider quota state beside
   the independently recognised terminal prompt state.
@@ -741,7 +756,7 @@ increment and the patch version for fixes.
 
 ### Added
 
-- `agent_watch.simulate` and `agent-watch simulate`: twelve runnable safety
+- `agent_while_true.simulate` and `agent-while-true simulate`: twelve runnable safety
   scenarios covering the situations section 40 of the vision requires - reset
   and resume, the agent exiting first, PID reuse, suspend across a reset, a
   scrolled-away banner, a still-spent weekly limit, an unavailable provider, the
@@ -758,7 +773,7 @@ increment and the patch version for fixes.
 
 ### Added
 
-- `agent_watch.cli`: `run`, `status`, `doctor`, `init`, `config` and `logs`,
+- `agent_while_true.cli`: `run`, `status`, `doctor`, `init`, `config` and `logs`,
   with `--observe` / `--ask` / `--auto`, `--all`, `--once` and `--no-fzf`.
   Running bare runs.
 - Running under `sudo` aborts with an explanation unless `--allow-root` is
@@ -774,12 +789,12 @@ increment and the patch version for fixes.
 
 ### Added
 
-- `agent_watch.ui`: the running status table and the one-line observe-mode
+- `agent_while_true.ui`: the running status table and the one-line observe-mode
   output. Plain text, no curses - pipe-able, greppable, and readable inside a
   test failure.
 - A reset more than a day out renders as `+3d` rather than a bare clock time,
   which would be actively misleading.
-- `agent_watch.doctor`: diagnostics for the platform, desktop, privileges,
+- `agent_while_true.doctor`: diagnostics for the platform, desktop, privileges,
   qdbus, Konsole D-Bus and session enumeration, both agent CLIs, optional tools,
   the three directories and the single-instance lock - ending with a straight
   answer to the question the user actually has: whether auto mode is safe here.
@@ -789,7 +804,7 @@ increment and the patch version for fixes.
 
 ### Added
 
-- `agent_watch.picker`: discovery, a built-in numbered multi-select picker, and
+- `agent_while_true.picker`: discovery, a built-in numbered multi-select picker, and
   optional `fzf` support that degrades cleanly when `fzf` is absent.
 - Only high-confidence agent sessions are preselected, and an ineligible session
   cannot be toggled on at all - with the reason shown next to it, so a refusal
@@ -803,7 +818,7 @@ increment and the patch version for fixes.
 
 ### Added
 
-- `agent_watch.fsm`: the supervisor - observe, decide, act, verify - and the
+- `agent_while_true.fsm`: the supervisor - observe, decide, act, verify - and the
   per-session state machine.
 - Revalidation before input: `act()` treats the decision as a proposal, re-reads
   the foreground process, identity, session reference and screen, re-runs the
@@ -825,11 +840,11 @@ increment and the patch version for fixes.
 
 ### Added
 
-- `agent_watch.lock`: an advisory `flock` under `$XDG_RUNTIME_DIR`, so two
+- `agent_while_true.lock`: an advisory `flock` under `$XDG_RUNTIME_DIR`, so two
   supervisors cannot each correctly decide to press Enter once and between them
   press it twice. Observe mode does not take the lock, so a read-only watcher
   can run alongside an automatic one.
-- `agent_watch.state_store`: the action lifecycle
+- `agent_while_true.state_store`: the action lifecycle
   `PLANNED -> SENT -> VERIFIED|FAILED`, persisted atomically. The record is
   written *before* the keystroke, so a crash in between is read back as "may
   already have been typed" and refuses rather than repeating.
@@ -843,7 +858,7 @@ increment and the patch version for fixes.
 
 ### Added
 
-- `agent_watch.policy`: the resume gate. Fourteen named preconditions, each
+- `agent_while_true.policy`: the resume gate. Fourteen named preconditions, each
   returning a refusal *reason* rather than a bare false, so a log reader can act
   on a refusal instead of guessing at it.
 - `Authorization`, grading how strongly the evidence says usage returned:
@@ -863,7 +878,7 @@ increment and the patch version for fixes.
 
 ### Added
 
-- `agent_watch.quota`: provider quota state, kept separate from terminal state.
+- `agent_while_true.quota`: provider quota state, kept separate from terminal state.
 - `CodexRolloutSource`: Codex keeps its session rollout `.jsonl` open, so the
   file for a given PID can be located through `/proc/<pid>/fd`; each
   `token_count` event carries a `rate_limits` object with the five-hour window,
@@ -882,8 +897,8 @@ increment and the patch version for fixes.
 
 ### Added
 
-- `agent_watch.states`: the `SessionState` and `ActionState` vocabularies.
-- `agent_watch.providers`: versioned, data-driven prompt recognizers for Claude
+- `agent_while_true.states`: the `SessionState` and `ActionState` vocabularies.
+- `agent_while_true.providers`: versioned, data-driven prompt recognizers for Claude
   Code and Codex CLI. Every pattern records the provider version it was verified
   against, so a future wording change is a table edit and a version bump rather
   than a hunt through code.
@@ -904,7 +919,7 @@ increment and the patch version for fixes.
 
 ### Added
 
-- `agent_watch.logging_setup`: a key/value event log with size-based rotation
+- `agent_while_true.logging_setup`: a key/value event log with size-based rotation
   (10 MB, 5 backups) and owner-only permissions on both the file and its
   directory.
 - `fingerprint()`, the only sanctioned way for screen content to influence a log
@@ -916,7 +931,7 @@ increment and the patch version for fixes.
 
 ### Added
 
-- `agent_watch.config`: layered configuration with the precedence the vision
+- `agent_while_true.config`: layered configuration with the precedence the vision
   specifies - defaults, then the config file, then the environment, then CLI
   arguments.
 - The `KEY=VALUE` config file is *parsed*, never sourced. Sourcing it would hand
@@ -924,7 +939,7 @@ increment and the patch version for fixes.
   for a tool whose job is typing into terminals.
 - An unknown or malformed setting is an error rather than a silent fallback, so
   a misspelled `RESET_GRACE` cannot quietly become 60 seconds.
-- Only `AGENT_WATCH_*` environment variables are honoured, so an unrelated
+- Only `AGENT_WHILE_TRUE_*` environment variables are honoured, so an unrelated
   `MODE` in the environment cannot reconfigure the supervisor.
 - `Policy`, holding the money- and quality-affecting switches. All of them
   default to off, including Codex auto-resume.
@@ -933,7 +948,7 @@ increment and the patch version for fixes.
 
 ### Added
 
-- `agent_watch.terminal`: the `TerminalAdapter` protocol, so the supervisor is
+- `agent_while_true.terminal`: the `TerminalAdapter` protocol, so the supervisor is
   not welded to one emulator and the state machine can be tested end to end.
 - `KonsoleAdapter`, driven through Konsole's per-session D-Bus interface
   (`processId`, `foregroundProcessId`, `getAllDisplayedTextList`, `sendText`).
@@ -949,7 +964,7 @@ increment and the patch version for fixes.
 
 ### Added
 
-- `agent_watch.classify`: foreground-process classification into CODEX, CLAUDE,
+- `agent_while_true.classify`: foreground-process classification into CODEX, CLAUDE,
   SHELL, SSH, TMUX, SCREEN, CONTAINER, EDITOR or UNKNOWN.
 - A CODEX or CLAUDE verdict needs at least two independent signals before it may
   drive automation, because wrappers change: Codex ships as a Node shim whose
@@ -963,7 +978,7 @@ increment and the patch version for fixes.
 
 ### Added
 
-- `agent_watch.proc`: `/proc` inspection and `ProcessIdentity`, which pairs a
+- `agent_while_true.proc`: `/proc` inspection and `ProcessIdentity`, which pairs a
   PID with the kernel start-time counter so a recycled PID can never be
   mistaken for the process the supervisor selected (vision DANGER 1).
 - `still_the_same()`, the revalidation primitive used immediately before any
@@ -977,9 +992,9 @@ increment and the patch version for fixes.
 
 ### Added
 
-- Project scaffold: `src/`-layout package `agent_watch`, PEP 621 packaging with
-  the version read dynamically from `agent_watch.version`, and the
-  `agent-watch` console-script entry point.
+- Project scaffold: `src/`-layout package `agent_while_true`, PEP 621 packaging with
+  the version read dynamically from `agent_while_true.version`, and the
+  `agent-while-true` console-script entry point.
 - Ruff, pytest and coverage configuration.
 - A test that fails the build when `CHANGELOG.md` and `__version__` disagree.
 

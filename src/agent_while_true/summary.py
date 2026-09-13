@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from agent_watch.logging_setup import LOG_BACKUPS
+from agent_while_true.logging_setup import LOG_BACKUPS
 
 MAX_LINE_BYTES = 16 * 1024
 MAX_INTERVAL_SECONDS = 180.0

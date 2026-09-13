@@ -16,14 +16,14 @@ backlogs.
 ### O1 — Validate one natural provider reset end to end
 
 Priority: critical acceptance evidence. Implementation status: complete in the
-v0.43.0 release candidate; natural live acceptance remains outstanding.
+v0.44.0 release candidate; natural live acceptance remains outstanding.
 
 The released build must supervise an intended Codex or Claude session through a
 real quota exhaustion and reset, without fabricated quota data, process
 replacement, unsafe input, or a paid/quality-changing choice. Acceptance needs
 all of the following:
 
-- run v0.43.0 or later in full-auto mode with only intended sessions selected;
+- run v0.44.0 or later in full-auto mode with only intended sessions selected;
 - observe a supported, exact blocking prompt and a naturally eligible reset;
 - confirm exactly one policy-approved continuation is sent;
 - confirm the lifecycle is `PLANNED -> SENT -> VERIFIED`, or records an honest
@@ -39,7 +39,7 @@ behavior and must not be weakened merely to close the test.
 ## Impact-ordered execution plan
 
 1. **Critical — put the verified release under observation.** Install the
-   published v0.43.0 wheel whose hash matches the release SBOM, run `doctor`,
+   published v0.44.0 wheel whose hash matches the release SBOM, run `doctor`,
    `status`, `quota`, and `simulate --all`, then start the existing explicitly
    opted-in full-auto user service. Do not disturb live agent processes.
 2. **Critical — capture the natural reset.** Let that service observe only the
@@ -93,7 +93,7 @@ Regression coverage includes changed fingerprints, restart recovery, the full
 retry budget, final revalidation cancellation, stale/fresh quota conflicts,
 Claude process-bound quota files, timed automatic-wait verification, current
 paid/quality vetoes, and log-text false positives. Release evidence is recorded
-by the v0.43.0 tag workflow; the natural reset remains a separate acceptance
+by the v0.44.0 tag workflow; the natural reset remains a separate acceptance
 event and cannot be replaced by deterministic tests.
 
 ## Maintenance triggers

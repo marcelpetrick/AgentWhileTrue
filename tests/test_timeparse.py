@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from agent_watch.providers.timeparse import parse_reset
+from agent_while_true.providers.timeparse import parse_reset
 
 BERLIN = ZoneInfo("Europe/Berlin")
 NOW = datetime(2026, 9, 5, 19, 31, tzinfo=BERLIN)
@@ -86,7 +86,7 @@ def test_invalid_or_unsupported_dated_text_does_not_fall_back_to_clock(text: str
 
 
 def test_zone_less_codex_time_uses_local_zone_when_supervisor_clock_is_utc(monkeypatch) -> None:
-    monkeypatch.setattr("agent_watch.providers.timeparse._local_zone", lambda: BERLIN)
+    monkeypatch.setattr("agent_while_true.providers.timeparse._local_zone", lambda: BERLIN)
     now = datetime(2026, 9, 7, 13, 16, tzinfo=UTC)
 
     parsed = parse_reset("try again at 3:36 PM", now)

@@ -90,7 +90,7 @@ Maintenance is evidence-driven rather than scheduled feature growth.
 
 1. Inspect the worktree and preserve unrelated user changes.
 2. Make one logical change with tests or evidence proportional to its risk.
-3. Bump `src/agent_watch/version.py` and add the newest matching
+3. Bump `src/agent_while_true/version.py` and add the newest matching
    `CHANGELOG.md` section.
 4. Run the required pre-commit checks:
 
@@ -105,7 +105,7 @@ Maintenance is evidence-driven rather than scheduled feature growth.
 5. Commit with the established conventional subject style.
 6. Before pushing or tagging, run `./localPipeline.sh`, all CLI diagnostics and
    simulations, and the opt-in live Konsole test when KDE Konsole is available.
-7. Build and install the wheel in isolation; smoke-test both command names.
+7. Build and install the wheel in isolation; smoke-test the canonical command.
 8. Push only when requested. Tag only a fully verified release and confirm both
    GitHub workflows and published artifacts.
 

@@ -18,7 +18,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
-from agent_watch.terminal.base import (
+from agent_while_true.terminal.base import (
     DEFAULT_VISIBLE_LINES,
     SessionRef,
     TerminalAdapter,

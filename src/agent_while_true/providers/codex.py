@@ -23,7 +23,7 @@ from dataclasses import replace
 from datetime import datetime
 from typing import Final
 
-from agent_watch.providers.base import (
+from agent_while_true.providers.base import (
     ActionKind,
     PromptKind,
     PromptPattern,

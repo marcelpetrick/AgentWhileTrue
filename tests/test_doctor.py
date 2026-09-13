@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from agent_watch import doctor
-from agent_watch.config import Config, Policy
-from agent_watch.doctor import Check, Status, exit_code, render
+from agent_while_true import doctor
+from agent_while_true.config import Config, Policy
+from agent_while_true.doctor import Check, Status, exit_code, render
 from tests.test_terminal import StubbedKonsole
 
 
@@ -70,7 +70,7 @@ def test_unwritable_state_dir_is_a_failure(tmp_path: Path) -> None:
 
 
 def test_a_held_lock_warns_rather_than_fails(tmp_path: Path) -> None:
-    from agent_watch.lock import SingleInstanceLock
+    from agent_while_true.lock import SingleInstanceLock
 
     config = _config(tmp_path)
     lock = SingleInstanceLock.in_directory(config.resolved_runtime_dir())

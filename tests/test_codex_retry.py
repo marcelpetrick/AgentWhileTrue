@@ -9,10 +9,10 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from agent_watch.config import Config, Mode, Policy
-from agent_watch.quota import Availability, QuotaWindow
-from agent_watch.state_store import StateStore
-from agent_watch.states import SessionState
+from agent_while_true.config import Config, Mode, Policy
+from agent_while_true.quota import Availability, QuotaWindow
+from agent_while_true.state_store import StateStore
+from agent_while_true.states import SessionState
 from tests.harness import build
 
 # The observed banner wording is summarized in docs/OPEN_ISSUES.md. The empty
@@ -91,7 +91,7 @@ def test_backoff_is_bounded_across_fingerprint_changes_and_reselection(tmp_path)
     kit.supervisor.tick()
     assert len(kit.sent) == 11
     assert session.last_reason == "retry-budget-exhausted"
-    log = (tmp_path / "agent-watch.log").read_text()
+    log = (tmp_path / "agent-while-true.log").read_text()
     assert log.count("event=resume_sent ") == 11
     assert log.count("event=resume_gave_up ") == 1
     assert "Try again" not in log
@@ -155,7 +155,7 @@ def test_pre_reset_exhaustion_can_be_trialed_but_post_reset_exhaustion_vetoes(tm
 
 
 def test_near_retry_deadlines_wake_loop_without_past_deadline_busy_wait(tmp_path):
-    from agent_watch.cli import _scan_delay
+    from agent_while_true.cli import _scan_delay
 
     kit, session = setup_codex(tmp_path)
     assert _scan_delay(kit.supervisor, 2) == 2
@@ -166,11 +166,11 @@ def test_near_retry_deadlines_wake_loop_without_past_deadline_busy_wait(tmp_path
 
 
 def test_config_schedule_parses_commas_and_summary_counts_retry_events(tmp_path):
-    from agent_watch.config import load
-    from agent_watch.summary import render_summary
+    from agent_while_true.config import load
+    from agent_while_true.summary import render_summary
 
     assert load(
-        config_path=tmp_path / "missing", environ={"AGENT_WATCH_RETRY_SCHEDULE": "1,2,600"}
+        config_path=tmp_path / "missing", environ={"AGENT_WHILE_TRUE_RETRY_SCHEDULE": "1,2,600"}
     ).retry_schedule == (1, 2, 600)
     events = tmp_path / "events.log"
     stamp = START.astimezone().strftime("%Y-%m-%d %H:%M:%S,000")

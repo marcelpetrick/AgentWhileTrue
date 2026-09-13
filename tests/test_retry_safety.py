@@ -4,9 +4,9 @@
 
 from __future__ import annotations
 
-from agent_watch.config import Config, Mode, Policy
-from agent_watch.quota import Availability
-from agent_watch.states import ActionState, SessionState
+from agent_while_true.config import Config, Mode, Policy
+from agent_while_true.quota import Availability
+from agent_while_true.states import ActionState, SessionState
 from tests.harness import build
 from tests.test_codex_retry import COMPOSER, START, TONIGHTS_LIMIT, setup_codex
 

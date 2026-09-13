@@ -34,7 +34,7 @@ CPU, memory, page faults, and context switches were captured with GNU `time`:
 
 ```bash
 /usr/bin/time -v timeout --signal=TERM --kill-after=5s 30s \
-  env PYTHONPATH=src python3 -m agent_watch.cli run \
+  env PYTHONPATH=src python3 -m agent_while_true.cli run \
   --observe --all --no-fzf --no-color >/dev/null
 ```
 
@@ -43,7 +43,7 @@ External process calls were counted separately with `strace` over ten seconds:
 ```bash
 strace -f -qq -c -e trace=process \
   timeout --signal=TERM --kill-after=5s 10s \
-  env PYTHONPATH=src python3 -m agent_watch.cli run \
+  env PYTHONPATH=src python3 -m agent_while_true.cli run \
   --observe --all --no-fzf --no-color >/dev/null
 ```
 

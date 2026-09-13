@@ -21,7 +21,7 @@ import shutil
 import subprocess
 from dataclasses import dataclass
 
-from agent_watch.terminal.base import (
+from agent_while_true.terminal.base import (
     DEFAULT_VISIBLE_LINES,
     SessionRef,
     TerminalAdapter,

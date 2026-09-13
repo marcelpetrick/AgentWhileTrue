@@ -6,9 +6,9 @@ import io
 
 import pytest
 
-from agent_watch import cli
-from agent_watch.config import Mode
-from agent_watch.lock import SingleInstanceLock
+from agent_while_true import cli
+from agent_while_true.config import Mode
+from agent_while_true.lock import SingleInstanceLock
 from tests.harness import build
 
 

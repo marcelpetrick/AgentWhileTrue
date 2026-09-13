@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from agent_watch.picker import (
+from agent_while_true.picker import (
     Candidate,
     NumberedPicker,
     PickerState,
@@ -126,5 +126,5 @@ def test_rescan_drops_selections_for_sessions_that_vanished(tmp_path: Path) -> N
 
 
 def test_fzf_is_optional(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setattr("agent_watch.picker.fzf_available", lambda: False)
+    monkeypatch.setattr("agent_while_true.picker.fzf_available", lambda: False)
     assert pick_with_fzf(_candidates(tmp_path)) is None

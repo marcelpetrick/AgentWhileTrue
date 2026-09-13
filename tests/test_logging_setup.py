@@ -13,7 +13,13 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from agent_watch.logging_setup import EventLogger, fingerprint, format_event, read_history, setup
+from agent_while_true.logging_setup import (
+    EventLogger,
+    fingerprint,
+    format_event,
+    read_history,
+    setup,
+)
 
 SECRET_SCREEN = [
     "You've hit your session limit · resets 8:10pm (Europe/Berlin)",
@@ -44,7 +50,7 @@ def test_fingerprint_does_not_contain_the_content() -> None:
 
 
 def test_event_log_records_the_fingerprint_not_the_screen(tmp_path: Path) -> None:
-    log_file = tmp_path / "agent-watch.log"
+    log_file = tmp_path / "agent-while-true.log"
     log = setup(log_file)
     log.info(
         "limit_detected",
@@ -53,7 +59,7 @@ def test_event_log_records_the_fingerprint_not_the_screen(tmp_path: Path) -> Non
         pid=15102,
         screen=fingerprint(SECRET_SCREEN),
     )
-    logging.getLogger("agent_watch").handlers[0].flush()
+    logging.getLogger("agent_while_true").handlers[0].flush()
     written = log_file.read_text()
     assert "limit_detected" in written
     assert fingerprint(SECRET_SCREEN) in written
@@ -63,7 +69,7 @@ def test_event_log_records_the_fingerprint_not_the_screen(tmp_path: Path) -> Non
 
 
 def test_log_file_is_owner_only(tmp_path: Path) -> None:
-    log_file = tmp_path / "nested" / "agent-watch.log"
+    log_file = tmp_path / "nested" / "agent-while-true.log"
     setup(log_file)
     assert log_file.stat().st_mode & 0o777 == 0o600
     assert log_file.parent.stat().st_mode & 0o077 == 0
@@ -86,15 +92,15 @@ def test_event_logger_has_no_free_text_method() -> None:
 
 
 def test_rotation_is_configured(tmp_path: Path) -> None:
-    log_file = tmp_path / "agent-watch.log"
+    log_file = tmp_path / "agent-while-true.log"
     setup(log_file, max_bytes=128, backups=2)
-    handler = logging.getLogger("agent_watch").handlers[0]
+    handler = logging.getLogger("agent_while_true").handlers[0]
     assert handler.maxBytes == 128
     assert handler.backupCount == 2
 
 
 def test_read_history_returns_only_the_newest_rows(tmp_path: Path) -> None:
-    log_file = tmp_path / "agent-watch.log"
+    log_file = tmp_path / "agent-while-true.log"
     log_file.write_text("first\nsecond\nthird\n", encoding="utf-8")
     assert read_history(log_file, limit=2) == ["second", "third"]
 
@@ -106,7 +112,7 @@ def test_read_history_tolerates_missing_files_and_zero_limit(tmp_path: Path) -> 
 
 
 def test_read_history_keeps_only_the_requested_tail(tmp_path: Path) -> None:
-    log_file = tmp_path / "agent-watch.log"
+    log_file = tmp_path / "agent-while-true.log"
     log_file.write_text("".join(f"event={number} " + "x" * 1000 + "\n" for number in range(80)))
     rows = read_history(log_file, limit=50)
     assert len(rows) == 50

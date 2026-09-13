@@ -9,9 +9,9 @@ from __future__ import annotations
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from agent_watch import providers
-from agent_watch.providers import ActionKind
-from agent_watch.states import SessionState
+from agent_while_true import providers
+from agent_while_true.providers import ActionKind
+from agent_while_true.states import SessionState
 
 BERLIN = ZoneInfo("Europe/Berlin")
 NOW = datetime(2026, 9, 10, 23, 33, tzinfo=BERLIN)

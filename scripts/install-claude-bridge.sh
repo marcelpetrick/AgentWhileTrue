@@ -9,7 +9,7 @@ umask 077
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE="$SCRIPT_DIR/claude-statusline-proxy.sh"
-TARGET_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/agent-watch"
+TARGET_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/agent-while-true"
 TARGET="$TARGET_DIR/claude-statusline-proxy.sh"
 SETTINGS="${CLAUDE_SETTINGS_FILE:-$HOME/.claude/settings.json}"
 
@@ -39,7 +39,7 @@ install -m 755 -- "$SOURCE" "$TARGET"
 
 current="$(jq -r '.statusLine.command // empty' "$SETTINGS")"
 refresh="$(jq -r '.statusLine.refreshInterval // empty' "$SETTINGS")"
-pid_marker="AGENT_WATCH_CLAUDE_PID=\$PPID"
+pid_marker="AGENT_WHILE_TRUE_CLAUDE_PID=\$PPID"
 if [[ "$current" == *claude-statusline-proxy.sh* ]] \
     && [[ "$current" == *"$pid_marker"* ]] \
     && [[ "$refresh" =~ ^[0-9]+$ ]] \
@@ -53,12 +53,12 @@ if [[ "$current" == *claude-statusline-proxy.sh* ]]; then
     replacement="$pid_marker $current"
 elif [ -n "$current" ]; then
     printf -v quoted_current '%q' "$current"
-    replacement="AGENT_WATCH_CLAUDE_PID=\$PPID AGENT_WATCH_STATUSLINE_CHAIN=$quoted_current $TARGET"
+    replacement="AGENT_WHILE_TRUE_CLAUDE_PID=\$PPID AGENT_WHILE_TRUE_STATUSLINE_CHAIN=$quoted_current $TARGET"
 else
-    replacement="AGENT_WATCH_CLAUDE_PID=\$PPID $TARGET"
+    replacement="AGENT_WHILE_TRUE_CLAUDE_PID=\$PPID $TARGET"
 fi
 
-backup="$SETTINGS.agent-watch-backup.$(date +%Y%m%d-%H%M%S).$$"
+backup="$SETTINGS.agent-while-true-backup.$(date +%Y%m%d-%H%M%S).$$"
 cp -p -- "$SETTINGS" "$backup"
 temporary="$(mktemp "$SETTINGS.tmp.XXXXXX")"
 if ! jq --arg command "$replacement" \

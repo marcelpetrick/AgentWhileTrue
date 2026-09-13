@@ -41,3 +41,37 @@ def test_documentation_has_no_old_monorepo_links() -> None:
         if old_location in document.read_text(encoding="utf-8")
     ]
     assert not offenders, f"old monorepo links remain in: {', '.join(offenders)}"
+
+
+def test_superseded_project_names_are_absent_from_the_shipped_tree() -> None:
+    forbidden = ("agent" + "-watch", "agent" + "_watch", "agent" + " watch")
+    roots = [
+        PROJECT_ROOT / ".github",
+        PROJECT_ROOT / "docs",
+        PROJECT_ROOT / "scripts",
+        PROJECT_ROOT / "src",
+        PROJECT_ROOT / "systemd",
+        PROJECT_ROOT / "tests",
+    ]
+    files = [
+        PROJECT_ROOT / "AGENTS.md",
+        PROJECT_ROOT / "CHANGELOG.md",
+        PROJECT_ROOT / "README.md",
+        PROJECT_ROOT / "fullAutoMode.sh",
+        PROJECT_ROOT / "localPipeline.sh",
+        PROJECT_ROOT / "pyproject.toml",
+    ]
+    files.extend(path for root in roots for path in root.rglob("*") if path.is_file())
+
+    offenders: list[str] = []
+    for path in files:
+        try:
+            contents = path.read_text(encoding="utf-8").lower()
+        except UnicodeDecodeError:
+            continue
+        if any(name in contents for name in forbidden):
+            offenders.append(str(path.relative_to(PROJECT_ROOT)))
+
+    assert not offenders, "superseded project names remain in: " + ", ".join(offenders)
+    assert not (PROJECT_ROOT / "src" / ("agent" + "_watch")).exists()
+    assert not (PROJECT_ROOT / "systemd" / ("agent" + "-watch.service")).exists()

@@ -14,10 +14,10 @@ from typing import ClassVar
 
 import pytest
 
-from agent_watch import classify, doctor, identity, proc
-from agent_watch.classify import ProcessClass
-from agent_watch.proc import ProcessIdentity, ProcessInfo
-from agent_watch.service_health import (
+from agent_while_true import classify, doctor, identity, proc
+from agent_while_true.classify import ProcessClass
+from agent_while_true.proc import ProcessIdentity, ProcessInfo
+from agent_while_true.service_health import (
     HealthMonitor,
     HealthState,
     ProviderHealth,

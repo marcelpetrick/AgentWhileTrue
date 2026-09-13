@@ -59,7 +59,7 @@ quality-changing choice as a test.
 ## Working style
 
 - Make one logical change per commit.
-- Every feature or fix commit bumps `src/agent_watch/version.py` and adds the
+- Every feature or fix commit bumps `src/agent_while_true/version.py` and adds the
   matching newest section to `CHANGELOG.md`.
 - Use commit subjects in the existing style, for example
   `feat(AgentWhileTrue): ...` or `fix(AgentWhileTrue): ...`.
@@ -88,22 +88,21 @@ Before pushing or tagging:
 
 ```bash
 ./localPipeline.sh
-PYTHONPATH=src python3 -m agent_watch.cli simulate --all
-PYTHONPATH=src python3 -m agent_watch.cli doctor
-PYTHONPATH=src python3 -m agent_watch.cli status
-PYTHONPATH=src python3 -m agent_watch.cli quota
+PYTHONPATH=src python3 -m agent_while_true.cli simulate --all
+PYTHONPATH=src python3 -m agent_while_true.cli doctor
+PYTHONPATH=src python3 -m agent_while_true.cli status
+PYTHONPATH=src python3 -m agent_while_true.cli quota
 ```
 
 Run the opt-in live test where KDE Konsole is available:
 
 ```bash
-AGENT_WATCH_LIVE_KONSOLE=1 python3 -m pytest -q -m konsole
+AGENT_WHILE_TRUE_LIVE_KONSOLE=1 python3 -m pytest -q -m konsole
 ```
 
 Build a wheel and install it into an isolated environment before a release.
 Confirm that installed `agent-while-true --version`, `doctor`, `quota`, and
-`simulate --all` work without `PYTHONPATH`; also smoke-test the `agent-watch`
-compatibility alias.
+`simulate --all` work without `PYTHONPATH`.
 
 ## Release procedure
 

@@ -12,7 +12,7 @@ import json
 import urllib.error
 from datetime import UTC, datetime
 
-from agent_watch.service_health import (
+from agent_while_true.service_health import (
     HealthMonitor,
     HealthState,
     ProviderHealth,
@@ -172,7 +172,7 @@ def test_client_reuses_and_closes_persistent_connection(monkeypatch) -> None:
         def close(self) -> None:
             self.closed = True
 
-    monkeypatch.setattr("agent_watch.service_health.http.client.HTTPSConnection", Connection)
+    monkeypatch.setattr("agent_while_true.service_health.http.client.HTTPSConnection", Connection)
     client = StatusPageClient("openai")
 
     assert client.fetch(now=NOW).state is HealthState.ONLINE
@@ -187,10 +187,10 @@ def test_client_reuses_and_closes_persistent_connection(monkeypatch) -> None:
 def test_client_preserves_standard_proxy_handling(monkeypatch) -> None:
     sentinel = object()
     monkeypatch.setattr(
-        "agent_watch.service_health.urllib.request.getproxies",
+        "agent_while_true.service_health.urllib.request.getproxies",
         lambda: {"https": "http://proxy.invalid"},
     )
-    monkeypatch.setattr("agent_watch.service_health.urllib.request.urlopen", sentinel)
+    monkeypatch.setattr("agent_while_true.service_health.urllib.request.urlopen", sentinel)
 
     client = StatusPageClient("openai")
 

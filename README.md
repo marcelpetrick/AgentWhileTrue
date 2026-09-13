@@ -45,9 +45,9 @@ when you're ready. Your agents get a babysitter. You get your attention back.
 - **A record of what happened.** Browse action history and day/week summaries
   of continuations, failures, refusals, and sampled supervision time.
 
-The primary command is `agent-while-true`. The shorter `agent-watch` command is
-kept as a compatible alias, so existing scripts and the examples below continue
-to work.
+The only installed command is `agent-while-true`; the Python import package is
+`agent_while_true`. Configuration, state, data, logs, environment variables,
+and the user service use the same canonical project name.
 
 The current target is Manjaro/Arch Linux, KDE Plasma, Konsole, Wayland or X11,
 and Python 3.12 or newer. Runtime code uses only the Python standard library.
@@ -58,12 +58,12 @@ Install a tagged release from GitHub with `pipx` so the CLI is isolated while
 remaining available at `~/.local/bin/agent-while-true`:
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.43.0'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.44.0'
 agent-while-true --version
 agent-while-true doctor
 ```
 
-This README describes the v0.43.0 release. Use a development checkout for
+This README describes the v0.44.0 release. Use a development checkout for
 changes made after that release:
 
 ```bash
@@ -150,9 +150,9 @@ Only one input-capable instance may run. If the background service owns the
 lock, stop it before opening the interactive TUI, then restore it after quitting:
 
 ```bash
-systemctl --user stop agent-watch.service
+systemctl --user stop agent-while-true.service
 agent-while-true run --observe --all  # press Shift+A to enable full auto
-systemctl --user start agent-watch.service
+systemctl --user start agent-while-true.service
 ```
 
 On an interactive terminal this opens a fully framed color dashboard inspired
@@ -205,7 +205,7 @@ is deliberately reset when the process exits.
 
 Interactive theme, history length, and history/detail/help visibility are saved
 under the configured state directory in `preferences.json` (normally
-`~/.local/state/agent-watch/preferences.json`). Changes apply immediately and
+`~/.local/state/agent-while-true/preferences.json`). Changes apply immediately and
 survive restart. Invalid files fall back to defaults; save errors appear in the
 dashboard. Mode, permissions, selections, pause and scan timing are never saved
 as presentation preferences. Account redaction is intentionally never saved.
@@ -249,17 +249,17 @@ agent-while-true init
 agent-while-true config
 ```
 
-The file is `~/.config/agent-watch/config`. It is parsed as data and never
+The file is `~/.config/agent-while-true/config`. It is parsed as data and never
 sourced as shell code. Logs and state live under
-`~/.local/state/agent-watch/`; terminal contents are not logged. Agent While
+`~/.local/state/agent-while-true/`; terminal contents are not logged. Agent While
 True records structured state transitions and actions in
-`~/.local/state/agent-watch/agent-watch.log`, including when an action was
+`~/.local/state/agent-while-true/agent-while-true.log`, including when an action was
 planned, sent, verified, refused, retried, or failed. Inspect recent history
 with:
 
 ```bash
 agent-while-true logs -n 40
-journalctl --user -u agent-watch.service -f  # service lifecycle/output
+journalctl --user -u agent-while-true.service -f  # service lifecycle/output
 ```
 
 The dashboard's `HISTORY` panel reads the same privacy-preserving event file.
@@ -388,7 +388,7 @@ steps manually, install the one supplied file:
 
 ```bash
 install -Dm755 scripts/claude-statusline-proxy.sh \
-  ~/.local/share/agent-watch/claude-statusline-proxy.sh
+  ~/.local/share/agent-while-true/claude-statusline-proxy.sh
 ```
 
 Configure it as Claude's `statusLine` command in `~/.claude/settings.json`:
@@ -397,20 +397,20 @@ Configure it as Claude's `statusLine` command in `~/.claude/settings.json`:
 {
   "statusLine": {
     "type": "command",
-    "command": "AGENT_WATCH_CLAUDE_PID=$PPID ~/.local/share/agent-watch/claude-statusline-proxy.sh",
+    "command": "AGENT_WHILE_TRUE_CLAUDE_PID=$PPID ~/.local/share/agent-while-true/claude-statusline-proxy.sh",
     "refreshInterval": 60
   }
 }
 ```
 
 If a status line already exists, preserve it through
-`AGENT_WATCH_STATUSLINE_CHAIN`:
+`AGENT_WHILE_TRUE_STATUSLINE_CHAIN`:
 
 ```json
 {
   "statusLine": {
     "type": "command",
-    "command": "AGENT_WATCH_CLAUDE_PID=$PPID AGENT_WATCH_STATUSLINE_CHAIN=~/.claude/my-statusline.sh ~/.local/share/agent-watch/claude-statusline-proxy.sh",
+    "command": "AGENT_WHILE_TRUE_CLAUDE_PID=$PPID AGENT_WHILE_TRUE_STATUSLINE_CHAIN=~/.claude/my-statusline.sh ~/.local/share/agent-while-true/claude-statusline-proxy.sh",
     "refreshInterval": 60
   }
 }
@@ -423,7 +423,7 @@ For example, if the current command is
 {
   "statusLine": {
     "type": "command",
-    "command": "AGENT_WATCH_CLAUDE_PID=$PPID AGENT_WATCH_STATUSLINE_CHAIN=~/.claude/abtop-combined-statusline.sh ~/.local/share/agent-watch/claude-statusline-proxy.sh",
+    "command": "AGENT_WHILE_TRUE_CLAUDE_PID=$PPID AGENT_WHILE_TRUE_STATUSLINE_CHAIN=~/.claude/abtop-combined-statusline.sh ~/.local/share/agent-while-true/claude-statusline-proxy.sh",
     "refreshInterval": 60
   }
 }
@@ -434,39 +434,42 @@ render, then verify the bridge without enabling automation:
 
 ```bash
 agent-while-true quota
-ls -l ~/.local/state/agent-watch/quota/claude-*.json
+ls -l ~/.local/state/agent-while-true/quota/claude-*.json
 ```
 
 The bridge writes one owner-only, atomically replaced quota document per Claude
-session under `~/.local/state/agent-watch/quota/claude-*.json`. Legacy global
+session under `~/.local/state/agent-while-true/quota/claude-*.json`. Legacy global
 files are display-only and cannot authorize an action for a selected process.
 Failures do not prevent the existing status line from running.
 
 ## Background service
 
-Install the supplied user service from this checkout:
+Install and immediately enable the supplied observe-only user service from this
+checkout:
 
 ```bash
 scripts/install-user-service.sh
-systemctl --user enable --now agent-watch.service
-systemctl --user status agent-watch.service
+systemctl --user status agent-while-true.service
 ```
 
 The shipped service is observe-only. It may discover new agent tabs, but it can
 never send input. After validating `doctor`, `quota`, observe mode, and the
-simulations, auto mode can be explicitly enabled with:
+simulations, install and enable the managed auto-mode drop-in with:
 
 ```bash
-systemctl --user edit agent-watch.service
+scripts/install-user-service.sh --auto
 ```
 
-```ini
-[Service]
-ExecStart=
-ExecStart=%h/.local/bin/agent-while-true run --auto --all --no-fzf
+Codex continuation types into its composer and remains a separate opt-in. To
+enable it for the persistent service as well, use:
+
+```bash
+scripts/install-user-service.sh --auto --allow-codex-auto-resume
 ```
 
-Then run `systemctl --user restart agent-watch.service`. Remove the service with
+Both forms enable and start `agent-while-true.service` immediately and on future
+desktop logins. Running the installer without `--auto` restores its managed
+observe-only configuration. Remove the service and its managed drop-in with
 `scripts/install-user-service.sh --uninstall`.
 
 ## Safety model
@@ -500,7 +503,7 @@ of remaining acceptance and maintenance work.
 
 ```bash
 ./localPipeline.sh
-AGENT_WATCH_LIVE_KONSOLE=1 python3 -m pytest -q -m konsole
+AGENT_WHILE_TRUE_LIVE_KONSOLE=1 python3 -m pytest -q -m konsole
 ```
 
 The local pipeline is the canonical release gate. It checks Python 3.12+, Ruff
@@ -508,7 +511,7 @@ lint and formatting, every tracked shell script with mandatory ShellCheck,
 `git diff --check`, pytest with a 91% combined statement/branch coverage floor,
 REUSE SPDX licensing checks, all built-in danger
 simulations, sdist/wheel construction, and an isolated install exercising
-`doctor`, `status`, `quota`, `summary`, simulations, and both command names.
+`doctor`, `status`, `quota`, `summary`, simulations, and the canonical command.
 GitHub Actions runs this same script on Python 3.12, 3.13, and 3.14.
 
 Synthetic application profiles run in the pipeline and are retained alongside

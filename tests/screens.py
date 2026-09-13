@@ -103,7 +103,7 @@ CLAUDE_LOWER_PRIORITY = [
 ]
 
 CLAUDE_ACTIVE = [
-    "● Reading src/agent_watch/policy.py",
+    "● Reading src/agent_while_true/policy.py",
     "",
     "❯ ",
     "  Opus 5 ctx:28% 5h:19% reset:4h51m",

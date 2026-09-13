@@ -6,8 +6,8 @@
 
 from __future__ import annotations
 
-from agent_watch.classify import ProcessClass
-from agent_watch.providers.base import (
+from agent_while_true.classify import ProcessClass
+from agent_while_true.providers.base import (
     ActionKind,
     PromptKind,
     PromptMatch,
@@ -16,8 +16,8 @@ from agent_watch.providers.base import (
     Recognition,
     ResumeAction,
 )
-from agent_watch.providers.claude import ClaudeAdapter
-from agent_watch.providers.codex import CodexAdapter
+from agent_while_true.providers.claude import ClaudeAdapter
+from agent_while_true.providers.codex import CodexAdapter
 
 CLAUDE = ClaudeAdapter()
 CODEX = CodexAdapter()

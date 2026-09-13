@@ -20,7 +20,7 @@ from fcntl import LOCK_EX, flock
 from pathlib import Path
 from typing import Any
 
-from agent_watch.tui import HISTORY_LENGTHS, THEMES, DashboardState
+from agent_while_true.tui import HISTORY_LENGTHS, THEMES, DashboardState
 
 PREFERENCES_VERSION = 1
 MAX_PREFERENCES_BYTES = 16 * 1024

@@ -25,7 +25,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
-from agent_watch.states import ActionState
+from agent_while_true.states import ActionState
 
 STATE_FILENAME = "state.json"
 STATE_VERSION = 1

@@ -16,13 +16,13 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from agent_watch.config import Config, Mode
-from agent_watch.fsm import Supervisor
-from agent_watch.logging_setup import setup
-from agent_watch.proc import ProcessIdentity, ProcessInfo
-from agent_watch.quota import Availability, QuotaSnapshot, QuotaSource, QuotaWindow, unknown
-from agent_watch.state_store import StateStore
-from agent_watch.terminal.fake import FakeAdapter
+from agent_while_true.config import Config, Mode
+from agent_while_true.fsm import Supervisor
+from agent_while_true.logging_setup import setup
+from agent_while_true.proc import ProcessIdentity, ProcessInfo
+from agent_while_true.quota import Availability, QuotaSnapshot, QuotaSource, QuotaWindow, unknown
+from agent_while_true.state_store import StateStore
+from agent_while_true.terminal.fake import FakeAdapter
 
 CLAUDE_EXE = "/home/user/.local/share/claude/versions/2.1.261"
 CODEX_EXE = "/opt/@openai/codex/bin/codex"
@@ -178,7 +178,7 @@ def build(
         config=effective,
         store=StateStore.in_directory(tmp_path).load(),
         quota_sources=dict(quota),
-        log=setup(tmp_path / "agent-watch.log"),
+        log=setup(tmp_path / "agent-while-true.log"),
         inspector=inspector,
         confirm=None if confirm is None else (lambda observation, decision: confirm),
         now_fn=clock.now,

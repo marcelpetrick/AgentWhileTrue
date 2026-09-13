@@ -58,7 +58,7 @@ five-minute observation running; never manufacture live quota evidence.
 - `./localPipeline.sh` passed: REUSE, lint, formatting, ShellCheck, all safety
   simulations, profiling, source/wheel builds, the extracted source's quality
   gate outside Git, validated SPDX/CycloneDX SBOMs, and isolated installed-wheel
-  diagnostics/simulations for both command names.
+  diagnostics/simulations for the canonical command.
 - 549 tests pass on each of Python 3.12, 3.13 and 3.14. The normally skipped
   opt-in Konsole integration test passes separately. Combined coverage is
   91.70% (statements 93.17%, branches 86.90%); the enforced combined floor is

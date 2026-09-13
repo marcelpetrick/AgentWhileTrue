@@ -11,10 +11,10 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from agent_watch import providers
-from agent_watch.classify import ProcessClass
-from agent_watch.providers import ActionKind, PromptKind
-from agent_watch.states import SessionState
+from agent_while_true import providers
+from agent_while_true.classify import ProcessClass
+from agent_while_true.providers import ActionKind, PromptKind
+from agent_while_true.states import SessionState
 from tests import screens
 
 BERLIN = ZoneInfo("Europe/Berlin")

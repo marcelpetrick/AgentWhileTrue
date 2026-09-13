@@ -9,8 +9,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from agent_watch.preferences import load_preferences, save_preferences
-from agent_watch.tui import DashboardState
+from agent_while_true.preferences import load_preferences, save_preferences
+from agent_while_true.tui import DashboardState
 
 
 def _state_snapshot(state: DashboardState) -> tuple[object, ...]:

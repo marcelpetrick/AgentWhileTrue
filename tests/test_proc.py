@@ -10,7 +10,7 @@ import os
 
 import pytest
 
-from agent_watch import proc
+from agent_while_true import proc
 
 
 def test_identify_self_matches_reality() -> None:

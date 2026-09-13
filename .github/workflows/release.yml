@@ -33,7 +33,7 @@ jobs:
       - name: Verify release tag
         run: |
           set -euo pipefail
-          project_version="$(PYTHONPATH=src python -c 'from agent_watch.version import __version__; print(__version__)')"
+          project_version="$(PYTHONPATH=src python -c 'from agent_while_true.version import __version__; print(__version__)')"
           tag_version="${GITHUB_REF_NAME#agentwhiletrue-v}"
           test "$tag_version" = "$project_version"
           grep -Fq "## [${project_version}]" CHANGELOG.md

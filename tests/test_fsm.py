@@ -11,9 +11,9 @@ from pathlib import Path
 
 import pytest
 
-from agent_watch.config import Config, Mode, Policy
-from agent_watch.quota import Availability, QuotaSnapshot
-from agent_watch.states import ActionState, SessionState
+from agent_while_true.config import Config, Mode, Policy
+from agent_while_true.quota import Availability, QuotaSnapshot
+from agent_while_true.states import ActionState, SessionState
 from tests import harness as harness_module
 from tests import screens
 
@@ -128,7 +128,7 @@ def test_refusals_count_episodes_not_repeated_polls(tmp_path: Path) -> None:
     for _ in range(3):
         kit.supervisor.tick()
         kit.clock.advance(2)
-    assert (tmp_path / "agent-watch.log").read_text().count("event=resume_refused") == 1
+    assert (tmp_path / "agent-while-true.log").read_text().count("event=resume_refused") == 1
     assert kit.sent == []
 
 
@@ -390,7 +390,7 @@ def test_vetoed_screens_are_never_actioned(tmp_path: Path, screen_name: str) -> 
 def test_the_event_log_records_the_send_without_the_screen(tmp_path: Path) -> None:
     kit, _ = _claude_session(tmp_path)
     kit.supervisor.tick()
-    written = (tmp_path / "agent-watch.log").read_text()
+    written = (tmp_path / "agent-while-true.log").read_text()
     assert "event=resume_sent" in written
     assert "press enter to continue" not in written
     assert "session limit" not in written
