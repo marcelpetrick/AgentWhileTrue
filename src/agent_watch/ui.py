@@ -329,8 +329,25 @@ def render_quota(snapshot: QuotaSnapshot, *, now: datetime, identity: str = "") 
     return "\n".join(lines)
 
 
+def redact_account_label(label: str) -> str:
+    """Mask an account e-mail while retaining a recognizable profile label."""
+    profile, separator, identity = label.rpartition(" · ")
+    if "@" not in identity:
+        return label
+    local, _, domain = identity.partition("@")
+    head, dot, suffix = domain.rpartition(".")
+    masked_domain = f"{head[:1]}…{dot}{suffix}" if dot else f"{domain[:1]}…"
+    masked = f"{local[:1]}…@{masked_domain}"
+    return f"{profile}{separator}{masked}" if separator else masked
+
+
 def session_details(
-    session: SupervisedSession, now: datetime, interval: float, paused: bool = False
+    session: SupervisedSession,
+    now: datetime,
+    interval: float,
+    paused: bool = False,
+    *,
+    redact_accounts: bool = False,
 ) -> list[str]:
     """Explain cached evidence without evaluating policy or reading a terminal."""
 
@@ -348,10 +365,13 @@ def session_details(
         if scheduled
         else f"next scan (every {interval:g}s)"
     )
+    account = (
+        redact_account_label(session.account_label) if redact_accounts else session.account_label
+    )
     return [
         f"Session: {session.provider_name} {session.identity.tty} PID {session.identity.pid}",
         f"Title: {session.display_title()}",
-        f"Account: {session.account_label}",
+        f"Account: {account}",
         f"Last decision: {session.last_reason or 'not evaluated'} ({age(session.decision_at)})",
         f"Observation: {age(session.observed_at)}{'; STALE' if stale else ''}",
         f"Recognized state: {session.observed_state}",
@@ -375,12 +395,18 @@ def _session_card(
     *,
     color: bool,
     theme: str,
+    redact_accounts: bool,
 ) -> list[str]:
     quota_value = quota_state(session.quota, now)
     fields = (
         ("ID", str(index)),
         ("TYPE", session.provider_name.title()),
-        ("ACCOUNT", session.account_label),
+        (
+            "ACCOUNT",
+            redact_account_label(session.account_label)
+            if redact_accounts
+            else session.account_label,
+        ),
         ("STATE", session.state.value),
         ("PROMPT RESET", format_reset(session.reset_at, now)),
         ("5H USED/IN", quota_meter_with_reset(session.quota, "session", now)),
@@ -448,6 +474,7 @@ def render_status(
     show_details: bool = False,
     detail_index: int = 0,
     service_health: dict[str, ProviderHealth] | None = None,
+    redact_accounts: bool = False,
 ) -> str:
     """Render the running watcher's status table."""
     listed = list(sessions)
@@ -464,6 +491,7 @@ def render_status(
         _rule(title + pause_badge, panel_width, color=color, theme=theme),
         _panel_line(
             f"mode={mode_label}   watching {len(listed)} session(s)   theme={theme}   "
+            f"accounts={'redacted' if redact_accounts else 'visible'}   "
             f"every {interval:g}s{'   PAUSED' if paused else ''}",
             panel_width,
             "accent",
@@ -473,7 +501,8 @@ def render_status(
     ]
     for part in _wrap(
         f"{now.astimezone().strftime('%Y-%m-%d %H:%M:%S')}  "
-        "+ slower  - faster  A mode  e events  l history  r rescan  p pause  t theme  d details",
+        "+ slower  - faster  A mode  e events  l history  r rescan  "
+        "p pause  t theme  x redact  d details",
         max(1, panel_width - 4),
     ):
         lines.append(_panel_line(part, panel_width, "surface", color=color, theme=theme))
@@ -517,6 +546,7 @@ def render_status(
                     panel_width,
                     color=color,
                     theme=theme,
+                    redact_accounts=redact_accounts,
                 )
             )
     if panel_width >= 168:
@@ -545,7 +575,9 @@ def render_status(
         values = (
             str(index),
             session.provider_name.title(),
-            session.account_label,
+            redact_account_label(session.account_label)
+            if redact_accounts
+            else session.account_label,
             session.state.value,
             format_reset(session.reset_at, now),
             quota_meter_with_reset(session.quota, "session", now),
@@ -585,7 +617,13 @@ def render_status(
                 theme=theme,
             )
         )
-        for detail in session_details(listed[selected], now, interval, paused):
+        for detail in session_details(
+            listed[selected],
+            now,
+            interval,
+            paused,
+            redact_accounts=redact_accounts,
+        ):
             lines.extend(
                 _panel_line(part, panel_width, "text", color=color, theme=theme)
                 for part in _wrap(detail, max(1, panel_width - 4))
@@ -624,6 +662,7 @@ def render_status(
                         "p       pause/resume; paused means no terminal or quota polling",
                         "r       rediscover Konsole sessions now",
                         "t       cycle dark, vivid, CGA, amber and plain themes",
+                        "x       redact account e-mails for screenshot-safe display",
                         "e       show/hide persisted action history",
                         "l       cycle history length: 5, 10, 20, 50",
                         "d       show/hide resume explanation; [ / ] previous/next session",
@@ -635,7 +674,7 @@ def render_status(
                 ),
             )
         )
-    hint = "j/k scroll  g/G top/end  h help  q quit"
+    hint = "j/k scroll  g/G top/end  x redact  h help  q quit"
     if panel_width < 44:
         hint = "j/k g/G h q"
     bottom = "└ " + _fit(hint, max(0, panel_width - 4)) + " ┘"

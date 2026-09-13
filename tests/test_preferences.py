@@ -25,6 +25,7 @@ def _state_snapshot(state: DashboardState) -> tuple[object, ...]:
         state.mode_toggle_requested,
         state.details_visible,
         state.detail_index,
+        state.redact_accounts,
     )
 
 
@@ -35,6 +36,7 @@ def test_round_trip_only_restores_presentation_fields(tmp_path: Path) -> None:
     original.history_index = 3
     original.show_events = False
     original.details_visible = True
+    original.redact_accounts = True
     assert save_preferences(path, original)
 
     restored = DashboardState.from_interval(60)
@@ -49,6 +51,7 @@ def test_round_trip_only_restores_presentation_fields(tmp_path: Path) -> None:
     assert restored.interval_index == 8
     assert restored.paused
     assert restored.rescan_requested
+    assert not restored.redact_accounts
 
 
 def test_missing_or_malformed_preferences_leave_state_unchanged(tmp_path: Path) -> None:
@@ -119,6 +122,7 @@ def test_save_uses_owner_only_file_and_excludes_runtime_state(tmp_path: Path) ->
         "help_visible",
     }
     assert "paused" not in document
+    assert "redact_accounts" not in document
 
 
 def test_invalid_encoding_and_deep_json_leave_state_unchanged(tmp_path: Path) -> None:

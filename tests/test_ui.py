@@ -164,6 +164,34 @@ def test_dashboard_shows_per_session_account_and_usage_meters() -> None:
     assert "77% 3d" in text
 
 
+@pytest.mark.parametrize("width", [80, 168])
+def test_dashboard_redacts_account_email_everywhere(width: int) -> None:
+    session = _session(account_label="codex-dmo · work@example.com")
+
+    text = render_status(
+        [session],
+        now=NOW,
+        config=Config(),
+        width=width,
+        show_details=True,
+        redact_accounts=True,
+    )
+
+    assert "work@example.com" not in text
+    assert "codex-dmo · w…@e….com" in text
+    assert "accounts=redacted" in text
+
+
+def test_account_redaction_leaves_non_email_labels_unchanged() -> None:
+    text = render_status(
+        [_session(account_label="unavailable")],
+        now=NOW,
+        config=Config(),
+        redact_accounts=True,
+    )
+    assert "unavailable" in text
+
+
 def test_dashboard_shows_cached_service_health() -> None:
     health = {
         "openai": ProviderHealth("openai", HealthState.ONLINE, "ok", NOW),

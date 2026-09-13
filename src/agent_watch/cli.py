@@ -407,6 +407,7 @@ def _loop(
                     show_details=dashboard.details_visible,
                     detail_index=dashboard.detail_index,
                     service_health=health.snapshot(),
+                    redact_accounts=dashboard.redact_accounts,
                 )
                 if interactive:
                     height = max(1, size.lines - 1)

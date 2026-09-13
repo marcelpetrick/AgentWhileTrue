@@ -38,6 +38,7 @@ class DashboardState:
     details_visible: bool = False
     detail_index: int = 0
     scroll_offset: int = 0
+    redact_accounts: bool = False
 
     @classmethod
     def from_interval(cls, value: float) -> DashboardState:
@@ -72,6 +73,8 @@ class DashboardState:
             self.interval_index = max(self.interval_index - 1, 0)
         elif lowered == "t":
             self.theme_index = (self.theme_index + 1) % len(THEMES)
+        elif lowered == "x":
+            self.redact_accounts = not self.redact_accounts
         elif lowered == "e":
             self.show_events = not self.show_events
         elif lowered == "l":

@@ -59,6 +59,10 @@ def test_dashboard_keys_toggle_state_and_quit() -> None:
     assert state.rescan_requested
     state.handle("t")
     assert state.theme == "vivid"
+    state.handle("x")
+    assert state.redact_accounts
+    state.handle("X")
+    assert not state.redact_accounts
     state.handle("e")
     assert not state.show_events
     state.handle("l")

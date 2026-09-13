@@ -58,12 +58,12 @@ Install a tagged release from GitHub with `pipx` so the CLI is isolated while
 remaining available at `~/.local/bin/agent-while-true`:
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.42.4'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.43.0'
 agent-while-true --version
 agent-while-true doctor
 ```
 
-This README describes the v0.42.4 release. Use a development checkout for
+This README describes the v0.43.0 release. Use a development checkout for
 changes made after that release:
 
 ```bash
@@ -170,6 +170,7 @@ output.
 | `p` | Pause/resume; pause performs no terminal or quota polling |
 | `r` | Rediscover Konsole sessions immediately |
 | `t` | Cycle dark, vivid, CGA, amber, and plain themes |
+| `x` | Toggle screenshot-safe redaction of account e-mail addresses |
 | `e` | Show or hide persisted action/state history |
 | `l` | Cycle displayed history through 5, 10, 20, and 50 retained rows |
 | `h` or `?` | Toggle the in-dashboard help |
@@ -196,12 +197,18 @@ footer stays visible. `g` / `G` jump to the top/end. Opening details or help
 brings that panel into view. Window resizing clamps the scroll position, and
 non-interactive reports remain complete and ANSI-free.
 
+Press `x` before taking a screenshot to keep each profile distinguishable while
+rendering an account such as `codex-dmo · work@example.com` as
+`codex-dmo · w…@e….com`. Redaction affects every dashboard account field,
+including details, but never mutates provider data or supervision identity and
+is deliberately reset when the process exits.
+
 Interactive theme, history length, and history/detail/help visibility are saved
 under the configured state directory in `preferences.json` (normally
 `~/.local/state/agent-watch/preferences.json`). Changes apply immediately and
 survive restart. Invalid files fall back to defaults; save errors appear in the
 dashboard. Mode, permissions, selections, pause and scan timing are never saved
-as presentation preferences.
+as presentation preferences. Account redaction is intentionally never saved.
 
 Other modes are:
 
