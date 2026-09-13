@@ -13,6 +13,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.42.5] - 2026-09-13
+
+### Fixed
+
+- Keep the synthetic performance profile aligned with the labelled Claude
+  status-line document contract enforced by the session-binding fix.
+
 ## [0.42.4] - 2026-09-13
 
 ### Fixed

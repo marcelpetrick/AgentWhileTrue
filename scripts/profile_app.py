@@ -65,6 +65,7 @@ def workload(
     quota.write_text(
         json.dumps(
             {
+                "source": "claude",
                 "updated_at": int(NOW.timestamp()),
                 "five_hour": {"used_percentage": 57, "resets_at": int(NOW.timestamp()) + 3600},
                 "seven_day": {"used_percentage": 40, "resets_at": int(NOW.timestamp()) + 86400},
