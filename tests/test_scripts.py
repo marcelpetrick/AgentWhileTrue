@@ -159,6 +159,41 @@ def test_bridge_installer_preserves_existing_statusline(tmp_path: Path) -> None:
     assert "already configured" in again.stdout
 
 
+def test_bridge_installer_migrates_a_proxy_from_another_namespace(tmp_path: Path) -> None:
+    settings = tmp_path / ".claude/settings.json"
+    settings.parent.mkdir()
+    settings.write_text(
+        json.dumps(
+            {
+                "statusLine": {
+                    "type": "command",
+                    "command": (
+                        "RETIRED_CLAUDE_PID=$PPID "
+                        "RETIRED_STATUSLINE_CHAIN=/tmp/original-statusline "
+                        "/tmp/retired/claude-statusline-proxy.sh"
+                    ),
+                    "refreshInterval": 60,
+                }
+            }
+        )
+    )
+
+    result = subprocess.run(
+        [str(BRIDGE_INSTALLER)],
+        text=True,
+        capture_output=True,
+        env={**os.environ, "HOME": str(tmp_path)},
+        timeout=5,
+    )
+    assert result.returncode == 0, result.stderr
+    command = json.loads(settings.read_text())["statusLine"]["command"]
+    assert command.startswith("AGENT_WHILE_TRUE_CLAUDE_PID=$PPID ")
+    assert "AGENT_WHILE_TRUE_STATUSLINE_CHAIN=/tmp/original-statusline" in command
+    assert str(tmp_path / ".local/share/agent-while-true/claude-statusline-proxy.sh") in command
+    assert "RETIRED_" not in command
+    assert "/tmp/retired/" not in command
+
+
 def test_user_service_forces_a_utf8_locale_for_qdbus() -> None:
     unit = USER_SERVICE.read_text(encoding="utf-8")
     assert "Environment=LC_ALL=C.UTF-8" in unit

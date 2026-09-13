@@ -40,7 +40,7 @@ install -m 755 -- "$SOURCE" "$TARGET"
 current="$(jq -r '.statusLine.command // empty' "$SETTINGS")"
 refresh="$(jq -r '.statusLine.refreshInterval // empty' "$SETTINGS")"
 pid_marker="AGENT_WHILE_TRUE_CLAUDE_PID=\$PPID"
-if [[ "$current" == *claude-statusline-proxy.sh* ]] \
+if [[ "$current" == *"$TARGET"* ]] \
     && [[ "$current" == *"$pid_marker"* ]] \
     && [[ "$refresh" =~ ^[0-9]+$ ]] \
     && [ "$refresh" -ge 1 ] \
@@ -50,7 +50,16 @@ if [[ "$current" == *claude-statusline-proxy.sh* ]] \
 fi
 
 if [[ "$current" == *claude-statusline-proxy.sh* ]]; then
-    replacement="$pid_marker $current"
+    chain_assignment='(^|[[:space:]])[[:alnum:]_]+_STATUSLINE_CHAIN=([^[:space:]]+)'
+    if [[ "$current" =~ $chain_assignment ]]; then
+        replacement="$pid_marker AGENT_WHILE_TRUE_STATUSLINE_CHAIN=${BASH_REMATCH[2]} $TARGET"
+    elif [[ "$current" == *_STATUSLINE_CHAIN=* ]]; then
+        printf '%s\n' 'Existing status-line chain is too complex to migrate safely.' >&2
+        printf '%s\n' 'Restore its original command, then run this installer again.' >&2
+        exit 1
+    else
+        replacement="$pid_marker $TARGET"
+    fi
 elif [ -n "$current" ]; then
     printf -v quoted_current '%q' "$current"
     replacement="AGENT_WHILE_TRUE_CLAUDE_PID=\$PPID AGENT_WHILE_TRUE_STATUSLINE_CHAIN=$quoted_current $TARGET"
