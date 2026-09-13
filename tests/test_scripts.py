@@ -182,7 +182,12 @@ def _service_installer_environment(tmp_path: Path) -> tuple[dict[str, str], Path
     systemctl = fake_bin / "systemctl"
     systemctl.write_text(f'#!/bin/sh\nprintf "%s\\n" "$*" >> "{calls}"\n')
     systemctl.chmod(0o755)
-    return {**os.environ, "HOME": str(home), "PATH": f"{fake_bin}:{os.environ['PATH']}"}, calls
+    return {
+        **os.environ,
+        "HOME": str(home),
+        "XDG_CONFIG_HOME": str(home / ".config"),
+        "PATH": f"{fake_bin}:{os.environ['PATH']}",
+    }, calls
 
 
 def test_service_installer_enables_observe_mode_by_default(tmp_path: Path) -> None:
