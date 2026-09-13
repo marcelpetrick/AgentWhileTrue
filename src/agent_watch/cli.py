@@ -68,6 +68,14 @@ EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_INTERRUPTED = 130
 REDISCOVERY_INTERVAL_SECONDS = 30.0
+PREFERENCE_FIELDS_BY_KEY = {
+    "t": frozenset({"theme"}),
+    "e": frozenset({"show_events"}),
+    "l": frozenset({"history_length"}),
+    "d": frozenset({"details_visible"}),
+    "h": frozenset({"help_visible"}),
+    "?": frozenset({"help_visible"}),
+}
 
 ROOT_WARNING = """\
 WARNING: Agent While True should run as your KDE desktop user, not as root.
@@ -336,7 +344,7 @@ def _loop(
     def request_stop(signum, frame) -> None:  # pragma: no cover - signal path
         stop["requested"] = True
 
-    for received in (signal.SIGINT, signal.SIGTERM):
+    for received in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
         # Not the main thread: there is nothing to install, and nothing to do.
         with contextlib.suppress(ValueError):
             signal.signal(received, request_stop)
@@ -352,6 +360,7 @@ def _loop(
     color = interactive and not args.no_color and "NO_COLOR" not in os.environ
     last_event = ""
     preferences_warning = ""
+    unsaved_preference_fields: set[str] = set()
     focus_section = ""
     event_history: list[str] = []
     metrics = ObservationMetrics(supervisor.log)
@@ -449,10 +458,19 @@ def _loop(
                     metrics.reset()
                 if key.lower() == "p" or key in {"+", "=", "-", "_"}:
                     next_scan = 0.0
-                if key.lower() in {"t", "e", "l", "d", "h", "?"}:
+                preference_fields = PREFERENCE_FIELDS_BY_KEY.get(key.lower(), frozenset())
+                if preference_fields:
+                    unsaved_preference_fields.update(preference_fields)
+                    saved = save_preferences(
+                        preferences_path,
+                        dashboard,
+                        unsaved_preference_fields,
+                    )
+                    if saved:
+                        unsaved_preference_fields.clear()
                     preferences_warning = (
                         ""
-                        if save_preferences(preferences_path, dashboard)
+                        if saved
                         else "Display preferences could not be saved; current choices remain active"
                     )
                 if dashboard.consume_mode_toggle():
@@ -465,6 +483,8 @@ def _loop(
                 time.sleep(max(0.0, next_scan - time.monotonic()))
         return EXIT_INTERRUPTED
     finally:
+        if interactive and unsaved_preference_fields:
+            save_preferences(preferences_path, dashboard, unsaved_preference_fields)
         metrics.reset()
         health.stop()
         if interactive:

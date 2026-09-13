@@ -87,6 +87,9 @@ Responsive rendering and viewport navigation operate solely on presentation.
 The screenshot-redaction toggle masks account e-mails at every rendering site,
 never changes supervision identity, and is deliberately excluded from saved
 preferences so a later run cannot silently inherit its privacy display state.
+Persisted presentation fields are merged under an owner-only file lock and
+atomically replaced. This prevents concurrent observe dashboards from losing
+unrelated updates; transient failures remain dirty and are retried on shutdown.
 
 `metrics.py` batches intervals between consecutive known observations, excluding
 pauses and gaps. `summary.py` streams retained structured logs, including rotated

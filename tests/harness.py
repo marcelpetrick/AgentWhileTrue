@@ -12,7 +12,7 @@ shared by the FSM tests and the ``simulate`` command.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -165,6 +165,14 @@ def build(
         "codex": ScriptedQuota(provider="codex", observed_at=clock.wall),
     }
     effective = config or Config(mode=mode)
+    # A fake-world test must never resolve writable paths into the developer's
+    # real XDG state/runtime directories. Preserve explicitly supplied paths,
+    # but sandbox every default under pytest's temporary directory.
+    effective = replace(
+        effective,
+        state_dir=effective.state_dir or tmp_path,
+        runtime_dir=effective.runtime_dir or tmp_path / "runtime",
+    )
     supervisor = Supervisor(
         terminal=terminal,
         config=effective,

@@ -343,7 +343,7 @@ def test_interactive_preferences_round_trip_without_input(
     monkeypatch.setattr(cli.TerminalKeys, "read", lambda self, timeout: next(pressed))
     monkeypatch.setattr(cli.HealthMonitor, "start", lambda self: None)
     if not save_ok:
-        monkeypatch.setattr(cli, "save_preferences", lambda path, state: False)
+        monkeypatch.setattr(cli, "save_preferences", lambda path, state, fields=None: False)
 
     class InteractiveOutput(io.StringIO):
         def isatty(self):
@@ -361,6 +361,75 @@ def test_interactive_preferences_round_trip_without_input(
     assert restored.theme == ("plain" if save_ok else "amber")
     assert not lock.held
     assert kit.sent == []
+
+
+def test_interactive_preferences_retry_after_transient_save_failure(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from agent_watch.preferences import load_preferences, save_preferences
+    from agent_watch.tui import DashboardState
+
+    kit = harness_module.build(tmp_path, mode=Mode.OBSERVE)
+    path = kit.supervisor.config.resolved_state_dir() / "preferences.json"
+    pressed = iter(["t", "q"])
+    attempts = 0
+
+    def fail_once(path, state, fields=None):
+        nonlocal attempts
+        attempts += 1
+        return attempts > 1 and save_preferences(path, state, fields)
+
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(cli.TerminalKeys, "read", lambda self, timeout: next(pressed))
+    monkeypatch.setattr(cli.HealthMonitor, "start", lambda self: None)
+    monkeypatch.setattr(cli, "save_preferences", fail_once)
+
+    class InteractiveOutput(io.StringIO):
+        def isatty(self):
+            return True
+
+    args = cli.build_parser().parse_args(["run", "--observe"])
+    lock = SingleInstanceLock.in_directory(tmp_path / "runtime")
+    assert cli._loop(kit.supervisor, kit.supervisor.config, args, InteractiveOutput(), lock) == 0
+
+    restored = DashboardState.from_interval(2)
+    load_preferences(path, restored)
+    assert attempts == 2
+    assert restored.theme == "vivid"
+
+
+def test_fake_harness_never_uses_live_default_paths(tmp_path: Path) -> None:
+    kit = harness_module.build(tmp_path, mode=Mode.OBSERVE)
+    assert kit.supervisor.config.resolved_state_dir() == tmp_path
+    assert kit.supervisor.config.resolved_runtime_dir() == tmp_path / "runtime"
+
+
+def test_every_documented_display_preference_survives_restart(tmp_path: Path, monkeypatch) -> None:
+    from agent_watch.preferences import load_preferences
+    from agent_watch.tui import DashboardState
+
+    kit = harness_module.build(tmp_path, mode=Mode.OBSERVE)
+    path = kit.supervisor.config.resolved_state_dir() / "preferences.json"
+    pressed = iter(["t", "e", "l", "d", "h", "q"])
+    monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(cli.TerminalKeys, "read", lambda self, timeout: next(pressed))
+    monkeypatch.setattr(cli.HealthMonitor, "start", lambda self: None)
+
+    class InteractiveOutput(io.StringIO):
+        def isatty(self):
+            return True
+
+    args = cli.build_parser().parse_args(["run", "--observe"])
+    lock = SingleInstanceLock.in_directory(tmp_path / "runtime")
+    assert cli._loop(kit.supervisor, kit.supervisor.config, args, InteractiveOutput(), lock) == 0
+
+    restored = DashboardState.from_interval(2)
+    load_preferences(path, restored)
+    assert restored.theme == "vivid"
+    assert restored.history_length == 20
+    assert not restored.show_events
+    assert restored.details_visible
+    assert restored.help_visible
 
 
 def test_interactive_navigation_focuses_panels_and_scrolls_back_from_end(

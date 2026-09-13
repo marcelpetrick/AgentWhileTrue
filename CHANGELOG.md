@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.43.1] - 2026-09-13
+
+### Fixed
+
+- Preserve theme, history length, and panel-visibility choices across
+  concurrent TUI sessions with locked field-level preference updates, and retry
+  transient save failures during clean shutdown or terminal hangup.
+- Sandbox fake-runtime state paths during tests so quality and release runs can
+  never overwrite the developer's real dashboard preferences.
+
 ## [0.43.0] - 2026-09-13
 
 ### Added

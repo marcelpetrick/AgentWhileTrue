@@ -209,6 +209,9 @@ under the configured state directory in `preferences.json` (normally
 survive restart. Invalid files fall back to defaults; save errors appear in the
 dashboard. Mode, permissions, selections, pause and scan timing are never saved
 as presentation preferences. Account redaction is intentionally never saved.
+Preference changes use locked field-level updates, so another observe dashboard
+cannot overwrite unrelated choices from an older in-memory snapshot. A failed
+write is retried during clean shutdown.
 
 Other modes are:
 

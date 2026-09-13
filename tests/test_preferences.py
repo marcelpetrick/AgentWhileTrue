@@ -36,6 +36,7 @@ def test_round_trip_only_restores_presentation_fields(tmp_path: Path) -> None:
     original.history_index = 3
     original.show_events = False
     original.details_visible = True
+    original.help_visible = True
     original.redact_accounts = True
     assert save_preferences(path, original)
 
@@ -47,7 +48,7 @@ def test_round_trip_only_restores_presentation_fields(tmp_path: Path) -> None:
     assert (restored.theme, restored.history_length) == ("amber", 50)
     assert not restored.show_events
     assert restored.details_visible
-    assert not restored.help_visible
+    assert restored.help_visible
     assert restored.interval_index == 8
     assert restored.paused
     assert restored.rescan_requested
@@ -112,6 +113,7 @@ def test_save_uses_owner_only_file_and_excludes_runtime_state(tmp_path: Path) ->
     path = tmp_path / "nested" / "preferences.json"
     assert save_preferences(path, DashboardState.from_interval(2))
     assert path.stat().st_mode & 0o777 == 0o600
+    assert (path.parent / ".preferences.json.lock").stat().st_mode & 0o777 == 0o600
     document = json.loads(path.read_text(encoding="utf-8"))
     assert set(document) == {
         "version",
@@ -123,6 +125,35 @@ def test_save_uses_owner_only_file_and_excludes_runtime_state(tmp_path: Path) ->
     }
     assert "paused" not in document
     assert "redact_accounts" not in document
+
+
+def test_field_update_preserves_newer_choices_from_another_dashboard(tmp_path: Path) -> None:
+    path = tmp_path / "preferences.json"
+    initial = DashboardState.from_interval(2)
+    assert save_preferences(path, initial)
+
+    older = DashboardState.from_interval(2)
+    newer = DashboardState.from_interval(2)
+    load_preferences(path, older)
+    load_preferences(path, newer)
+
+    newer.theme_index = 1
+    assert save_preferences(path, newer, {"theme"})
+    older.details_visible = True
+    assert save_preferences(path, older, {"details_visible"})
+
+    restored = DashboardState.from_interval(2)
+    load_preferences(path, restored)
+    assert restored.theme == "vivid"
+    assert restored.details_visible
+
+
+def test_invalid_or_empty_field_update_is_rejected(tmp_path: Path) -> None:
+    path = tmp_path / "preferences.json"
+    state = DashboardState.from_interval(2)
+    assert not save_preferences(path, state, set())
+    assert not save_preferences(path, state, {"paused"})
+    assert not path.exists()
 
 
 def test_invalid_encoding_and_deep_json_leave_state_unchanged(tmp_path: Path) -> None:

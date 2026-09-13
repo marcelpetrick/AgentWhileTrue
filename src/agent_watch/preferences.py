@@ -14,7 +14,9 @@ from __future__ import annotations
 import json
 import os
 import tempfile
+from collections.abc import Collection
 from contextlib import suppress
+from fcntl import LOCK_EX, flock
 from pathlib import Path
 from typing import Any
 
@@ -33,6 +35,7 @@ _PREFERENCE_KEYS = frozenset(
         "help_visible",
     }
 )
+_PREFERENCE_FIELDS = _PREFERENCE_KEYS - {"version"}
 
 
 def _is_bool(value: Any) -> bool:
@@ -90,9 +93,8 @@ def load_preferences(path: Path, state: DashboardState) -> None:
     state.help_visible = values["help_visible"]
 
 
-def save_preferences(path: Path, state: DashboardState) -> bool:
-    """Atomically save presentation preferences with owner-only permissions."""
-    document = {
+def _state_document(state: DashboardState) -> dict[str, object]:
+    return {
         "version": PREFERENCES_VERSION,
         "theme": state.theme,
         "history_length": state.history_length,
@@ -100,18 +102,56 @@ def save_preferences(path: Path, state: DashboardState) -> bool:
         "details_visible": state.details_visible,
         "help_visible": state.help_visible,
     }
+
+
+def _current_document(path: Path) -> dict[str, object] | None:
+    try:
+        with path.open("rb") as stream:
+            payload = stream.read(MAX_PREFERENCES_BYTES + 1)
+        if len(payload) > MAX_PREFERENCES_BYTES:
+            return None
+        document = json.loads(payload.decode("utf-8"))
+    except (OSError, ValueError, RecursionError):
+        return None
+    return document if _validated_values(document) is not None else None
+
+
+def save_preferences(
+    path: Path,
+    state: DashboardState,
+    fields: Collection[str] | None = None,
+) -> bool:
+    """Atomically update presentation preferences with owner-only permissions.
+
+    ``fields`` lets concurrent dashboards update only the setting changed by a
+    key press. A separate lock protects the read/merge/replace transaction, so
+    an older dashboard cannot overwrite unrelated, newer choices.
+    """
+    requested = _PREFERENCE_FIELDS if fields is None else frozenset(fields)
+    if not requested or not requested <= _PREFERENCE_FIELDS:
+        return False
+    state_document = _state_document(state)
     parent = path.parent
     temporary: str | None = None
     try:
         parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=parent)
-        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
-            json.dump(document, stream, sort_keys=True, separators=(",", ":"))
-            stream.write("\n")
-            stream.flush()
-            os.fsync(stream.fileno())
-        Path(temporary).replace(path)
-        temporary = None
+        lock_flags = os.O_CREAT | os.O_RDWR | getattr(os, "O_CLOEXEC", 0)
+        lock_descriptor = os.open(parent / f".{path.name}.lock", lock_flags, 0o600)
+        with os.fdopen(lock_descriptor, "rb", closefd=True) as lock_stream:
+            os.fchmod(lock_stream.fileno(), 0o600)
+            flock(lock_stream.fileno(), LOCK_EX)
+            document = _current_document(path) or state_document
+            document.update({field: state_document[field] for field in requested})
+            descriptor, temporary = tempfile.mkstemp(
+                prefix=f".{path.name}.", suffix=".tmp", dir=parent
+            )
+            with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+                json.dump(document, stream, sort_keys=True, separators=(",", ":"))
+                stream.write("\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            Path(temporary).replace(path)
+            temporary = None
         return True
     except (OSError, TypeError, ValueError):
         return False
