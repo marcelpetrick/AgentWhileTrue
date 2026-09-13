@@ -70,6 +70,13 @@ if [[ "$MODE" == "auto" ]]; then
     temporary="$(mktemp "$UNIT_DIR/.agent-while-true-mode.XXXXXX")"
     trap 'rm -f -- "$temporary"' EXIT
     {
+        printf '%s\n' '[Unit]'
+        if [[ "$ALLOW_CODEX_AUTO_RESUME" -eq 1 ]]; then
+            printf '%s\n' 'Description=Agent While True budget babysitter (auto, Codex enabled)'
+        else
+            printf '%s\n' 'Description=Agent While True budget babysitter (auto)'
+        fi
+        printf '\n'
         printf '%s\n' '[Service]'
         printf '%s\n' 'ExecStart='
         printf '%s\n' 'ExecStart=%h/.local/bin/agent-while-true run --auto --all --no-fzf'

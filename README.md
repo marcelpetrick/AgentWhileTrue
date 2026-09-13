@@ -58,12 +58,12 @@ Install a tagged release from GitHub with `pipx` so the CLI is isolated while
 remaining available at `~/.local/bin/agent-while-true`:
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.44.2'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.44.3'
 agent-while-true --version
 agent-while-true doctor
 ```
 
-This README describes the v0.44.2 release. Use a development checkout for
+This README describes the v0.44.3 release. Use a development checkout for
 changes made after that release:
 
 ```bash

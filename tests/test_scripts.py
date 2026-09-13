@@ -258,6 +258,7 @@ def test_service_installer_creates_explicit_auto_mode_dropin(tmp_path: Path) -> 
     ).read_text()
     assert "run --auto --all --no-fzf" in dropin
     assert "Environment=AGENT_WHILE_TRUE_ALLOW_CODEX_AUTO_RESUME=true" in dropin
+    assert "Description=Agent While True budget babysitter (auto, Codex enabled)" in dropin
     assert "--user enable --now agent-while-true.service" in calls.read_text()
     assert "auto mode" in result.stdout
 

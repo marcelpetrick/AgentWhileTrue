@@ -13,6 +13,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.44.3] - 2026-09-13
+
+### Fixed
+
+- Make the auto-mode systemd drop-in override the observe-only unit
+  description, including whether Codex continuation was explicitly enabled.
+
 ## [0.44.2] - 2026-09-13
 
 ### Fixed
