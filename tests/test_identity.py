@@ -162,3 +162,27 @@ def test_an_unidentifiable_claude_profile_reports_unavailable(tmp_path: Path, mo
     assert account.profile == "claude-profile"
     assert account.email == "unavailable"
     assert account.label() == "claude-profile"
+
+
+def test_a_failed_claude_lookup_is_retried_rather_than_cached(tmp_path, monkeypatch) -> None:
+    """`claude auth status` reaches the network, so a timeout must not be final.
+
+    Caching the failure would pin the profile to "unavailable" for the whole run,
+    where before the per-profile cache every session and rediscovery retried.
+    """
+    home = tmp_path / ".claude"
+    answers = [None, "me@example.com"]
+    calls: list[str] = []
+
+    def claude_email(*, config_dir=None):
+        calls.append(str(config_dir))
+        return answers.pop(0)
+
+    monkeypatch.setattr(identity, "claude_email", claude_email)
+    monkeypatch.setattr(identity, "_process_environment_value", lambda pid, key: str(home))
+
+    assert identity.session_account("claude", 1).email == "unavailable"
+    assert identity.session_account("claude", 2).email == "me@example.com"
+    # The resolved answer is cached; only the failure was retried.
+    assert identity.session_account("claude", 3).email == "me@example.com"
+    assert calls == [str(home), str(home)]

@@ -162,7 +162,14 @@ def claude_session_account(pid: int) -> SessionAccount:
         profile = f"claude-{name.removeprefix('.claude-')}"
     else:
         profile = "claude-profile"
-    account = SessionAccount(profile, claude_email(config_dir=home) or "unavailable")
+    email = claude_email(config_dir=home)
+    # Only a resolved account is remembered. The CLI reaches the network, so a
+    # timeout is a transient answer, and caching it would pin the profile to
+    # "unavailable" for the rest of the run instead of retrying on the next
+    # selection or rediscovery.
+    if email is None:
+        return SessionAccount(profile, "unavailable")
+    account = SessionAccount(profile, email)
     _CLAUDE_ACCOUNTS[str(home)] = account
     return account
 

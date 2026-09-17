@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.45.1] - 2026-09-17
+
+### Fixed
+
+- Retry a Claude account lookup that failed instead of remembering the failure.
+  `claude auth status` reaches the network, so one timeout had pinned that
+  profile to `unavailable` for the rest of the run; only a resolved account is
+  cached now.
+
 ## [0.45.0] - 2026-09-17
 
 ### Changed
