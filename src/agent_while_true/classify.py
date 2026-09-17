@@ -199,19 +199,28 @@ def _ancestor_blocker(info: ProcessInfo) -> str | None:
     ``konsole -> zsh -> tmux -> zsh -> claude`` must not be automated even
     though the foreground process really is Claude: the visible pane is not
     necessarily the one being written to.
+
+    ``proc.exists`` and the reads that follow it are not atomic, so an ancestor
+    can exit mid-walk. An ancestry that cannot be read is ambiguous rather than
+    clear, so it blocks for this observation instead of raising: the next tick
+    walks it again, and one refused tick costs nothing while an exception
+    escaping into :func:`classify` would stop the whole supervision loop.
     """
     pid = info.ppid
     for _ in range(MAX_ANCESTOR_DEPTH):
-        if pid <= 1 or not proc.exists(pid):
-            return None
-        comm = proc.read_comm(pid)
-        if comm in _NESTED_TERMINALS:
-            return f"nested-terminal-ancestor={comm}"
-        if comm in _REMOTE:
-            return f"remote-ancestor={comm}"
-        if comm == "konsole":
-            return None
-        pid = proc.read_ppid(pid)
+        try:
+            if pid <= 1 or not proc.exists(pid):
+                return None
+            comm = proc.read_comm(pid)
+            if comm in _NESTED_TERMINALS:
+                return f"nested-terminal-ancestor={comm}"
+            if comm in _REMOTE:
+                return f"remote-ancestor={comm}"
+            if comm == "konsole":
+                return None
+            pid = proc.read_ppid(pid)
+        except (OSError, LookupError, ValueError):
+            return "ancestor-unreadable"
     return None
 
 

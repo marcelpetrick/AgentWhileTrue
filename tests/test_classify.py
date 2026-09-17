@@ -15,6 +15,11 @@ import pytest
 
 from agent_while_true import classify as classify_module
 from agent_while_true.classify import Confidence, ProcessClass, classify
+from agent_while_true.proc import ProcessGoneError
+
+#: Captured before the autouse fixture in ``conftest`` replaces it, so the tests
+#: below can exercise the real ancestry walk.
+_REAL_ANCESTOR_BLOCKER = classify_module._ancestor_blocker
 
 CLAUDE_EXE = "/home/user/.local/share/claude/versions/2.1.261"
 CODEX_SHIM = "/run/user/1000/fnm_multishells/631816_1788536739178/bin/codex"
@@ -139,4 +144,42 @@ def test_unrecognised_process_fails_closed(info_factory) -> None:
     result = classify(info_factory(comm="btop", exe="/usr/bin/btop", cmdline=("btop",)))
     assert result.process_class is ProcessClass.UNKNOWN
     assert result.blocker == "unrecognised-process"
+    assert not result.automatable
+
+
+def test_an_ancestor_exiting_mid_walk_fails_closed(info_factory, monkeypatch) -> None:
+    """A process race in the ancestry must refuse, not raise.
+
+    ``proc.exists`` and the read that follows it are not atomic, so an ancestor
+    can exit in between. Losing the ancestry means the supervisor cannot tell
+    whether a multiplexer sits between Konsole and this process, and an
+    exception here would take the whole supervision loop down with it.
+    """
+
+    def gone(pid: int) -> str:
+        raise ProcessGoneError(f"/proc/{pid}/comm")
+
+    monkeypatch.setattr(classify_module, "_ancestor_blocker", _REAL_ANCESTOR_BLOCKER)
+    monkeypatch.setattr(classify_module.proc, "exists", lambda pid: True)
+    monkeypatch.setattr(classify_module.proc, "read_comm", gone)
+
+    result = classify(info_factory(comm="claude", exe=CLAUDE_EXE, cmdline=("claude",)))
+
+    assert result.process_class is ProcessClass.CLAUDE
+    assert result.blocker == "ancestor-unreadable"
+    assert not result.automatable
+
+
+def test_an_unreadable_parent_pid_also_fails_closed(info_factory, monkeypatch) -> None:
+    def unreadable(pid: int) -> int:
+        raise OSError("permission denied")
+
+    monkeypatch.setattr(classify_module, "_ancestor_blocker", _REAL_ANCESTOR_BLOCKER)
+    monkeypatch.setattr(classify_module.proc, "exists", lambda pid: True)
+    monkeypatch.setattr(classify_module.proc, "read_comm", lambda pid: "zsh")
+    monkeypatch.setattr(classify_module.proc, "read_ppid", unreadable)
+
+    result = classify(info_factory(comm="claude", exe=CLAUDE_EXE, cmdline=("claude",)))
+
+    assert result.blocker == "ancestor-unreadable"
     assert not result.automatable

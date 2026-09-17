@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.44.5] - 2026-09-17
+
+### Fixed
+
+- Keep a process exiting during the ancestry walk from terminating the whole
+  supervision loop. An ancestry that cannot be read is now reported as the
+  `ancestor-unreadable` blocker for that observation and revalidated on the
+  next tick, instead of raising out of classification.
+
 ## [0.44.4] - 2026-09-17
 
 ### Fixed
