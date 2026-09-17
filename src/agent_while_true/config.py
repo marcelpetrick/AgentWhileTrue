@@ -117,6 +117,11 @@ class Config:
     scan_interval: float = 2.0
     usage_poll_interval: float = 60.0
     status_poll_interval: float = 1.0
+    #: How often the public provider status APIs are actually requested.
+    #: Deliberately much coarser than the display refresh: an incident page
+    #: does not change every second, and one instance polling at the display
+    #: interval sends tens of thousands of requests per provider per day.
+    service_status_interval: float = 300.0
     reset_grace: float = 60.0
     max_resume_attempts: int = 3
     retry_delays: tuple[float, ...] = (5.0, 30.0, 60.0)
@@ -169,6 +174,7 @@ _KEYS: dict[str, tuple[str, str]] = {
     "SCAN_INTERVAL": ("scan_interval", "duration"),
     "USAGE_POLL_INTERVAL": ("usage_poll_interval", "duration"),
     "STATUS_POLL_INTERVAL": ("status_poll_interval", "duration"),
+    "SERVICE_STATUS_INTERVAL": ("service_status_interval", "duration"),
     "RESET_GRACE": ("reset_grace", "duration"),
     "MAX_RESUME_ATTEMPTS": ("max_resume_attempts", "int"),
     "RETRY_DELAYS": ("retry_delays", "durations"),

@@ -3,6 +3,7 @@
 """Presentation key bursts must not multiply terminal/provider polling."""
 
 import io
+from dataclasses import replace
 
 import pytest
 
@@ -49,3 +50,35 @@ def test_keys_do_not_accelerate_scans(tmp_path, monkeypatch, pressed, elapsed, e
     assert cli._loop(kit.supervisor, kit.supervisor.config, args, Output(), lock) == 0
     assert len(ticks) == expected
     assert kit.sent == []
+
+
+def test_service_status_is_fetched_on_its_own_interval(tmp_path, monkeypatch):
+    """The dashboard redraw rate must not become the status-API request rate."""
+    intervals = []
+
+    class Recorder:
+        def __init__(self, *, interval):
+            intervals.append(interval)
+
+        def start(self):
+            pass
+
+        def stop(self):
+            pass
+
+        def snapshot(self):
+            return {}
+
+    kit = build(tmp_path, mode=Mode.OBSERVE)
+    config = replace(kit.supervisor.config, status_poll_interval=1.0, service_status_interval=300.0)
+    monkeypatch.setattr(cli, "HealthMonitor", Recorder)
+    args = cli.build_parser().parse_args(["run", "--observe", "--once"])
+    lock = SingleInstanceLock.in_directory(tmp_path / "runtime")
+
+    assert cli._loop(kit.supervisor, config, args, io.StringIO(), lock) == 0
+    assert intervals == [300.0]
+
+
+def test_the_default_status_interval_is_far_coarser_than_the_redraw(tmp_path):
+    config = build(tmp_path, mode=Mode.OBSERVE).supervisor.config
+    assert config.service_status_interval >= 60 * config.status_poll_interval

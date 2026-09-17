@@ -13,6 +13,17 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.45.0] - 2026-09-17
+
+### Changed
+
+- Give the providers' public status APIs their own request interval,
+  `SERVICE_STATUS_INTERVAL`, defaulting to five minutes. The dashboard had been
+  polling both endpoints at its own one-second display interval, roughly 86,000
+  requests per provider per day per running instance; the display now re-renders
+  the cached answer and its age without issuing a request, and the staleness
+  threshold follows the fetch interval rather than the redraw interval.
+
 ## [0.44.9] - 2026-09-17
 
 ### Fixed

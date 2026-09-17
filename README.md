@@ -309,11 +309,14 @@ The dashboard reports public service health for OpenAI Codex API and Anthropic
 Claude Code/API. These are cached observations from the providers' public JSON
 status APIs, not paid model calls, and `UNKNOWN` is shown when the network,
 schema, component identity, or component status is unusable. Each provider is
-polled independently once per second in the background by default
-(`STATUS_POLL_INTERVAL=1s`), so one slow endpoint cannot delay the other. The
-client requests gzip and uses ETag revalidation when offered, keeping unchanged
-responses small. One second is the enforced lower bound; increase it if you
-prefer less network traffic.
+polled independently in the background, every five minutes by default
+(`SERVICE_STATUS_INTERVAL=5m`), so one slow endpoint cannot delay the other.
+The dashboard re-renders the cached answer and its age at the display interval
+(`STATUS_POLL_INTERVAL=1s`); that is a redraw, not a request. The client
+requests gzip and uses ETag revalidation when offered, keeping unchanged
+responses small. One second is the enforced lower bound on the fetch interval,
+but a status page does not change that quickly and polling it every second
+sends tens of thousands of requests per provider per day.
 
 ## Operational summaries
 

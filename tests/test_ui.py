@@ -218,7 +218,7 @@ def test_dashboard_explains_service_errors_and_refuses_stale_online_state() -> N
     text = render_status(
         [],
         now=NOW + timedelta(minutes=3),
-        config=Config(status_poll_interval=60),
+        config=Config(service_status_interval=60),
         service_health=health,
     )
     assert "OpenAI: UNKNOWN (180s ago; stale-status)" in text

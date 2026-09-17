@@ -509,7 +509,7 @@ def render_status(
     if service_health:
         status_parts = []
         health_roles = []
-        health_max_age = max(10.0, config.status_poll_interval * 2)
+        health_max_age = max(10.0, config.service_status_interval * 2)
         for provider, label in (("openai", "OpenAI"), ("anthropic", "Anthropic")):
             health = service_health.get(provider, ProviderHealth(provider, HealthState.UNKNOWN, ""))
             status_parts.append(f"{label}: {_health_text(health, now, health_max_age)}")

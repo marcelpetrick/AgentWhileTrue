@@ -19,6 +19,7 @@ from agent_while_true.service_health import (
     ProviderHealth,
     StatusPageClient,
     parse_summary,
+    unknown_health,
 )
 
 NOW = datetime(2026, 9, 8, 10, 0, tzinfo=UTC)
@@ -229,3 +230,29 @@ def test_monitor_polls_again_after_being_stopped_and_restarted() -> None:
     monitor.stop()
 
     assert len(counted) > first
+
+
+def test_monitor_waits_the_configured_interval_between_polls() -> None:
+    """The fetch interval is the network cadence, not the dashboard's redraw rate."""
+    waits: list[float] = []
+    monitor = HealthMonitor(interval=300.0, fetch=lambda provider: unknown_health(provider))
+    monitor._stop = _RecordingEvent(waits)
+    monitor._run_provider("openai")
+
+    assert waits == [300.0]
+
+
+class _RecordingEvent:
+    """A stop event that records one wait and then ends the loop."""
+
+    def __init__(self, waits: list[float]) -> None:
+        self._waits = waits
+        self._set = False
+
+    def is_set(self) -> bool:
+        return self._set
+
+    def wait(self, timeout: float) -> bool:
+        self._waits.append(timeout)
+        self._set = True
+        return True

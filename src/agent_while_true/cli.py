@@ -364,7 +364,7 @@ def _loop(
     focus_section = ""
     event_history: list[str] = []
     metrics = ObservationMetrics(supervisor.log)
-    health = HealthMonitor(interval=config.status_poll_interval)
+    health = HealthMonitor(interval=config.service_status_interval)
     # command_run() has just completed initial discovery and selection.
     next_rediscovery = time.monotonic() + REDISCOVERY_INTERVAL_SECONDS
     next_scan = 0.0
@@ -602,6 +602,10 @@ USAGE_POLL_INTERVAL=60s
 # Public status summaries are cached off the supervisor thread. The TUI still
 # refreshes their age every second when its display interval is 1s.
 STATUS_POLL_INTERVAL=1s
+
+# How often the providers' public status APIs are actually requested. The
+# dashboard re-renders the cached answer's age far more often than this.
+SERVICE_STATUS_INTERVAL=5m
 
 # Extra wait after the provider's nominal reset, because a reset timestamp can
 # pass while usage is not yet actually available.
