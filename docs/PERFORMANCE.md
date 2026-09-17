@@ -86,14 +86,13 @@ connections as the implementation:
 | Anthropic | 10 | two `200`, eight `304` responses | 1,264 bytes |
 | Total | 20 | two checks per second | 12,744 bytes |
 
-That sample was taken at the former 1-second interval. At the current
-`SERVICE_STATUS_INTERVAL=5m` default the same twenty checks cover fifty
-minutes rather than ten seconds.
-
-That is about 1.27 KB of compressed response bodies per second at the
-1-second interval used for the sample, and about 4 KB per minute across
-both providers at the 5-minute default. HTTP headers and the initial DNS/TCP/TLS setup are not included in
-that body count. On the measured direct path, connections stay open between
+That sample was taken at the former 1-second interval, so it is about 1.27 KB
+of compressed response bodies per second across both providers. The twenty
+checks average 637 bytes each; at the current `SERVICE_STATUS_INTERVAL=5m`
+default the same twenty checks span fifty minutes rather than ten seconds, or
+roughly 1.3 KB per five-minute round for the two providers together. HTTP
+headers and the initial DNS/TCP/TLS setup are not included in that body
+count. On the measured direct path, connections stay open between
 checks, response bodies are bounded to 128 KiB compressed and decompressed, and
 transport failure closes the connection so the next check reconnects cleanly.
 When an HTTP(S) proxy is configured, Agent While True preserves the
