@@ -19,7 +19,9 @@ Measured on 2026-09-09 with:
 - seven to eight visible Konsole sessions, including five selected Codex or
   Claude sessions;
 - the default 2-second selected-session scan interval;
-- the required 1-second provider-health interval;
+- a 1-second provider-health interval, which was the default when this
+  measurement was taken; the shipped default is now 5 minutes
+  (`SERVICE_STATUS_INTERVAL`), so real status traffic is far lower;
 - no configured HTTP or HTTPS proxy, so the persistent direct transport was
   active;
 - observe mode, `--all`, `--no-fzf`, and `--no-color`;
@@ -84,8 +86,13 @@ connections as the implementation:
 | Anthropic | 10 | two `200`, eight `304` responses | 1,264 bytes |
 | Total | 20 | two checks per second | 12,744 bytes |
 
-This is about 1.27 KB of compressed response bodies per second across both
-providers. HTTP headers and the initial DNS/TCP/TLS setup are not included in
+That sample was taken at the former 1-second interval. At the current
+`SERVICE_STATUS_INTERVAL=5m` default the same twenty checks cover fifty
+minutes rather than ten seconds.
+
+That is about 1.27 KB of compressed response bodies per second at the
+1-second interval used for the sample, and about 4 KB per minute across
+both providers at the 5-minute default. HTTP headers and the initial DNS/TCP/TLS setup are not included in
 that body count. On the measured direct path, connections stay open between
 checks, response bodies are bounded to 128 KiB compressed and decompressed, and
 transport failure closes the connection so the next check reconnects cleanly.
@@ -102,7 +109,8 @@ process, and scheduler load.
 
 The revised behavior meets the intended balance on this machine:
 
-- official provider outage state is still checked once per second;
+- official provider outage state is fetched every five minutes by default
+  and re-rendered from cache at the display interval;
 - selected terminal sessions are still inspected every two seconds by default;
 - new or removed Konsole sessions settle within 30 seconds, or immediately when
   the user presses `r`;

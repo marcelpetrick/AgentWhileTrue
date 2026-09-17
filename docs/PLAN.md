@@ -32,7 +32,9 @@ The requested implementation is complete:
   idle-refreshed, hashed-session files bound to PID and process start time.
 - Five-hour and weekly usage meters show compact reset countdowns.
 - Official Codex API and Claude Code/API status components are polled
-  independently once per second with bounded, compressed, conditional requests.
+  independently on their own `SERVICE_STATUS_INTERVAL` (five minutes by
+  default) with bounded, compressed, conditional requests; the dashboard
+  re-renders the cached answer without issuing one.
 - Observe, ask, and full-auto modes share the same supervisor and policy gate;
   uppercase `A` deliberately toggles observe/full-auto in the TUI.
 - The action lifecycle is persisted as `PLANNED -> SENT -> VERIFIED|FAILED` and
