@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.45.5] - 2026-09-17
+
+### Fixed
+
+- Report a non-numeric `SERVICE_STATUS_INTERVAL` as a configuration error like
+  every other malformed setting, rather than letting a `TypeError` escape the
+  range check.
+
 ## [0.45.4] - 2026-09-17
 
 ### Removed

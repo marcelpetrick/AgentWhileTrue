@@ -153,7 +153,8 @@ class Config:
         # value here would quietly restore once-a-second polling of both public
         # status APIs rather than doing what it appears to say.
         if (
-            not math.isfinite(self.service_status_interval)
+            type(self.service_status_interval) not in {int, float}
+            or not math.isfinite(self.service_status_interval)
             or not 1 <= self.service_status_interval <= 86400
         ):
             raise ConfigError("SERVICE_STATUS_INTERVAL needs a period between 1s and 24h")
