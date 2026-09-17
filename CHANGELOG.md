@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.44.7] - 2026-09-17
+
+### Fixed
+
+- Stop reading ordinary English words as weekdays and dates when parsing a
+  reset time. `monthly` is no longer Monday and `friend` is no longer Friday,
+  which had moved a parsed reset up to a week into the future, and a bare
+  `may` or `march` no longer discards the only reset time on the line.
+
 ## [0.44.6] - 2026-09-17
 
 ### Fixed

@@ -111,3 +111,42 @@ def test_unparseable_text_returns_none(text: str) -> None:
 def test_unknown_timezone_falls_back_to_local_rather_than_failing() -> None:
     parsed = parse_reset("resets 8:10pm (Mars/Olympus)", NOW)
     assert parsed == datetime(2026, 9, 5, 20, 10, tzinfo=BERLIN)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Usage limit reached; monthly cap. Try again at 8:10 PM",
+        "Satisfied? Try again at 8:10 PM",
+        "Your friend hit the limit. Try again at 8:10 PM",
+        "Thumbnail render stopped. Try again at 8:10 PM",
+    ],
+)
+def test_words_beginning_like_a_weekday_are_not_weekdays(text: str) -> None:
+    """``monthly`` is not Monday, and a stray weekday pushes the reset days out."""
+    assert parse_reset(text, NOW) == datetime(2026, 9, 5, 20, 10, tzinfo=BERLIN)
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("resets Monday 12:00am", datetime(2026, 9, 7, 0, 0, tzinfo=BERLIN)),
+        ("resets Tuesday 12:00am", datetime(2026, 9, 8, 0, 0, tzinfo=BERLIN)),
+        ("resets Thurs 12:00am", datetime(2026, 9, 10, 0, 0, tzinfo=BERLIN)),
+        ("resets Sun 12:00am", datetime(2026, 9, 6, 0, 0, tzinfo=BERLIN)),
+    ],
+)
+def test_full_weekday_words_are_still_understood(text: str, expected: datetime) -> None:
+    assert parse_reset(text, NOW) == expected
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Usage limit reached - you may retry at 8:10 PM",
+        "March on; try again at 8:10 PM",
+    ],
+)
+def test_month_names_used_as_ordinary_words_do_not_suppress_the_clock(text: str) -> None:
+    """A bare month word is not a date, and must not discard the only reset time."""
+    assert parse_reset(text, NOW) == datetime(2026, 9, 5, 20, 10, tzinfo=BERLIN)

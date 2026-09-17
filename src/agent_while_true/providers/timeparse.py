@@ -53,15 +53,23 @@ _ISO_DATE_RE = re.compile(
     r"(?:\s*\((?P<tz>[A-Za-z_]+/[A-Za-z_+-]+)\))?",
     re.IGNORECASE,
 )
+#: Enough to tell "this line carries a date" from "this line happens to contain
+#: an English word". A month name only counts as dated when a number follows it,
+#: because "may", "march" and "august" are ordinary words and treating them as
+#: dates discards the only reset time on the line.
 _DATED_TEXT_RE = re.compile(
     r"\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|"
     r"Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|"
-    r"Dec(?:ember)?|\d{4}-\d{2}-\d{2})\b",
+    r"Dec(?:ember)?)\s+\d|\b\d{4}-\d{2}-\d{2}\b",
     re.IGNORECASE,
 )
-#: "resets Mon 12:00am"
+#: "resets Mon 12:00am". Spelled out in full rather than as a three-letter stem
+#: plus a wildcard suffix: "monthly" is not Monday, and a spurious weekday moves
+#: the parsed reset up to a week into the future.
 _WEEKDAY_RE = re.compile(
-    r"\b(?P<weekday>mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)[a-z]*\b", re.IGNORECASE
+    r"\b(?P<weekday>mon(?:day)?|tue(?:s(?:day)?)?|wed(?:nesday)?|"
+    r"thu(?:r(?:s(?:day)?)?)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b",
+    re.IGNORECASE,
 )
 #: "resets in 4h51m" / "resets in 90m" / "resets in 45s"
 _RELATIVE_RE = re.compile(
@@ -69,18 +77,8 @@ _RELATIVE_RE = re.compile(
     re.IGNORECASE,
 )
 
-_WEEKDAYS = {
-    "mon": 0,
-    "tue": 1,
-    "tues": 1,
-    "wed": 2,
-    "thu": 3,
-    "thur": 3,
-    "thurs": 3,
-    "fri": 4,
-    "sat": 5,
-    "sun": 6,
-}
+#: Keyed by the first three letters, which every accepted spelling shares.
+_WEEKDAYS = {"mon": 0, "tue": 1, "wed": 2, "thu": 3, "fri": 4, "sat": 5, "sun": 6}
 
 DAYS_PER_WEEK = 7
 NOON = 12
@@ -202,7 +200,7 @@ def parse_reset(text: str, now: datetime) -> datetime | None:
 
     weekday = _WEEKDAY_RE.search(text)
     if weekday is not None:
-        target = _WEEKDAYS[weekday.group("weekday").lower()]
+        target = _WEEKDAYS[weekday.group("weekday")[:3].lower()]
         ahead = (target - candidate.weekday()) % DAYS_PER_WEEK
         if ahead == 0 and candidate <= reference:
             ahead = DAYS_PER_WEEK
