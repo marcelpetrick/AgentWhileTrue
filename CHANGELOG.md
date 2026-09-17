@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.45.4] - 2026-09-17
+
+### Removed
+
+- Drop `identity.provider_accounts()`. It answered "which account does this
+  provider use" for the whole machine, which is the question per-session account
+  identity replaced; it had no caller and would have handed a new one the label
+  that was wrong in the first place.
+
 ## [0.45.3] - 2026-09-17
 
 ### Fixed

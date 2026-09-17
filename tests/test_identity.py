@@ -72,15 +72,6 @@ def test_claude_email_refuses_invalid_or_logged_out_status(monkeypatch) -> None:
     assert identity.claude_email() is None
 
 
-def test_provider_accounts_marks_unknown_identity(monkeypatch) -> None:
-    monkeypatch.setattr(identity, "codex_email", lambda: None)
-    monkeypatch.setattr(identity, "claude_email", lambda: "claude@example.com")
-    assert identity.provider_accounts() == {
-        "codex": "unavailable",
-        "claude": "claude@example.com",
-    }
-
-
 def test_codex_session_account_distinguishes_profile_home(tmp_path: Path, monkeypatch) -> None:
     profile = tmp_path / ".codex-dmo"
     profile.mkdir()

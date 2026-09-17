@@ -211,11 +211,3 @@ def claude_email(*, config_dir: Path | None = None) -> str | None:
     if not isinstance(document, dict) or document.get("loggedIn") is not True:
         return None
     return _valid_email(document.get("email"))
-
-
-def provider_accounts() -> dict[str, str]:
-    """Return display values for both supported providers, without caching."""
-    return {
-        "codex": codex_email() or "unavailable",
-        "claude": claude_email() or "unavailable",
-    }
