@@ -276,8 +276,10 @@ class HealthMonitor:
         for thread in self._threads:
             thread.join(timeout=REQUEST_TIMEOUT_SECONDS + 1)
         # Joined threads cannot be restarted, so retaining them would make the
-        # guard in start() reject every later start.
-        self._threads.clear()
+        # guard in start() reject every later start. A thread that outlived its
+        # join is still running, though, and forgetting it would let the next
+        # start() add a second thread for the same provider.
+        self._threads = [thread for thread in self._threads if thread.is_alive()]
         for client in self._clients.values():
             client.close()
 

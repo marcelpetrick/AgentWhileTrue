@@ -13,6 +13,7 @@ import threading
 import urllib.error
 from datetime import UTC, datetime
 
+from agent_while_true import service_health
 from agent_while_true.service_health import (
     HealthMonitor,
     HealthState,
@@ -256,3 +257,32 @@ class _RecordingEvent:
         self._waits.append(timeout)
         self._set = True
         return True
+
+
+def test_stop_keeps_a_thread_that_outlived_its_join(monkeypatch) -> None:
+    """A forgotten live thread would let start() spawn a second one per provider.
+
+    join() has a timeout, and a fetch wedged in DNS or TLS can outlast it; the
+    stale thread must keep blocking a restart until it really is finished.
+    """
+    release = threading.Event()
+    running = threading.Event()
+
+    def fetch(provider: str) -> ProviderHealth:
+        if provider == "openai":
+            running.set()
+            release.wait(timeout=10)
+        return unknown_health(provider)
+
+    # Shrink the join window so the wedged thread is still alive when stop returns.
+    monkeypatch.setattr(service_health, "REQUEST_TIMEOUT_SECONDS", 0.0)
+    monitor = HealthMonitor(interval=3600.0, fetch=fetch)
+    monitor.start()
+    assert running.wait(timeout=5)
+
+    monitor.stop()
+
+    assert [thread.name for thread in monitor._threads] == ["provider-health-openai"]
+    release.set()
+    monitor.stop()
+    assert monitor._threads == []

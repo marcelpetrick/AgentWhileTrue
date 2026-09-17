@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.45.3] - 2026-09-17
+
+### Fixed
+
+- Keep a health-monitor thread that outlived its join instead of forgetting it.
+  `join()` has a timeout, so a wedged fetch could otherwise be dropped from the
+  bookkeeping and a later start would add a second thread for the same provider.
+
 ## [0.45.2] - 2026-09-17
 
 ### Fixed
