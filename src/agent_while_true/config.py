@@ -149,6 +149,14 @@ class Config:
             raise ConfigError("RETRY_DELAYS needs 1-32 finite delays between 0s and 24h")
         if type(self.max_resume_attempts) is not int or not 0 <= self.max_resume_attempts <= 1000:
             raise ConfigError("MAX_RESUME_ATTEMPTS needs a whole number between 0 and 1000")
+        # The health monitor floors its wait at one second, so a zero or negative
+        # value here would quietly restore once-a-second polling of both public
+        # status APIs rather than doing what it appears to say.
+        if (
+            not math.isfinite(self.service_status_interval)
+            or not 1 <= self.service_status_interval <= 86400
+        ):
+            raise ConfigError("SERVICE_STATUS_INTERVAL needs a period between 1s and 24h")
 
     def resolved_state_dir(self) -> Path:
         return self.state_dir or default_state_dir()

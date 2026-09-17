@@ -162,3 +162,15 @@ def test_every_configured_attempt_has_a_delay() -> None:
     config = Config()
     for attempt in range(config.max_resume_attempts + 2):
         assert config.retry_delay(attempt) >= 0.0
+
+
+@pytest.mark.parametrize("interval", [0.0, -1.0, 86401.0])
+def test_service_status_interval_must_be_a_usable_period(interval) -> None:
+    """A zero or negative value was silently floored back to one request a second."""
+    with pytest.raises(ConfigError, match="SERVICE_STATUS_INTERVAL"):
+        replace(Config(), service_status_interval=interval)
+
+
+def test_the_configured_status_interval_is_the_one_actually_waited() -> None:
+    config = Config(service_status_interval=300.0)
+    assert max(1.0, config.service_status_interval) == config.service_status_interval

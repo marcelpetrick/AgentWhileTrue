@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.45.2] - 2026-09-17
+
+### Fixed
+
+- Reject a `SERVICE_STATUS_INTERVAL` outside 1s-24h at load. A zero or negative
+  period was accepted and then floored by the health monitor, silently restoring
+  the once-per-second polling of both public status APIs that the setting exists
+  to avoid.
+
 ## [0.45.1] - 2026-09-17
 
 ### Fixed
