@@ -55,3 +55,17 @@ def _isolate_process_tree(monkeypatch):
     monkeypatch.setattr(classify_module, "_child_comms", lambda pid: ())
     monkeypatch.setattr(classify_module, "_ancestor_blocker", lambda info: None)
     monkeypatch.setattr(classify_module, "_detect_container", lambda info: None)
+
+
+@pytest.fixture(autouse=True)
+def _isolate_proxy_environment(monkeypatch):
+    """Keep the host's proxy configuration out of every test.
+
+    ``StatusPageClient`` picks its transport from ``urllib.request.getproxies()``
+    at construction time, so a machine or CI runner with ``HTTP_PROXY`` set takes
+    the urllib path instead of the persistent-connection path and the status
+    tests exercise something other than what they claim.
+    """
+    from agent_while_true import service_health
+
+    monkeypatch.setattr(service_health.urllib.request, "getproxies", dict)

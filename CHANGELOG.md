@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.44.4] - 2026-09-17
+
+### Fixed
+
+- Isolate the provider status tests from a host-provided proxy configuration,
+  so the transport under test is the one the assertions describe on proxied
+  developer machines and CI runners alike.
+
 ## [0.44.3] - 2026-09-13
 
 ### Fixed
