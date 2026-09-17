@@ -258,6 +258,9 @@ class HealthMonitor:
     def start(self) -> None:
         if self._threads:
             return
+        # A monitor that has been stopped is idle, not spent. Without clearing
+        # the event here the new threads would see it already set and exit.
+        self._stop.clear()
         for provider in STATUS_URLS:
             thread = threading.Thread(
                 target=self._run_provider,
@@ -272,6 +275,9 @@ class HealthMonitor:
         self._stop.set()
         for thread in self._threads:
             thread.join(timeout=REQUEST_TIMEOUT_SECONDS + 1)
+        # Joined threads cannot be restarted, so retaining them would make the
+        # guard in start() reject every later start.
+        self._threads.clear()
         for client in self._clients.values():
             client.close()
 

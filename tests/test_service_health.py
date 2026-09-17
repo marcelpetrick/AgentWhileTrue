@@ -9,6 +9,7 @@ from __future__ import annotations
 import gzip
 import io
 import json
+import threading
 import urllib.error
 from datetime import UTC, datetime
 
@@ -204,3 +205,27 @@ def test_monitor_replaces_each_memory_cache_entry() -> None:
     monitor = HealthMonitor(fetch=fetch)
     monitor.poll_once()
     assert {item.state for item in monitor.snapshot().values()} == {HealthState.ONLINE}
+
+
+def test_monitor_polls_again_after_being_stopped_and_restarted() -> None:
+    """A stopped monitor must be startable, not silently inert."""
+    polled = threading.Event()
+    counted: list[str] = []
+
+    def fetch(provider: str) -> ProviderHealth:
+        counted.append(provider)
+        polled.set()
+        return ProviderHealth(provider, HealthState.ONLINE, "ok", NOW)
+
+    monitor = HealthMonitor(interval=3600.0, fetch=fetch)
+    monitor.start()
+    assert polled.wait(timeout=5)
+    monitor.stop()
+    first = len(counted)
+
+    polled.clear()
+    monitor.start()
+    assert polled.wait(timeout=5), "restarted monitor never polled again"
+    monitor.stop()
+
+    assert len(counted) > first

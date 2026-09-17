@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.44.9] - 2026-09-17
+
+### Fixed
+
+- Let the provider health monitor be started again after it was stopped.
+  `stop()` kept the joined threads and left the stop event set, so a later
+  `start()` returned immediately and the dashboard reported permanently
+  unchanging service status.
+
 ## [0.44.8] - 2026-09-17
 
 ### Fixed
