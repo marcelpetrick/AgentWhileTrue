@@ -69,3 +69,17 @@ def _isolate_proxy_environment(monkeypatch):
     from agent_while_true import service_health
 
     monkeypatch.setattr(service_health.urllib.request, "getproxies", dict)
+
+
+@pytest.fixture(autouse=True)
+def _forget_resolved_accounts():
+    """Keep one test's resolved provider accounts out of the next one.
+
+    ``identity`` caches a profile's account for the life of a run so the CLI is
+    spawned once rather than once per session; tests need that cache empty.
+    """
+    from agent_while_true import identity
+
+    identity._CLAUDE_ACCOUNTS.clear()
+    yield
+    identity._CLAUDE_ACCOUNTS.clear()

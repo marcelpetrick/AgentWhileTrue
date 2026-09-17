@@ -283,13 +283,19 @@ does not authorize terminal input; the supervisor continues to fail closed.
 Interactive dashboards identify the authenticated account for each individual
 session. A Codex profile home such as `~/.codex-dmo` is rendered as
 `codex-dmo · business@example.com`, while the default is rendered as
-`codex · private@example.com`. This display-only identity is never written to
+`codex · private@example.com`. Claude Code is read the same way from
+`CLAUDE_CONFIG_DIR`, so `~/.claude-dmo` is rendered as
+`claude-dmo · business@example.com` and the default as
+`claude · private@example.com`. This display-only identity is never written to
 Agent While True's log or persistent state.
 
 Shell aliases themselves cannot normally be recovered after Zsh expands them.
-However, an alias such as `codex-dmo` that selects a distinct `CODEX_HOME` leaves
-that profile identity on the child process, allowing the dashboard to infer the
-profile label and read its matching account email safely.
+However, an alias such as `codex-dmo` that selects a distinct `CODEX_HOME` (or
+`CLAUDE_CONFIG_DIR`) leaves that profile identity on the child process, allowing
+the dashboard to infer the profile label and read its matching account email
+safely. The profile is read from the session's own process, never from the
+environment the watcher happens to run in, and each profile is resolved once per
+run rather than once per session.
 
 Every session includes five-hour and weekly used-percentage meters plus the
 time remaining until each individual reset. For example, `[████░] 84% 3h`

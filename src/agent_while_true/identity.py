@@ -136,20 +136,58 @@ def codex_session_account(pid: int) -> SessionAccount:
     return SessionAccount(profile, codex_email(auth_file=home / "auth.json") or "unavailable")
 
 
+#: Resolved Claude accounts, keyed by config home. Memory only, for the life of
+#: one run: the CLI is spawned once per profile rather than once per session.
+_CLAUDE_ACCOUNTS: dict[str, SessionAccount] = {}
+
+
+def claude_session_account(pid: int) -> SessionAccount:
+    """Resolve the Claude config home, profile label, and email for one process.
+
+    Claude Code picks its login from ``CLAUDE_CONFIG_DIR``, so two sessions on
+    one machine can be signed in to different accounts. That variable has to be
+    read from the target process: asking the supervisor's own ``claude`` which
+    account it uses answers a different question and labels every session with
+    whichever profile the watcher happened to inherit.
+    """
+    configured = _process_environment_value(pid, "CLAUDE_CONFIG_DIR")
+    home = Path(configured).expanduser() if configured else Path.home() / ".claude"
+    cached = _CLAUDE_ACCOUNTS.get(str(home))
+    if cached is not None:
+        return cached
+    name = home.name
+    if name == ".claude":
+        profile = "claude"
+    elif name.startswith(".claude-") and _PROFILE.fullmatch(name):
+        profile = f"claude-{name.removeprefix('.claude-')}"
+    else:
+        profile = "claude-profile"
+    account = SessionAccount(profile, claude_email(config_dir=home) or "unavailable")
+    _CLAUDE_ACCOUNTS[str(home)] = account
+    return account
+
+
 def session_account(provider: str, pid: int) -> SessionAccount:
     """Return a per-process display identity without logging or persistence."""
     if provider == "codex":
         return codex_session_account(pid)
     if provider == "claude":
-        return SessionAccount("claude", claude_email() or "unavailable")
+        return claude_session_account(pid)
     return SessionAccount(provider, "unavailable")
 
 
-def claude_email() -> str | None:
-    """Ask Claude Code for its authenticated email through its public CLI."""
+def claude_email(*, config_dir: Path | None = None) -> str | None:
+    """Ask Claude Code for one profile's authenticated email via its public CLI.
+
+    ``config_dir`` selects the profile to ask about; omitting it asks about
+    whichever profile this process would itself use.
+    """
     executable = shutil.which("claude")
     if executable is None:
         return None
+    environment = dict(os.environ)
+    if config_dir is not None:
+        environment["CLAUDE_CONFIG_DIR"] = str(config_dir)
     try:
         completed = subprocess.run(
             [executable, "auth", "status", "--json"],
@@ -158,6 +196,7 @@ def claude_email() -> str | None:
             text=True,
             timeout=_AUTH_TIMEOUT_SECONDS,
             check=False,
+            env=environment,
         )
         document = json.loads(completed.stdout) if completed.returncode == 0 else None
     except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):

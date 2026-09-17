@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.44.6] - 2026-09-17
+
+### Fixed
+
+- Identify each Claude session's account from its own `CLAUDE_CONFIG_DIR`
+  instead of the environment the watcher runs in, so two sessions signed in to
+  different profiles are no longer both labelled with the supervisor's login.
+- Resolve each provider profile once per run rather than once per selected
+  session, removing a repeated CLI call from startup and rediscovery.
+
 ## [0.44.5] - 2026-09-17
 
 ### Fixed

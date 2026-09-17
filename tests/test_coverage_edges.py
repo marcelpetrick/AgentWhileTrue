@@ -90,8 +90,9 @@ def test_process_environment_and_session_account_fallbacks(tmp_path: Path, monke
     account = identity.codex_session_account(9)
     assert account.label() == "codex-profile"
     assert identity.session_account("other", 9).email == "unavailable"
-    monkeypatch.setattr(identity, "claude_email", lambda: "person@example.com")
-    assert identity.session_account("claude", 9).label() == "claude · person@example.com"
+    monkeypatch.setattr(identity, "claude_email", lambda **_: "person@example.com")
+    claude = identity.session_account("claude", 9)
+    assert claude.label() == "claude-profile · person@example.com"
 
 
 def test_claude_identity_handles_missing_cli_and_transport_failures(monkeypatch) -> None:

@@ -94,3 +94,71 @@ def test_codex_session_account_distinguishes_profile_home(tmp_path: Path, monkey
     assert account.profile == "codex-dmo"
     assert account.email == "work@example.com"
     assert account.label() == "codex-dmo · work@example.com"
+
+
+def _claude_cli(monkeypatch, emails: dict[str, str]) -> list[str]:
+    """Fake ``claude auth status --json``, answering per CLAUDE_CONFIG_DIR."""
+    calls: list[str] = []
+
+    def run(command, **kwargs):
+        config_dir = kwargs["env"]["CLAUDE_CONFIG_DIR"]
+        calls.append(config_dir)
+        email = emails.get(config_dir)
+        payload = json.dumps({"loggedIn": email is not None, "email": email or ""})
+        return subprocess.CompletedProcess(command, 0, payload, "")
+
+    monkeypatch.setattr(identity.shutil, "which", lambda name: "/usr/bin/claude")
+    monkeypatch.setattr(identity.subprocess, "run", run)
+    return calls
+
+
+def test_claude_session_account_distinguishes_profile_home(tmp_path: Path, monkeypatch) -> None:
+    """Two Claude sessions on one machine can hold two different logins.
+
+    Observed live: with ``~/.claude`` and ``~/.claude-dmo`` both present, every
+    session was labelled with the supervisor's own account.
+    """
+    personal = tmp_path / ".claude"
+    work = tmp_path / ".claude-dmo"
+    _claude_cli(
+        monkeypatch,
+        {str(personal): "me@example.com", str(work): "me@work.example.com"},
+    )
+    homes = {11: str(personal), 22: str(work)}
+    monkeypatch.setattr(identity, "_process_environment_value", lambda pid, key: homes[pid])
+
+    assert identity.session_account("claude", 11).label() == "claude · me@example.com"
+    assert identity.session_account("claude", 22).label() == "claude-dmo · me@work.example.com"
+
+
+def test_claude_session_account_falls_back_to_the_default_home(tmp_path: Path, monkeypatch) -> None:
+    default = tmp_path / ".claude"
+    _claude_cli(monkeypatch, {str(default): "me@example.com"})
+    monkeypatch.setattr(identity.Path, "home", staticmethod(lambda: tmp_path))
+    monkeypatch.setattr(identity, "_process_environment_value", lambda pid, key: None)
+
+    assert identity.session_account("claude", 7).label() == "claude · me@example.com"
+
+
+def test_claude_session_account_is_resolved_once_per_profile(tmp_path: Path, monkeypatch) -> None:
+    """The CLI is spawned per profile, not per selected session."""
+    home = tmp_path / ".claude"
+    calls = _claude_cli(monkeypatch, {str(home): "me@example.com"})
+    monkeypatch.setattr(identity, "_process_environment_value", lambda pid, key: str(home))
+
+    labels = {identity.session_account("claude", pid).label() for pid in (1, 2, 3, 4)}
+
+    assert labels == {"claude · me@example.com"}
+    assert calls == [str(home)]
+
+
+def test_an_unidentifiable_claude_profile_reports_unavailable(tmp_path: Path, monkeypatch) -> None:
+    home = tmp_path / "somewhere-else"
+    _claude_cli(monkeypatch, {})
+    monkeypatch.setattr(identity, "_process_environment_value", lambda pid, key: str(home))
+
+    account = identity.session_account("claude", 5)
+
+    assert account.profile == "claude-profile"
+    assert account.email == "unavailable"
+    assert account.label() == "claude-profile"
