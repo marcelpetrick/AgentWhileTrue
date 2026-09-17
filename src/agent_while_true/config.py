@@ -135,6 +135,15 @@ class Config:
             for delay in self.retry_schedule
         ):
             raise ConfigError("RETRY_SCHEDULE needs 1-32 finite delays between 1s and 24h")
+        # retry_delay() indexes this tuple directly, so an empty one is not a
+        # degenerate schedule but an IndexError on the first failed verification.
+        if not 1 <= len(self.retry_delays) <= 32 or any(
+            type(delay) not in {int, float} or not math.isfinite(delay) or not 0 <= delay <= 86400
+            for delay in self.retry_delays
+        ):
+            raise ConfigError("RETRY_DELAYS needs 1-32 finite delays between 0s and 24h")
+        if type(self.max_resume_attempts) is not int or not 0 <= self.max_resume_attempts <= 1000:
+            raise ConfigError("MAX_RESUME_ATTEMPTS needs a whole number between 0 and 1000")
 
     def resolved_state_dir(self) -> Path:
         return self.state_dir or default_state_dir()

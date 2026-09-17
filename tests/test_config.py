@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -137,3 +138,27 @@ def test_describe_lists_policy_and_resolved_paths() -> None:
     assert rows["mode"] == "ask"
     assert rows["policy.auto_buy_credits"] == "False"
     assert rows["resolved_log_file"].endswith("agent-while-true.log")
+
+
+@pytest.mark.parametrize("delays", [(), (float("inf"),), (-1.0,), (86401.0,), (1.0,) * 33])
+def test_retry_delays_must_be_finite_and_bounded(delays) -> None:
+    """``retry_delay`` indexes this tuple directly; an empty one raises there."""
+    with pytest.raises(ConfigError, match="RETRY_DELAYS"):
+        replace(Config(), retry_delays=delays)
+
+
+@pytest.mark.parametrize("attempts", [-5, 1001, 1.5])
+def test_max_resume_attempts_must_be_a_sane_whole_number(attempts) -> None:
+    with pytest.raises(ConfigError, match="MAX_RESUME_ATTEMPTS"):
+        replace(Config(), max_resume_attempts=attempts)
+
+
+def test_an_empty_retry_delays_setting_is_rejected_at_load() -> None:
+    with pytest.raises(ConfigError, match="RETRY_DELAYS"):
+        load(config_path=None, environ={"AGENT_WHILE_TRUE_RETRY_DELAYS": ""})
+
+
+def test_every_configured_attempt_has_a_delay() -> None:
+    config = Config()
+    for attempt in range(config.max_resume_attempts + 2):
+        assert config.retry_delay(attempt) >= 0.0
