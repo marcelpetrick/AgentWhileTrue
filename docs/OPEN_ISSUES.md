@@ -15,8 +15,37 @@ backlogs.
 
 ### O1 — Validate one natural provider reset end to end
 
-Priority: critical acceptance evidence. Implementation status: complete in the
-v0.45.6 release candidate; natural live acceptance remains outstanding.
+Status: **accepted for Codex on 2026-09-18** with a natural reset; the Claude
+path remains unwitnessed (Claude Code has resumed itself since 2.1.234, so a
+Claude event may never need the supervisor).
+
+Evidence, build 0.45.9 (commits `ac34510`, `1b51d0c`, `7846733` on top of the
+v0.45.6 release), full-auto user service with the Codex opt-in, six sessions
+supervised, no fabricated state, no manual input to the chosen session:
+
+| Time (CEST) | Event |
+| --- | --- |
+| 14:56:30 | `codex-dmo` (Codex CLI 0.154.0) `LIMIT_BLOCKED`, "try again at 3:23 PM" anchored to `2026-09-18T13:23:00Z` |
+| 15:01:36 | retry episode created after the 0.45.8 deploy; attempt 1/11 due `13:23:01Z`; pre-reset refusal `other-limit-still-exhausted:session` from fresh rollout quota |
+| 15:23:01.175 | `resume_sent` attempt 1/11, `TEXT_THEN_ENTER`, `TIME_ONLY`; `PLANNED` persisted before the send |
+| 15:23:02–15:23:09 | attempts 1–3 `resume_not_verified` → `FAILED still-blocked` (Codex accepted the text, hit the limit again); attempts 2 and 3 re-planned only after the previous one settled |
+| 15:23:16.528 | `resume_sent` attempt 4/11 |
+| 15:23:17.600 | `resume_verified result=resumed`; episode `completed`, `attempts=4`, no pending key |
+
+`agent-while-true logs` for the window contains provider, session, process,
+episode and attempt identifiers, screen fingerprints, pattern IDs and reasons
+only — no terminal text, prompt content, credentials, e-mail addresses or
+environment values.
+
+Two defects were found by the same run *before* the event and fixed
+fixture-first: the 0.45.6 recognizer did not accept the Codex 0.154.0 composer
+under its animated particle chrome (no episode would have been created and the
+session would have waited past its reset), and an unrelated Claude Code
+session quoting the reset affordance was read as `READY_TO_RESUME` (F0). The
+accepted build therefore differs from the v0.45.6 release; tagging it is the
+remaining release step.
+
+The original acceptance criteria are kept below for the Claude path.
 
 The released build must supervise an intended Codex or Claude session through a
 real quota exhaustion and reset, without fabricated quota data, process
@@ -25,8 +54,10 @@ all of the following:
 
 - run v0.45.6 or later in full-auto mode with only intended sessions selected;
 - observe a supported, exact blocking prompt and a naturally eligible reset;
-- confirm exactly one policy-approved continuation is sent;
-- confirm the lifecycle is `PLANNED -> SENT -> VERIFIED`, or records an honest
+- confirm the policy-approved continuation is sent, and for the bounded Codex
+  schedule that every further attempt is planned only after the previous one
+  settled as an honest `FAILED`;
+- confirm the lifecycle ends `PLANNED -> SENT -> VERIFIED`, or records an honest
   `FAILED` result without an unsafe duplicate;
 - inspect the latest structured events with `agent-while-true logs -n 50` and
   verify they contain identifiers and pattern IDs, never terminal text, prompt
@@ -38,23 +69,12 @@ behavior and must not be weakened merely to close the test.
 
 ## Impact-ordered execution plan
 
-1. **Critical — put the verified release under observation.** Install the
-   published v0.45.6 wheel whose hash matches the release SBOM, run `doctor`,
-   `status`, `quota`, and `simulate --all`, then start the existing explicitly
-   opted-in full-auto user service. Do not disturb live agent processes.
-2. **Critical — capture the natural reset.** Let that service observe only the
-   already intended eligible sessions until one reaches an exact supported
-   limit and naturally resets. Do not fabricate evidence or manually continue
-   the chosen session during the acceptance window.
-3. **Critical — validate safety and uniqueness.** Correlate privacy-safe
-   provider/session/process/episode/attempt identifiers; require one permitted
-   send and a verified recovery, with no duplicate, paid, or quality-changing
-   action. A correct refusal leaves O1 open for the next genuine event.
-4. **High — close and publish the evidence.** Recheck the latest structured
-   events for sensitive-content absence, record timestamps and the released
-   version here, rerun the relevant release checks, and commit the completed
-   acceptance record. If the live event exposes a defect, add a redacted fixture
-   and regression test before the smallest safety-preserving fix.
+1. **High — publish the accepted build.** Run `./localPipeline.sh` on the
+   accepted commit, tag it, and verify the release workflow and SBOM hashes.
+2. **Medium — witness the Claude path if it ever arises.** Keep the service
+   under observation; a Claude session that does not self-heal (reset more
+   than 24 h out, or backgrounded) is the only case that needs the supervisor.
+3. **Ongoing — work the fix backlog below in impact order**, F0 layer 2 first.
 
 ## Fix backlog (evidence from the 2026-09-18 review and v0.45.6 live run)
 
@@ -63,7 +83,7 @@ none weakens a safety gate.
 
 | ID | Sev | Where | Defect | Evidence |
 | --- | --- | --- | --- | --- |
-| F0 | HIGH | `providers/claude.py:124`, `policy.py:353` | Prose that merely *quotes* the affordance strings is recognised as a live prompt: a Claude Code session whose conversation contained "usage limit has reset … press enter to continue" went `READY_TO_RESUME`, and the gate grants `PROVIDER_CONFIRMED` on that state alone, with fresh `AVAILABLE` quota and no preceding limit state. Only a coincidental `claude/self-healing` veto in the same paragraph stopped an Enter into an unrelated live session. Fix both layers: require a preceding `LIMIT_BLOCKED`/`WAITING_FOR_RESET` observation on the same process before `READY_TO_RESUME` may authorise, and anchor `claude/ready-press-enter` to Claude's rendered affordance line rather than free text. Add the fixture first. | Live 2026-09-18 14:52:57–58: `konsole-102315/Sessions/1` (this reviewer's own Claude Code tab, pid 1841862) `ACTIVE → READY_TO_RESUME`, `resume_refused reason=provider-resumes-itself`, back to `ACTIVE` at 14:53:06. No input was sent. |
+| F0 | HIGH (layer 1 fixed in 0.45.7; layer 2 open) | `policy.py:353` | Prose that merely *quotes* the affordance strings is recognised as a live prompt: a Claude Code session whose conversation contained "usage limit has reset … press enter to continue" went `READY_TO_RESUME`, and the gate grants `PROVIDER_CONFIRMED` on that state alone, with fresh `AVAILABLE` quota and no preceding limit state. Only a coincidental `claude/self-healing` veto in the same paragraph stopped an Enter into an unrelated live session. Fix both layers: require a preceding `LIMIT_BLOCKED`/`WAITING_FOR_RESET` observation on the same process before `READY_TO_RESUME` may authorise, and anchor `claude/ready-press-enter` to Claude's rendered affordance line rather than free text. Add the fixture first. | Live 2026-09-18 14:52:57–58: `konsole-102315/Sessions/1` (this reviewer's own Claude Code tab, pid 1841862) `ACTIVE → READY_TO_RESUME`, `resume_refused reason=provider-resumes-itself`, back to `ACTIVE` at 14:53:06. No input was sent. |
 | F1 | MEDIUM | `cli.py:398` | Non-interactive auto mode renders the full dashboard frame on every scan; observe mode prints one line per session. | Service journal: 29 frames/min, ~980 lines/min, 605.8 MB in four days of the 0.44.3 service. |
 | F2 | MEDIUM | `terminal/konsole.py:166` | `getAllDisplayedTextList` transfers the whole scrollback per observation; only the last `VISIBLE_LINES` are kept. Use `getDisplayedTextList` or otherwise bound the read. | Code reading; vision §14 and `terminal/base.py:9` forbid retaining scrollback. Magnitude depends on the Konsole history limit. |
 | F3 | MEDIUM | `fsm.py:621` | `_record_state` maps only four of classify's fourteen blocker strings to `UNSUPPORTED`; every other non-agent classification leaves the previous state on screen. | Live 14:30:14–14:30:16: tab held a shell (`idle-shell` refused) while the row still read `ACTIVE`. Input was correctly refused. |
