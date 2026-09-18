@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.45.6] - 2026-09-18
+
+### Fixed
+
+- Let the health monitor start again after a thread it kept has finished.
+  `stop()` deliberately retains a fetch thread that outlives its join so a
+  restart cannot add a second one for the same provider, but `start()` treated
+  that retained thread as still running even after it had ended, so a single
+  wedged fetch during `stop()` left the monitor inert for the rest of the run.
+
 ## [0.45.5] - 2026-09-17
 
 ### Fixed

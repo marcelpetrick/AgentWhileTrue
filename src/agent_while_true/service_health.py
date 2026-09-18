@@ -256,6 +256,11 @@ class HealthMonitor:
             return dict(self._latest)
 
     def start(self) -> None:
+        # stop() keeps a thread that outlived its join so a restart cannot add
+        # a second one for the same provider. Once that thread has finished it
+        # is only bookkeeping, and a finished thread must not turn every later
+        # start() into a silent no-op for the rest of the run.
+        self._threads = [thread for thread in self._threads if thread.is_alive()]
         if self._threads:
             return
         # A monitor that has been stopped is idle, not spent. Without clearing

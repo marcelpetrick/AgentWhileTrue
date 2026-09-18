@@ -286,3 +286,39 @@ def test_stop_keeps_a_thread_that_outlived_its_join(monkeypatch) -> None:
     release.set()
     monitor.stop()
     assert monitor._threads == []
+
+
+def test_start_forgets_a_kept_thread_once_it_has_finished(monkeypatch) -> None:
+    """A thread stop() kept must stop blocking start() once it really ends.
+
+    Otherwise one fetch that outlived its join would leave a dead thread in
+    the list forever, and the monitor could never be restarted.
+    """
+    release = threading.Event()
+    running = threading.Event()
+    restarted = threading.Event()
+    polled_again = threading.Event()
+
+    def fetch(provider: str) -> ProviderHealth:
+        if restarted.is_set():
+            polled_again.set()
+        elif provider == "openai":
+            running.set()
+            release.wait(timeout=10)
+        return unknown_health(provider)
+
+    monkeypatch.setattr(service_health, "REQUEST_TIMEOUT_SECONDS", 0.0)
+    monitor = HealthMonitor(interval=3600.0, fetch=fetch)
+    monitor.start()
+    assert running.wait(timeout=5)
+    monitor.stop()
+    (kept,) = monitor._threads
+    release.set()
+    kept.join(timeout=5)
+    assert not kept.is_alive()
+
+    restarted.set()
+    monitor.start()
+    assert polled_again.wait(timeout=5), "monitor stayed inert after its kept thread finished"
+    monitor.stop()
+    assert monitor._threads == []
