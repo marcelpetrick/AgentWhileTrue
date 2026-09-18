@@ -69,8 +69,12 @@ class ProviderHealth:
     checked_at: datetime | None = None
 
 
-def unknown_health(provider: str, detail: str = "not-checked") -> ProviderHealth:
-    return ProviderHealth(provider, HealthState.UNKNOWN, detail)
+def unknown_health(
+    provider: str, detail: str = "not-checked", checked_at: datetime | None = None
+) -> ProviderHealth:
+    """An UNKNOWN reading. ``checked_at`` records that a check *was* made and
+    failed, so the dashboard can say how long ago rather than "never"."""
+    return ProviderHealth(provider, HealthState.UNKNOWN, detail, checked_at)
 
 
 def _selected_components(provider: str, components: list[object]) -> list[tuple[str, str]] | None:
@@ -157,15 +161,28 @@ class StatusPageClient:
 
     def _persistent_response(self, headers: dict[str, str]) -> http.client.HTTPResponse:
         parsed = urlsplit(STATUS_URLS[self.provider])
-        if self._connection is None:
-            self._connection = http.client.HTTPSConnection(
-                parsed.hostname,
-                parsed.port,
-                timeout=REQUEST_TIMEOUT_SECONDS,
-            )
         path = parsed.path or "/"
         if parsed.query:
             path = f"{path}?{parsed.query}"
+        if self._connection is not None:
+            try:
+                return self._request(path, headers)
+            except (OSError, http.client.HTTPException):
+                # A kept-alive socket the server closed while it sat idle. At a
+                # five-minute fetch interval that is the normal case, not an
+                # outage: the status page's keep-alive timeout is far shorter.
+                # Reported as "unreachable" it made every second reading wrong.
+                # Reconnect once; a failure on the fresh socket is real.
+                self.close()
+        self._connection = http.client.HTTPSConnection(
+            parsed.hostname,
+            parsed.port,
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        return self._request(path, headers)
+
+    def _request(self, path: str, headers: dict[str, str]) -> http.client.HTTPResponse:
+        assert self._connection is not None
         self._connection.request("GET", path, headers=headers)
         return self._connection.getresponse()
 
@@ -191,13 +208,13 @@ class StatusPageClient:
                     return replace(self._cached, checked_at=checked_at)
                 if status != 200:
                     response.read(MAX_RESPONSE_BYTES + 1)
-                    return unknown_health(self.provider, "status-unreachable")
+                    return unknown_health(self.provider, "status-unreachable", checked_at)
                 document = _read_document(response)
                 etag = response.headers.get("ETag")
         except urllib.error.HTTPError as error:
             if error.code == 304 and self._cached is not None:
                 return replace(self._cached, checked_at=checked_at)
-            return unknown_health(self.provider, "status-unreachable")
+            return unknown_health(self.provider, "status-unreachable", checked_at)
         except (
             OSError,
             ValueError,
@@ -206,7 +223,7 @@ class StatusPageClient:
             json.JSONDecodeError,
         ):
             self.close()
-            return unknown_health(self.provider, "status-unreachable")
+            return unknown_health(self.provider, "status-unreachable", checked_at)
         health = parse_summary(self.provider, document, now=checked_at)
         if health.state is not HealthState.UNKNOWN:
             self._cached = health

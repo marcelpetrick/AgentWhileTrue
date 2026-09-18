@@ -13,6 +13,21 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.45.10] - 2026-09-18
+
+### Fixed
+
+- Reconnect once when the kept-alive status-page socket has been closed by the
+  server while idle, instead of reporting the provider unreachable. With the
+  five-minute fetch interval introduced in 0.45.0 the socket sat idle far longer
+  than the status page's keep-alive timeout, so every second fetch failed on
+  the dead socket and the next one reconnected: the dashboard alternated
+  `ONLINE` and `UNKNOWN (never; status-unreachable)` every five minutes with no
+  incident on either status page (945 of ~24,000 frames on 2026-09-18). A
+  failure on a fresh socket is still reported as unreachable.
+- Stamp a failed status check with the time it was made, so the dashboard says
+  how long ago it failed rather than `never`.
+
 ## [0.45.9] - 2026-09-18
 
 ### Fixed

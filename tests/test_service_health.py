@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import gzip
+import http.client
 import io
 import json
 import threading
@@ -185,6 +186,69 @@ def test_client_reuses_and_closes_persistent_connection(monkeypatch) -> None:
 
     client.close()
     assert connections[0].closed
+
+
+def test_client_reconnects_once_when_the_idle_keepalive_socket_is_dead(monkeypatch) -> None:
+    """Live on 2026-09-18: every second five-minute fetch reported the provider
+    unreachable, because the reused socket had been closed by the server while
+    idle. The next fetch reconnected and succeeded, so the dashboard alternated
+    ONLINE / UNKNOWN(status-unreachable) with no incident on the status page."""
+    document = _summary(_component("01KMP3KP5MGE23B80K1EK4S8PV", "Codex API", "operational"))
+    connections = []
+
+    class Connection:
+        def __init__(self, host, port, *, timeout) -> None:
+            self.closed = False
+            self.requests = 0
+            connections.append(self)
+
+        def request(self, method, path, *, headers) -> None:
+            self.requests += 1
+            if self is connections[0] and self.requests == 2:
+                raise http.client.RemoteDisconnected("Remote end closed connection")
+
+        def getresponse(self):
+            return _Response(json.dumps(document).encode(), {})
+
+        def close(self) -> None:
+            self.closed = True
+
+    monkeypatch.setattr("agent_while_true.service_health.http.client.HTTPSConnection", Connection)
+    client = StatusPageClient("openai")
+
+    assert client.fetch(now=NOW).state is HealthState.ONLINE
+    second = client.fetch(now=LATER)
+
+    assert second.state is HealthState.ONLINE
+    assert len(connections) == 2, "the dead socket must be replaced, not reported"
+    assert connections[0].closed
+    assert connections[1].requests == 1
+
+
+def test_a_dead_fresh_connection_is_unreachable_and_says_when(monkeypatch) -> None:
+    """The retry is for a *reused* socket only; a fresh one failing is real."""
+    connections = []
+
+    class Connection:
+        def __init__(self, host, port, *, timeout) -> None:
+            connections.append(self)
+
+        def request(self, method, path, *, headers) -> None:
+            raise ConnectionRefusedError("refused")
+
+        def getresponse(self):  # pragma: no cover - never reached
+            raise AssertionError
+
+        def close(self) -> None:
+            pass
+
+    monkeypatch.setattr("agent_while_true.service_health.http.client.HTTPSConnection", Connection)
+    health = StatusPageClient("openai").fetch(now=NOW)
+
+    assert health.state is HealthState.UNKNOWN
+    assert health.detail == "status-unreachable"
+    assert health.checked_at == NOW, "a failed check is still a check that happened now"
+    assert len(connections) == 1
 
 
 def test_client_preserves_standard_proxy_handling(monkeypatch) -> None:
