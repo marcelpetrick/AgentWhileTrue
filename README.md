@@ -11,51 +11,37 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB.svg)](https://www.python.org/)
 [![License: GPL v3 or later](https://img.shields.io/badge/license-GPLv3%2B-blue.svg)](LICENSE)
 
-**Agent While True** brings your Codex CLI and Claude Code sessions together in
-one colorful terminal dashboard. See each agent's state, account, quota usage,
-and reset countdown without hopping between Konsole tabs.
+**Agent While True** is a dashboard and babysitter for Codex CLI and Claude
+Code sessions running in KDE Konsole. One terminal shows every selected agent's
+state, account, five-hour and weekly quota, and reset countdown. When a session
+stops on a usage limit, Agent While True can wait for the window to reopen and
+resume that session for you.
 
-When a supported session hits its usage limit, Agent While True can wait for
-quota to return and resume it automatically. You choose which sessions it may
-supervise and when it may act. Every continuation passes fresh safety checks;
-unknown prompts, paid choices, and model downgrades are off limits.
+It is built to refuse rather than guess: only sessions you selected, only exact
+tested prompts, only after fresh provider evidence, and never a paid, upgrade,
+reset-credit or model-downgrade choice. Start in observe mode, read why a
+session is waiting, and switch automation on when you trust it.
 
-Start in observe mode, explore why a session is waiting, and enable automation
-when you're ready. Your agents get a babysitter. You get your attention back.
+![Agent While True auto-mode dashboard](media/agentWhileTrue_v0.33.0.png)
 
-![Agent While True v0.33.0 auto-mode dashboard](media/agentWhileTrue_v0.33.0.png)
+## What it does
 
-**Author: Marcel Petrick <mail@marcelpetrick.it>**
+- **One view across your agents** — selected Codex and Claude sessions, their
+  accounts, usage meters, prompt and quota reset times, and public provider
+  service health.
+- **Resume with guardrails** — observe without typing, confirm each action, or
+  let it continue exact tested prompts automatically; Codex composer input and
+  Claude's own "wait, then continue" menu are separate, explicit opt-ins.
+- **Explanations, not surprises** — a detail panel shows the latest decision,
+  quota freshness, blocking windows and the next scheduled check.
+- **A record of what happened** — persisted `PLANNED → SENT → VERIFIED|FAILED`
+  history and day/week summaries, holding identifiers and pattern IDs only,
+  never terminal text.
 
-**License: GPLv3 or later. See `LICENSE`.**
-
-**Note: project is generated with AI.**
-
-## What you get
-
-- **One view across your agents.** Track selected Codex and Claude sessions,
-  their accounts, five-hour and weekly usage meters, and provider service health.
-- **Resume with guardrails.** Observe without typing, confirm each action, or
-  allow automatic continuation for exact tested prompts, including bounded,
-  explicitly opted-in Codex retries after an anchored reset.
-- **Answers when an agent waits.** Open session details to see the latest
-  decision, quota freshness, blocking windows, and next scheduled check.
-- **A TUI that fits your setup.** Switch themes, scroll through narrow session
-  cards or a wide table, and keep your display preferences between launches.
-- **A record of what happened.** Browse action history and day/week summaries
-  of continuations, failures, refusals, and sampled supervision time.
-
-The only installed command is `agent-while-true`; the Python import package is
-`agent_while_true`. Configuration, state, data, logs, environment variables,
-and the user service use the same canonical project name.
-
-The current target is Manjaro/Arch Linux, KDE Plasma, Konsole, Wayland or X11,
-and Python 3.12 or newer. Runtime code uses only the Python standard library.
+Target platform: Manjaro/Arch Linux, KDE Plasma, Konsole (Wayland or X11),
+Python 3.12+, `qdbus6`. The runtime has no third-party dependencies.
 
 ## Install
-
-Install a tagged release from GitHub with `pipx` so the CLI is isolated while
-remaining available at `~/.local/bin/agent-while-true`:
 
 ```bash
 pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.45.6'
@@ -63,502 +49,67 @@ agent-while-true --version
 agent-while-true doctor
 ```
 
-This README describes the v0.45.6 release. Use a development checkout for
-changes made after that release:
+`pipx` isolates the CLI and leaves it on `PATH` as `~/.local/bin/agent-while-true`.
+Pick any tag from the [releases](https://github.com/marcelpetrick/AgentWhileTrue/releases);
+a development checkout is described in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
+## Quick start
 
 ```bash
-git clone https://github.com/marcelpetrick/AgentWhileTrue.git
-cd AgentWhileTrue
-python3 -m venv .venv
-.venv/bin/python -m pip install -e '.[dev]'
-PATH="$PWD/.venv/bin:$PATH" ./localPipeline.sh
+agent-while-true doctor              # is this environment supported? can auto mode work?
+agent-while-true status              # which Konsole sessions are agents, and why not?
+agent-while-true quota               # what do the providers say about usage and resets?
+agent-while-true run --observe --all # watch everything; never type
 ```
 
-For an end-to-end setup from a checkout, including all checks and the main
-interface, run:
+Ask and auto mode need Konsole's input D-Bus API enabled once
+(`EnableSecuritySensitiveDBusAPI`) and Konsole restarted — see
+[docs/USAGE.md §1](docs/USAGE.md#1-enable-konsole-input-once). In the running
+dashboard, `Shift+A` switches between observe and full-auto, `d` explains the
+selected session, `h` lists every key.
 
-```bash
-./fullAutoMode.sh
-```
+| Mode | Command | Sends input? |
+| --- | --- | --- |
+| Observe | `run --observe` | Never. Runs the complete detection path and reports what it would do. |
+| Ask | `run --ask` | Only after you confirm each action. |
+| Auto | `run --auto` | Yes, for policy-approved exact prompts, after fresh revalidation. |
 
-The launcher runs the complete release gate, installs that verified wheel with
-`pipx`, creates the default configuration if needed, requires `doctor` to pass,
-shows live status and quota, and then opens the auto-mode dashboard for all
-eligible sessions. Invoking it explicitly opts Codex into composer continuation;
-paid, upgrade, reset-credit, and model-downgrade actions remain forbidden. If
-another input-capable watcher already owns the lock, it stays in control and the
-launcher opens an observe-only dashboard. Use `./fullAutoMode.sh --noRun` to do
-the setup and checks without starting the interface.
+A background observe-only user service, the Claude quota bridge, configuration
+keys, Codex timed retries and the full dashboard reference are all in
+[docs/USAGE.md](docs/USAGE.md).
 
-## See what is running
+## Safety in brief
 
-```bash
-agent-while-true status
-agent-while-true quota
-```
+Immediately before any input, Agent While True re-reads and verifies the
+selected Konsole session; the PID, process start time, TTY and provider
+classification; a current known prompt and its permitted action; fresh provider
+quota (or the narrowly opted-in Codex timed-trial gate); and the persisted
+prompt fingerprint and retry budget. SSH, containers, tmux/screen, unknown
+prompts, contradictory quota, process replacement and every paid or
+quality-changing choice fail closed. A single-instance lock and the persisted
+action lifecycle prevent duplicate input across processes and crashes.
 
-`status` classifies visible Konsole sessions. `quota` is read-only and reports
-provider availability, failures, usage percentages, and the reset time for each
-known window:
+Unknown or stale quota never means available. The reasoning is in
+[docs/vision.md](docs/vision.md); the implemented gates are in
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-```text
-Claude pts/4 PID 769257
-  availability: EXHAUSTED
-  source:       claude-statusline
-  session       100.0%  reset 03:20 (4h)
-```
+## Documentation
 
-Provider state and terminal state are intentionally separate. A quota may be
-available while a terminal is active, or a terminal may show an old limit while
-provider data is unavailable. Unknown or stale quota never means available;
-the narrow [Codex timed-retry exception](#codex-timed-retries) below permits a
-bounded trial, not a claim that the provider's quota has refreshed.
-For Codex, a process whose rollout stopped updating may use a fresher observation
-from another live process only when both rollouts resolve to the same validated
-local account and rate-limit identity. Unidentified and different accounts are
-never combined; the opaque binding remains in memory and is not logged.
-
-## Watch sessions
-
-Konsole disables input-capable D-Bus calls by default on current releases.
-Enable the setting once, then restart Konsole before using ask or auto mode:
-
-```bash
-kwriteconfig6 --file konsolerc --group KonsoleWindow \
-  --key EnableSecuritySensitiveDBusAPI true
-```
-
-This permission lets programs running as your desktop user type into Konsole,
-which is why Agent While True layers process identity, exact prompt recognition,
-policy, idempotency and immediate revalidation on top. `agent-while-true doctor`
-probes the permission with an empty string and blocks auto mode if it is off.
-
-The setting is read when a Konsole process starts. Existing windows therefore
-remain input-disabled until Konsole is restarted; keep the current sessions
-open until their work is safe, then restart Konsole once and require
-`agent-while-true doctor` to report both `Konsole input OK` and `Auto mode OK`.
-Agent While True cannot bypass this Konsole boundary, and intentionally does not
-kill or replace existing terminal sessions.
-
-Start with observe mode. It runs the complete detection path but cannot type:
-
-```bash
-agent-while-true run --observe --all
-```
-
-Only one input-capable instance may run. If the background service owns the
-lock, stop it before opening the interactive TUI, then restore it after quitting:
-
-```bash
-systemctl --user stop agent-while-true.service
-agent-while-true run --observe --all  # press Shift+A to enable full auto
-systemctl --user start agent-while-true.service
-```
-
-On an interactive terminal this opens a fully framed color dashboard inspired
-by btop and ollamaFarm. Dark, vivid, CGA, and amber style the whole surface,
-section bars, table headers, borders, provider/account cells, states, usage
-meters, service health, history, and help. Colors carry meaning: green is
-available/healthy, yellow is waiting or unknown, and red is exhausted or
-unsafe. `NO_COLOR=1`, `--no-color`, or the plain theme produces ANSI-free
-output.
-
-| Key | Effect |
+| Document | Read it for |
 | --- | --- |
-| `-` / `+` | Refresh faster / slower across `0.25 0.5 1 2 3 5 10 30 60` seconds |
-| `A` | Toggle observe/full-auto; uppercase activation is an explicit Codex resume opt-in |
-| `p` | Pause/resume; pause performs no terminal or quota polling |
-| `r` | Rediscover Konsole sessions immediately |
-| `t` | Cycle dark, vivid, CGA, amber, and plain themes |
-| `x` | Toggle screenshot-safe redaction of account e-mail addresses |
-| `e` | Show or hide persisted action/state history |
-| `l` | Cycle displayed history through 5, 10, 20, and 50 retained rows |
-| `h` or `?` | Toggle the in-dashboard help |
-| `d` | Show or hide the selected session's resume explanation |
-| `[` / `]` | Select the previous / next session explanation |
-| `j` / `k` | Scroll down / up through the dashboard |
-| `g` / `G` | Jump to the top / end of the dashboard |
-| `q` | Quit and restore the terminal |
-
-Like btop, `+` makes the interval number larger and therefore refreshes more
-slowly. Selected sessions use that interval, while full Konsole rediscovery runs
-every 30 seconds or immediately after `r`; this avoids spawning discovery calls
-on every dashboard frame. Non-interactive observe output stays ANSI-free and
-separates scans with a blank line for readable logs.
-
-The `d` detail panel explains the latest decision, recognized pattern IDs,
-quota source and age, exhausted windows, and next scheduled check. It labels
-old observations as stale; displayed reset/check times never promise a resume.
-The panel uses cached evidence and does not read or send terminal input.
-
-Below 168 columns, session cards replace the wide table. Details, history and
-help wrap to fit; `j` / `k` scroll through the full content while the navigation
-footer stays visible. `g` / `G` jump to the top/end. Opening details or help
-brings that panel into view. Window resizing clamps the scroll position, and
-non-interactive reports remain complete and ANSI-free.
-
-Press `x` before taking a screenshot to keep each profile distinguishable while
-rendering an account such as `codex-dmo · work@example.com` as
-`codex-dmo · w…@e….com`. Redaction affects every dashboard account field,
-including details, but never mutates provider data or supervision identity and
-is deliberately reset when the process exits.
-
-Interactive theme, history length, and history/detail/help visibility are saved
-under the configured state directory in `preferences.json` (normally
-`~/.local/state/agent-while-true/preferences.json`). Changes apply immediately and
-survive restart. Invalid files fall back to defaults; save errors appear in the
-dashboard. Mode, permissions, selections, pause and scan timing are never saved
-as presentation preferences. Account redaction is intentionally never saved.
-Preference changes use locked field-level updates, so another observe dashboard
-cannot overwrite unrelated choices from an older in-memory snapshot. A failed
-write is retried during clean shutdown.
-
-Other modes are:
-
-```bash
-agent-while-true run --ask       # select sessions and confirm each action
-agent-while-true run --auto      # select sessions; resume policy-approved prompts
-agent-while-true simulate --all  # exercise the built-in danger scenarios
-```
-
-Claude continuation is normally a bare Enter only when Claude explicitly asks
-for it. Its exact three-choice menu may also be armed so Claude itself continues
-at reset; set `ALLOW_CLAUDE_AUTO_WAIT=false` to disable that behavior. Codex has
-no equivalent affordance, so Codex auto-resume remains disabled unless
-`ALLOW_CODEX_AUTO_RESUME=true` is intentionally configured. Model downgrades,
-paid credits, purchases, upgrades, and reset-credit redemption are never enabled
-by the supplied configuration.
-
-Current Codex versions may append Pro and credit-purchase links to the ordinary
-usage-limit message. Those links are passive text above a separate composer:
-Agent While True may type its configured continuation into that composer only
-after the exact tested limit/reset message and either fresh provider availability
-or the opted-in bounded retry gate agree. It never follows or selects a paid link, and any additional paid,
-reset-credit, or model-changing prompt still vetoes the action.
-
-Codex treats a rapid text-and-Enter stream as a paste and turns that Enter into
-a newline. Agent While True therefore wraps its continuation in the terminal's
-bracketed-paste markers and follows it with Enter in the same revalidated D-Bus
-write. This preserves a genuine submit event instead of leaving `continue` in
-the composer.
-
-Create and inspect the default configuration with:
-
-```bash
-agent-while-true init
-agent-while-true config
-```
-
-The file is `~/.config/agent-while-true/config`. It is parsed as data and never
-sourced as shell code. Logs and state live under
-`~/.local/state/agent-while-true/`; terminal contents are not logged. Agent While
-True records structured state transitions and actions in
-`~/.local/state/agent-while-true/agent-while-true.log`, including when an action was
-planned, sent, verified, refused, retried, or failed. Inspect recent history
-with:
-
-```bash
-agent-while-true logs -n 40
-journalctl --user -u agent-while-true.service -f  # service lifecycle/output
-```
-
-The dashboard's `HISTORY` panel reads the same privacy-preserving event file.
-It shows 10 entries by default and retains the latest 50 entries in memory, even
-while showing only the chosen 5, 10, 20, or 50 rows, so expanding the panel
-reveals what happened while you were away. Successful terminal retriggers
-appear as `resume_sent`, followed by their verification result. History records
-fingerprints and pattern IDs, never
-terminal text, prompts, credentials, or environment values.
-
-Codex is launched through a Node.js shim on current installations, so Konsole
-may label its tab or foreground command `node`. Agent While True walks the child
-process tree, classifies the native Codex process, reads quota from that process,
-and presents the session as `Codex` in its own dashboard.
-
-## Read the dashboard
-
-The main interface keeps independently recognized terminal state and provider
-quota visible for every selected Codex and Claude session. Red or unknown data
-does not authorize terminal input; the supervisor continues to fail closed.
-Interactive dashboards identify the authenticated account for each individual
-session. A Codex profile home such as `~/.codex-dmo` is rendered as
-`codex-dmo · business@example.com`, while the default is rendered as
-`codex · private@example.com`. Claude Code is read the same way from
-`CLAUDE_CONFIG_DIR`, so `~/.claude-dmo` is rendered as
-`claude-dmo · business@example.com` and the default as
-`claude · private@example.com`. This display-only identity is never written to
-Agent While True's log or persistent state.
-
-Shell aliases themselves cannot normally be recovered after Zsh expands them.
-However, an alias such as `codex-dmo` that selects a distinct `CODEX_HOME` (or
-`CLAUDE_CONFIG_DIR`) leaves that profile identity on the child process, allowing
-the dashboard to infer the profile label and read its matching account email
-safely. The profile is read from the session's own process, never from the
-environment the watcher happens to run in, and each profile is resolved once per
-run rather than once per session.
-
-Every session includes five-hour and weekly used-percentage meters plus the
-time remaining until each individual reset. For example, `[████░] 84% 3h`
-means that 84% of the window has been used and its reported reset is within
-three hours. Countdowns below 1.5 days use `h`; longer countdowns use `d`.
-`PROMPT RESET` is the reset time parsed from the blocking terminal prompt;
-`QUOTA RESET` is the separate effective reset time reported by the provider
-quota source. A reported reset time does not guarantee available quota.
-
-The dashboard reports public service health for OpenAI Codex API and Anthropic
-Claude Code/API. These are cached observations from the providers' public JSON
-status APIs, not paid model calls, and `UNKNOWN` is shown when the network,
-schema, component identity, or component status is unusable. Each provider is
-polled independently in the background, every five minutes by default
-(`SERVICE_STATUS_INTERVAL=5m`), so one slow endpoint cannot delay the other.
-The dashboard re-renders the cached answer and its age at the display interval
-(`STATUS_POLL_INTERVAL=1s`); that is a redraw, not a request. The client
-requests gzip and uses ETag revalidation when offered, keeping unchanged
-responses small. One second is the enforced lower bound on the fetch interval,
-but a status page does not change that quickly and polling it every second
-sends tens of thousands of requests per provider per day.
-
-## Operational summaries
-
-Run `agent-while-true summary` for the last 24 hours, or
-`agent-while-true summary --days 7` for a rolling week. Reports read only the
-configured event log and its five rotated backups; they never query terminals
-or providers. Counts distinguish sent actions, verified resumptions, armed
-Claude automatic waits, failures, and refusal episodes (a changed refusal
-reason counts again; repeated polls of the same refusal do not).
-
-Measured blocked and observed session-time sums intervals between consecutive
-known observations across watched sessions. It is sampled supervision time,
-not provider execution time. Pauses, unknown states, clock jumps, and long gaps
-are excluded. Timing while a session waits without fresh observations is not
-inferred. Intervals are flushed approximately once per minute and on clean exit;
-a crash can lose the unflushed tail. Reports cover retained evidence only:
-older logs lack interval/refusal evidence, and rotation can remove events.
-Multiple observers contribute separate samples, so use one watcher for a
-non-overlapping session-time report.
-
-## Codex timed retries
-
-With full-auto and `ALLOW_CODEX_AUTO_RESUME=true` (also enabled by `Shift+A`),
-the exact tested Codex limit banner and empty composer may receive a bounded
-trial continuation after their anchored reset. A stale/unknown quota display
-stays stale/unknown. This deliberate exception does not apply to Claude.
-
-`RETRY_SCHEDULE=1,2,3,5,8,13,21,34,55,89,600` configures 11 attempts. The first
-delay replaces reset grace on this path; subsequent delays begin after the
-previous attempt's verification finishes. Verification normally waits one
-second, so actual send times include that time and processing latency—the
-delays are not absolute offsets from the reset. Near deadlines wake the scan
-loop sooner than its ordinary interval, without scroll keys multiplying scans.
-
-The same prompt keeps its first observed reset date across midnight and
-restarts. On a late first sighting, a matching absolute quota-window timestamp
-can corroborate the date, even when its availability sample is stale. Without
-a reliable date, the watcher does not guess a past reset. A pre-limit available
-sample never permits input before the printed reset. Fresh exhausted later
-windows, an unknown exhausted-window reset, or a new post-reset exhaustion
-sample still veto the trial.
-
-Attempts are reserved persistently before sending and belong to the session,
-process identity and reset episode—not the changing screen fingerprint. An
-unsettled `PLANNED` attempt after a crash stays blocked rather than being replayed;
-corrupt retry state disables timed trials. After the budget is exhausted the
-detail view reports `retry-budget-exhausted`. Manual recovery or a changed,
-later reset ends or replaces the episode. Waiting sessions remain observed.
-
-Logs include session, process, episode, attempt and next deadline; summaries
-count scheduled attempts and exhausted episodes. No terminal content is stored.
-Neither this feature nor its tests select upgrades, credits or another model.
-
-## Claude quota bridge
-
-The bridge is the supplied `scripts/claude-statusline-proxy.sh`, not another
-package, daemon, plugin, or network service. Claude Code exposes quota data only
-to its configured status-line command. The bridge receives that JSON, copies
-only the usage windows, reset timestamps, a hashed session identifier, and the
-Claude process identity to Agent While True's state directory, and then runs
-your existing status line with the original JSON. Each selected session accepts
-only the quota file bound to its exact PID and process start time.
-
-Without it, `agent-while-true quota` honestly reports Claude as `UNKNOWN` with
-`no-statusline-file`. Prompt detection still works, but automatic mode will not
-guess that quota is available.
-
-Install and safely chain the supplied file in one command:
-
-```bash
-scripts/install-claude-bridge.sh
-```
-
-The installer copies the proxy, backs up `~/.claude/settings.json`, preserves
-the existing status-line command and other status-line settings, and configures
-a 60-second refresh so quota stays current while Claude is idle. To do those
-steps manually, install the one supplied file:
-
-```bash
-install -Dm755 scripts/claude-statusline-proxy.sh \
-  ~/.local/share/agent-while-true/claude-statusline-proxy.sh
-```
-
-Configure it as Claude's `statusLine` command in `~/.claude/settings.json`:
-
-```json
-{
-  "statusLine": {
-    "type": "command",
-    "command": "AGENT_WHILE_TRUE_CLAUDE_PID=$PPID ~/.local/share/agent-while-true/claude-statusline-proxy.sh",
-    "refreshInterval": 60
-  }
-}
-```
-
-If a status line already exists, preserve it through
-`AGENT_WHILE_TRUE_STATUSLINE_CHAIN`:
-
-```json
-{
-  "statusLine": {
-    "type": "command",
-    "command": "AGENT_WHILE_TRUE_CLAUDE_PID=$PPID AGENT_WHILE_TRUE_STATUSLINE_CHAIN=~/.claude/my-statusline.sh ~/.local/share/agent-while-true/claude-statusline-proxy.sh",
-    "refreshInterval": 60
-  }
-}
-```
-
-For example, if the current command is
-`~/.claude/abtop-combined-statusline.sh`, the replacement is:
-
-```json
-{
-  "statusLine": {
-    "type": "command",
-    "command": "AGENT_WHILE_TRUE_CLAUDE_PID=$PPID AGENT_WHILE_TRUE_STATUSLINE_CHAIN=~/.claude/abtop-combined-statusline.sh ~/.local/share/agent-while-true/claude-statusline-proxy.sh",
-    "refreshInterval": 60
-  }
-}
-```
-
-Restart Claude Code if it does not reload the setting, wait for one status-line
-render, then verify the bridge without enabling automation:
-
-```bash
-agent-while-true quota
-ls -l ~/.local/state/agent-while-true/quota/claude-*.json
-```
-
-The bridge writes one owner-only, atomically replaced quota document per Claude
-session under `~/.local/state/agent-while-true/quota/claude-*.json`. Legacy global
-files are display-only and cannot authorize an action for a selected process.
-Failures do not prevent the existing status line from running.
-
-## Background service
-
-Install and immediately enable the supplied observe-only user service from this
-checkout:
-
-```bash
-scripts/install-user-service.sh
-systemctl --user status agent-while-true.service
-```
-
-The shipped service is observe-only. It may discover new agent tabs, but it can
-never send input. After validating `doctor`, `quota`, observe mode, and the
-simulations, install and enable the managed auto-mode drop-in with:
-
-```bash
-scripts/install-user-service.sh --auto
-```
-
-Codex continuation types into its composer and remains a separate opt-in. To
-enable it for the persistent service as well, use:
-
-```bash
-scripts/install-user-service.sh --auto --allow-codex-auto-resume
-```
-
-Both forms enable and start `agent-while-true.service` immediately and on future
-desktop logins. Running the installer without `--auto` restores its managed
-observe-only configuration. Remove the service and its managed drop-in with
-`scripts/install-user-service.sh --uninstall`.
-
-## Safety model
-
-![Claude Code session-limit menu](media/claude_out_of_quota.png)
-
-This real prompt is handled narrowly. With fresh quota confirming the session is
-exhausted, auto mode may move from the visibly selected first item to the exact
-“continue automatically” item and confirm it. It never selects “upgrade your
-plan.” Any different menu, cursor position, or unknown quota fails closed.
-
-Immediately before any input, Agent While True re-reads and verifies:
-
-- the explicitly selected Konsole session;
-- PID, process start time, TTY, and provider classification;
-- a current, known prompt and its permitted action;
-- fresh provider quota, or the narrowly opted-in Codex timed-trial gate;
-- the persisted prompt fingerprint and retry budget.
-
-SSH, containers, tmux/screen, unknown prompts, contradictory fresh quota,
-process replacement, and paid or quality-changing choices all fail closed. A
-single-instance lock and persisted `PLANNED -> SENT -> VERIFIED|FAILED` action
-lifecycle prevent duplicate input across concurrent processes and crashes.
-
-See the [product vision](docs/vision.md), [implementation plan](docs/PLAN.md),
-[architecture](docs/ARCHITECTURE.md), and [performance evaluation](docs/PERFORMANCE.md).
-The [open-issues document](docs/OPEN_ISSUES.md) is the single authoritative list
-of remaining acceptance and maintenance work.
-
-## Development and release
-
-```bash
-./localPipeline.sh
-AGENT_WHILE_TRUE_LIVE_KONSOLE=1 python3 -m pytest -q -m konsole
-```
-
-The local pipeline is the canonical release gate. It checks Python 3.12+, Ruff
-lint and formatting, every tracked shell script with mandatory ShellCheck,
-`git diff --check`, pytest with a 91% combined statement/branch coverage floor,
-REUSE SPDX licensing checks, all built-in danger
-simulations, sdist/wheel construction, and an isolated install exercising
-`doctor`, `status`, `quota`, `summary`, simulations, and the canonical command.
-GitHub Actions runs this same script on Python 3.12, 3.13, and 3.14.
-
-Synthetic application profiles run in the pipeline and are retained alongside
-coverage reports. Timing results are diagnostic; deterministic operation-count
-tests guard performance without flaky machine-speed thresholds. See
-[performance evaluation](docs/PERFORMANCE.md) for workloads, measured improvements and limits.
-The installed-package smoke tests run outside the checkout with `PYTHONPATH`
-removed. The default build constructs the wheel from the source distribution;
-the freshly extracted source archive also runs its own quality gate outside Git.
-
-Both SPDX 2.3 and CycloneDX 1.6 JSON SBOMs are generated from the actual wheel
-and source archive, checked with maintained standards validators, and retained
-in `dist/sbom/`. They describe the project, its empty third-party runtime
-dependency graph, and release-artifact checksums—not the OS, Python interpreter,
-or build/development environment. Unexpected runtime dependencies fail generation
-until inventory support is added. A separate dependency-audit workflow checks
-installed development/build tooling on pushes, pull requests and weekly;
-this online advisory check is not part of the offline-capable quality gate.
-
-All tracked files carry SPDX metadata through native comments or `.license`
-sidecars, checked by `reuse lint`. New files must carry the same metadata.
-After installing `.[dev]`, the online dependency check can also be run locally:
-
-```bash
-python3 -m pip_audit --progress-spinner off
-```
-
-Pushes to `master` and pull requests run the quality workflow. A tag named
-`agentwhiletrue-vX.Y.Z` additionally verifies the tag against the package
-version and changelog, reruns the pipeline, and publishes the built wheel and
-source distribution and validated SBOMs as a GitHub release.
-
-Release tags use `agentwhiletrue-vX.Y.Z`. The project follows semantic
-versioning while major version zero denotes an alpha interface.
-
-## License
-
-Agent While True is licensed under the
-[GNU General Public License v3.0 or later](LICENSE). The package metadata declares
-the `GPL-3.0-or-later` SPDX expression and includes the license in built
-distributions.
+| [docs/USAGE.md](docs/USAGE.md) | Operating the tool: Konsole setup, modes, dashboard keys, configuration, logs, Codex and Claude specifics, the quota bridge, the systemd service |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Components, data flow, the guarded resume flow and the persisted action lifecycle |
+| [docs/vision.md](docs/vision.md) | Product intent and the safety invariants (DANGER 1–20) every change must preserve |
+| [docs/PLAN.md](docs/PLAN.md) | What is implemented, the remaining acceptance gate, and the maintenance plan |
+| [docs/OPEN_ISSUES.md](docs/OPEN_ISSUES.md) | The single authoritative list of open acceptance and maintenance work |
+| [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Measured workload, network traffic and profiling evidence |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | The quality gate, CI workflows, SBOMs, versioning and release artifacts |
+| [AGENTS.md](AGENTS.md) | Contributor rules: commit style, required verification, release procedure |
+| [CHANGELOG.md](CHANGELOG.md) | Every release, newest first |
+
+## Project
+
+Author: Marcel Petrick <mail@marcelpetrick.it>. Licensed under the
+[GNU General Public License v3.0 or later](LICENSE); the package metadata
+declares `GPL-3.0-or-later` and built distributions include the license.
+The project is generated with AI.

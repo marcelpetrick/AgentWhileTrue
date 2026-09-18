@@ -15,7 +15,8 @@ Konsole. Correct refusal is more important than eager automation. Keep provider
 quota state separate from terminal prompt state, revalidate immediately before
 input, and fail closed on ambiguity.
 
-Read `docs/vision.md`, `docs/PLAN.md`, and `README.md` before changing runtime behavior.
+Read `docs/vision.md`, `docs/PLAN.md`, `docs/ARCHITECTURE.md`, and `docs/USAGE.md`
+before changing runtime behavior; `README.md` is the short entry page.
 The real prompt captures in `media/` are evidence; transcribe them into fixtures
 when recognizer behavior changes.
 
@@ -108,10 +109,12 @@ Confirm that installed `agent-while-true --version`, `doctor`, `quota`, and
 
 1. Ensure the worktree contains only intended changes.
 2. Run `./localPipeline.sh`; it includes the package smoke tests.
-3. Push the atomic commits to `origin/master` only when requested.
-4. Create an annotated `agentwhiletrue-vX.Y.Z` tag only for a fully verified
+3. Point the `pipx install` command in `README.md` at the new tag in the same
+   commit that is tagged; intermediate versioned commits leave it alone.
+4. Push the atomic commits to `origin/master` only when requested.
+5. Create an annotated `agentwhiletrue-vX.Y.Z` tag only for a fully verified
    version and push that tag to trigger the release workflow.
-5. Verify the GitHub Actions quality and release results.
+6. Verify the GitHub Actions quality and release results.
 
 Do not tag merely because a version was bumped; intermediate versioned commits
 remain normal development versions.
