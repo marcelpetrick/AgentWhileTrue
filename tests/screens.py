@@ -173,6 +173,19 @@ CODEX_USAGE_LIMIT_WITH_PURCHASE_LINKS = [
     "› Ask Codex to do anything",
 ]
 
+# Shape observed live on Codex CLI 0.154.0 (2026-09-18, 220 columns): the
+# banner is one long line, and the composer rows carry animated Braille
+# "particles" that change every frame, on the placeholder row too. Only the
+# chrome is transcribed; the particles' positions are illustrative.
+CODEX_USAGE_LIMIT_WITH_PARTICLES = [
+    "■ You've hit your usage limit. Upgrade to Pro (https://chatgpt.com/explore/pro), visit https://chatgpt.com/codex/settings/usage to purchase more credits or try again at 3:23 PM.",
+    "",
+    "    ⠈                    ⠄                       ⠐ ⠈    ⠂⡀",
+    "› Ask Codex to do anything   ⠈     ⠄    ⠐          ⠈  ⠐⢀⢀          ⠈                    ⢀",
+    "       ⠁⠁                                    ⠐ ⠈    ⢀⠈⠐⢀",
+    "  gpt-5-codex high · ~/project · 67% used · resets 3:23 PM",
+]
+
 CODEX_COMPLETED_TURN_BELOW_OLD_LIMIT = [
     *CODEX_USAGE_LIMIT_WITH_PURCHASE_LINKS,
     "continue",

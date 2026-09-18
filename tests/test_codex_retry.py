@@ -9,11 +9,17 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+from agent_while_true import providers
 from agent_while_true.config import Config, Mode, Policy
+from agent_while_true.providers import ActionKind
 from agent_while_true.quota import Availability, QuotaWindow
 from agent_while_true.state_store import StateStore
 from agent_while_true.states import SessionState
+from tests import screens
 from tests.harness import build
+
+#: Wall clock for the recognizer-only tests below.
+NOW = datetime(2026, 9, 18, 14, 56, tzinfo=ZoneInfo("Europe/Berlin"))
 
 # The observed banner wording is summarized in docs/OPEN_ISSUES.md. The empty
 # composer is the existing tested Codex shape, not a claimed full live capture.
@@ -190,3 +196,32 @@ def test_old_limit_or_nonempty_draft_never_gets_continue(tmp_path, tail):
     kit.terminal.set_screen("/Sessions/1", [*TONIGHTS_LIMIT[:-1], *tail])
     kit.supervisor.tick()
     assert kit.sent == []
+
+
+def test_codex_particle_chrome_does_not_hide_the_empty_composer() -> None:
+    """Codex 0.154 draws animated Braille particles on the composer row.
+
+    Observed live on 2026-09-18: all three limit patterns matched and the reset
+    parsed, but the composer never stripped to its tested placeholder, so no
+    retry episode was created and the session would have waited forever.
+    """
+    result = providers.CODEX.recognise(screens.CODEX_USAGE_LIMIT_WITH_PARTICLES, now=NOW)
+
+    assert result.state is SessionState.LIMIT_BLOCKED
+    assert result.input_ready
+    assert result.retry_prompt
+    assert result.action is not None
+    assert result.action.kind is ActionKind.TEXT_THEN_ENTER
+    assert result.reset_at is not None
+
+
+def test_codex_particles_do_not_change_the_screen_fingerprint() -> None:
+    """The animation must not turn one prompt into a new prompt every frame."""
+    frame_a = screens.CODEX_USAGE_LIMIT_WITH_PARTICLES
+    frame_b = [line.replace("⠈", "⠂").replace("⢀", "⠄") for line in frame_a]
+    assert frame_a != frame_b
+
+    a = providers.CODEX.recognise(frame_a, now=NOW)
+    b = providers.CODEX.recognise(frame_b, now=NOW)
+
+    assert a.screen_fingerprint == b.screen_fingerprint

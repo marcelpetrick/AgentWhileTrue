@@ -33,8 +33,8 @@ from agent_while_true.providers.base import (
 )
 
 NAME: Final = "codex"
-PATTERNS_VERSION: Final = "codex-0.154.x/3"
-VERIFIED_AGAINST: Final = "Codex CLI 0.153.2 and 0.153.4"
+PATTERNS_VERSION: Final = "codex-0.154.x/4"
+VERIFIED_AGAINST: Final = "Codex CLI 0.153.2, 0.153.4 and 0.154.0"
 
 # Codex's compact blocking composer fits inside eight rows, including the
 # wrapped purchase links seen in 0.153.4. A wider generic window retained the
@@ -49,6 +49,19 @@ DEFAULT_RESUME_TEXT: Final = "continue"
 
 def _pattern(text: str) -> re.Pattern[str]:
     return re.compile(text, re.IGNORECASE)
+
+
+#: Codex 0.154 animates a field of Braille-pattern "particles" (U+2800-U+28FF)
+#: across the composer rows. They are decoration: they never carry a word of
+#: the prompt, they sit on the same row as the placeholder so the composer no
+#: longer strips to its tested text, and they change on every frame so the
+#: screen fingerprint would never be stable. Removing the block before any
+#: comparison restores both the exact composer match and a stable fingerprint.
+_BRAILLE_PARTICLES = re.compile(r"[\u2800-\u28ff]")
+
+
+def _without_particles(lines: list[str]) -> list[str]:
+    return [_BRAILLE_PARTICLES.sub("", line) for line in lines]
 
 
 PATTERNS: Final[tuple[PromptPattern, ...]] = (
@@ -171,6 +184,7 @@ class CodexAdapter(ProviderAdapter):
         live_lines: int = CODEX_LIVE_LINES,
     ) -> Recognition:
         """Restrict Codex decisions to its immediate prompt area."""
+        lines = _without_particles(lines)
         result = super().recognise(lines, now=now, live_lines=live_lines)
         live = lines[-live_lines:]
         # Timed trials require the tested empty composer (or its known

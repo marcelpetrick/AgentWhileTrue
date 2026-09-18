@@ -13,6 +13,18 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.45.8] - 2026-09-18
+
+### Fixed
+
+- Recognise the Codex CLI 0.154.0 blocking composer. That release animates
+  Braille-pattern "particles" across the composer rows, on the placeholder row
+  too, so the composer never stripped to its tested text: every limit pattern
+  matched and the reset parsed, but no retry episode was created and the
+  session would have waited past its reset. The particles are removed before
+  any comparison, which also keeps the screen fingerprint stable from frame to
+  frame. Pattern table `codex-0.154.x/4`; the observed shape is a fixture.
+
 ## [0.45.7] - 2026-09-18
 
 ### Fixed
