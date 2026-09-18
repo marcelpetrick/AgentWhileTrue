@@ -1,0 +1,111 @@
+<!--
+SPDX-FileCopyrightText: 2026 Marcel Petrick
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
+# Report: the resume trigger works — first natural reset supervised end to end
+
+Date: 2026-09-18. Machine: the maintainer's KDE Plasma desktop (Wayland),
+Konsole, Codex CLI 0.154.0, Claude Code 2.1.276. Supervisor: the enabled
+`agent-while-true.service` user service in full-auto mode with the Codex
+opt-in (`run --auto --all --no-fzf`, `ALLOW_CODEX_AUTO_RESUME=true`).
+
+## Verdict
+
+**Yes, it works.** A Codex session hit its five-hour usage limit, the
+supervisor recognised the block, waited for the printed reset, typed
+`continue` at the scheduled second, honestly recorded three attempts that
+Codex still refused, and verified the fourth as resumed. Nobody touched that
+terminal. No paid, upgrade, reset-credit or model-downgrade choice was made,
+no duplicate input was sent, and the event log contains identifiers only.
+
+This is the acceptance event `docs/OPEN_ISSUES.md` item O1 had been waiting
+for since the first release. It is recorded there as accepted for Codex.
+
+## Timeline (CEST)
+
+| Time | What happened | Evidence (`agent-while-true logs`) |
+| --- | --- | --- |
+| 14:29:53 | Service started on the freshly released v0.45.6 after `doctor` (16/16 OK, "Auto mode SAFE"), `status`, `quota`, `simulate --all` (12/12) | `session_selected` for five Claude sessions |
+| 14:56:10 | `codex-dmo` (pts/4, PID 2291266) approaches its limit | `state_change new=LIMIT_WARNING` |
+| 14:56:30 | Codex prints the limit banner: "You've hit your usage limit … try again at 3:23 PM" | `state_change new=LIMIT_BLOCKED reset=2026-09-18T13:23:00+00:00` |
+| 14:58 | Diagnosis: **on v0.45.6 nothing would have happened at 15:23** — see "What had to be fixed first" | `resume_refused reason=paid-action-required:codex/purchase-offer`, `episode=""` |
+| 15:01:36 | Service restarted on the fixed build; retry episode created in the first tick | `resume_retry_scheduled attempt=1/11 due_at=2026-09-18T13:23:01+00:00` |
+| 15:01–15:23 | Correct pre-reset refusal every tick, backed by fresh Codex rollout quota | `resume_refused reason=other-limit-still-exhausted:session` |
+| **15:23:01.175** | Attempt 1: `continue` + Enter typed into the empty composer, `PLANNED` persisted before the send | `resume_sent action=TEXT_THEN_ENTER authorization=TIME_ONLY attempt=1/11` |
+| 15:23:02.170 | Codex accepted the text and hit the limit again | `resume_not_verified attempt=1/11` → record `FAILED still-blocked` |
+| 15:23:04.204 / 15:23:08.392 | Attempts 2 and 3 (schedule 2 s, 3 s), each planned only after the previous one settled | `resume_sent attempt=2/11`, `attempt=3/11`, both `resume_not_verified` |
+| **15:23:16.528** | Attempt 4 (5 s) | `resume_sent attempt=4/11` |
+| **15:23:17.600** | Codex working again | `resume_verified result=resumed attempt=4/11` |
+| 15:23:17 | Episode closed | `state.json`: episode `completed=true`, `attempts=4`, `pending_key=""` |
+
+Persisted action records for the process: `FAILED`, `FAILED`, `FAILED`,
+`VERIFIED` — one verified continuation, three honest failures, no unsafe
+duplicate. Three failed trials right after the nominal reset are the case the
+bounded retry schedule exists for: a printed reset time is not proof that
+usage is available again.
+
+Codex's own quota confirmed the picture afterwards: `agent-while-true quota`
+showed the session window at 100 % with its next reset at 20:23, and at
+15:54:47 the supervisor recognised the next block and scheduled attempt 1/11
+for 20:23:01 without any intervention — the second unattended run is armed.
+
+## What had to be fixed first
+
+The run itself found two defects in the released v0.45.6 before the event,
+both fixed fixture-first and deployed at 15:05, eighteen minutes before the
+reset. Without the first one the answer above would have been "no".
+
+1. **Codex 0.154.0 composer chrome** (`1b51d0c` 0.45.8, `7846733` 0.45.9).
+   Codex 0.154 animates Braille-pattern "particles" (U+2800–U+28FF) across the
+   composer rows, including the placeholder row and sometimes the space right
+   after the `›` glyph. The recogniser required the composer to strip to
+   exactly `› Ask Codex to do anything`, so `input_ready`/`retry_prompt` stayed
+   false, the purchase-offer veto was never lifted, and no retry episode was
+   created. Fix: remove the Braille block before any comparison (which also
+   keeps the screen fingerprint stable while the animation runs) and compare
+   the composer body after the glyph with whitespace normalised.
+2. **Quoted prose read as a prompt** (`ac34510` 0.45.7). An unrelated Claude
+   Code session whose reply merely quoted "usage limit has reset · press enter
+   to continue" was recognised as `READY_TO_RESUME`; only a quoted self-healing
+   sentence in the same paragraph, which carries a veto, stopped an Enter. The
+   affordance is now matched as one whole rendered screen line. The gate-side
+   half (a `READY_TO_RESUME` must follow an observed limit on the same process)
+   is open as backlog item F0.
+
+A third defect surfaced while watching the dashboard afterwards and is fixed
+in `e5c0394` 0.45.10: the five-minute status fetch reused a keep-alive socket
+the status page had already closed, so every second reading said
+`UNKNOWN (never; status-unreachable)` although neither provider had an
+incident. Reproduced directly (`RemoteDisconnected` after 300 s idle, fresh
+socket 200) and verified fixed in production over two fetch intervals.
+
+## Privacy check
+
+Every line in the window above carries provider, session, process
+(`pid:start_time`), episode and attempt identifiers, screen fingerprints,
+pattern IDs and reason codes. No terminal text, prompt content, credentials,
+e-mail addresses or environment values appear — checked with
+`agent-while-true logs -n 400 | grep -oE '[a-z_]+="[^"]{20,}"'` returning
+nothing.
+
+## Reproduce the reading yourself
+
+```bash
+agent-while-true logs -n 400 | grep konsole-2287183 | grep -E 'resume_(sent|verified|not_verified|retry_scheduled)'
+agent-while-true summary            # counts today's sent/verified/failures
+python3 -c "import json,pathlib;d=json.loads((pathlib.Path.home()/'.local/state/agent-while-true/state.json').read_text());print([e for e in d['episodes'] if e['process'].startswith('2291266:')])"
+```
+
+## Versions
+
+| Build | Role |
+| --- | --- |
+| v0.45.6 (released) | Installed at the start of the run; would not have acted |
+| 0.45.7–0.45.9 (`agentwhiletrue-v0.45.9`, released) | The build that performed the verified continuation |
+| 0.45.10 (`e5c0394`) | Running now; adds the status keep-alive fix |
+
+Related: [docs/OPEN_ISSUES.md](docs/OPEN_ISSUES.md) (acceptance record and fix
+backlog), [docs/USAGE.md](docs/USAGE.md) §7 (Codex timed retries),
+[CHANGELOG.md](CHANGELOG.md).
