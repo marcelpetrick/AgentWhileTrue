@@ -225,3 +225,28 @@ def test_codex_particles_do_not_change_the_screen_fingerprint() -> None:
     b = providers.CODEX.recognise(frame_b, now=NOW)
 
     assert a.screen_fingerprint == b.screen_fingerprint
+
+
+@pytest.mark.parametrize(
+    "spacing",
+    [
+        # A particle beside the space: a double space once removed.
+        "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}\N{BRAILLE PATTERN DOTS-4} Ask Codex",
+        # A particle *in* the space: the glyph glued to the placeholder once
+        # removed. Every other tick on the live 0.154.0 session looked like this.
+        "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}\N{BRAILLE PATTERN DOTS-4}Ask Codex",
+    ],
+)
+def test_a_particle_around_the_glyph_still_reads_as_an_empty_composer(spacing: str) -> None:
+    glyph = "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}"
+    frame = [
+        line.replace(f"{glyph} Ask Codex", spacing, 1) if line.startswith(glyph) else line
+        for line in screens.CODEX_USAGE_LIMIT_WITH_PARTICLES
+    ]
+    assert frame != screens.CODEX_USAGE_LIMIT_WITH_PARTICLES
+
+    result = providers.CODEX.recognise(frame, now=NOW)
+
+    assert result.input_ready
+    assert result.retry_prompt
+    assert result.action is not None

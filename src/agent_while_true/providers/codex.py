@@ -33,7 +33,7 @@ from agent_while_true.providers.base import (
 )
 
 NAME: Final = "codex"
-PATTERNS_VERSION: Final = "codex-0.154.x/4"
+PATTERNS_VERSION: Final = "codex-0.154.x/5"
 VERIFIED_AGAINST: Final = "Codex CLI 0.153.2, 0.153.4 and 0.154.0"
 
 # Codex's compact blocking composer fits inside eight rows, including the
@@ -197,10 +197,18 @@ class CodexAdapter(ProviderAdapter):
             ),
             -1,
         )
-        empty = composer >= 0 and live[composer].strip() in {
-            "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}",
-            "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK} Ask Codex to do anything",
-        }
+        # Compare what follows the glyph, with whitespace normalised. A particle
+        # drawn in the space after the glyph leaves the glyph glued to the
+        # placeholder once removed, and one drawn next to that space leaves a
+        # double space; the placeholder is the same placeholder either way.
+        body = (
+            " ".join(
+                live[composer].split("\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}", 1)[1].split()
+            )
+            if composer >= 0
+            else None
+        )
+        empty = body in {"", "Ask Codex to do anything"}
         banner = next(
             (
                 index

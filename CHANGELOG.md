@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.45.9] - 2026-09-18
+
+### Fixed
+
+- Compare the Codex composer by what follows the `›` glyph, with whitespace
+  normalised. A particle drawn in or beside the space after the glyph leaves
+  the glyph glued to the placeholder, or a double space, once removed; on the
+  live 0.154.0 session every other tick read as "not empty" and the
+  purchase-offer veto came back on those ticks. Pattern table `codex-0.154.x/5`.
+
 ## [0.45.8] - 2026-09-18
 
 ### Fixed
