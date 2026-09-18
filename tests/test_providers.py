@@ -60,6 +60,43 @@ def test_claude_ready_to_resume_proposes_a_bare_enter() -> None:
     assert "continue" not in action.keystrokes()
 
 
+def test_quoted_affordance_text_is_not_a_ready_prompt() -> None:
+    """An agent talking *about* the prompt must not be mistaken for the prompt.
+
+    Live on 2026-09-18 an unrelated Claude Code session whose reply quoted the
+    affordance strings was read as READY_TO_RESUME by the full-auto service.
+    """
+    result = providers.CLAUDE.recognise(screens.CLAUDE_QUOTED_READY_AFFORDANCE, now=NOW)
+    assert result.state is SessionState.ACTIVE
+    assert result.action is None
+    assert "claude/ready-press-enter" not in result.matched_ids
+
+
+def test_quoted_affordance_with_quoted_self_healing_proposes_nothing() -> None:
+    """The variant actually seen live: the quoted veto sentence still vetoes, the
+    quoted affordance still proposes nothing, and neither is READY_TO_RESUME."""
+    result = providers.CLAUDE.recognise(screens.CLAUDE_QUOTED_AFFORDANCES, now=NOW)
+    assert result.state is not SessionState.READY_TO_RESUME
+    assert result.action is None
+    assert "claude/ready-press-enter" not in result.matched_ids
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "● Usage limit has reset · press enter to continue",
+        "Usage limit has reset · press enter to continue",
+        "  ● Usage limit reset · press enter to continue  ",
+        "● Usage limit available again press enter to continue",
+    ],
+)
+def test_the_rendered_affordance_line_is_still_recognised(line: str) -> None:
+    result = providers.CLAUDE.recognise([line, "", "❯ "], now=NOW)
+    assert result.state is SessionState.READY_TO_RESUME
+    assert result.action is not None
+    assert result.action.kind is ActionKind.ENTER
+
+
 def test_claude_self_healing_screen_vetoes_action() -> None:
     result = providers.CLAUDE.recognise(screens.CLAUDE_SELF_HEALING, now=NOW)
     assert any(veto.startswith("provider-resumes-itself") for veto in result.vetoes)

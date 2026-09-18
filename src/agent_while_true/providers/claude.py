@@ -36,7 +36,7 @@ from agent_while_true.providers.base import (
 )
 
 NAME: Final = "claude"
-PATTERNS_VERSION: Final = "claude-2.1.x/5"
+PATTERNS_VERSION: Final = "claude-2.1.x/6"
 VERIFIED_AGAINST: Final = "Claude Code 2.1.261 and 2.1.270"
 
 
@@ -125,15 +125,24 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         provider=NAME,
         kind=PromptKind.READY_TO_RESUME,
         scope="session",
+        # Anchored to the whole rendered line. Claude prints this affordance as
+        # a line of its own under the assistant marker; the same words inside a
+        # sentence - an agent *talking about* the prompt, a quoted doc, a log
+        # line - are not the prompt, and one such quote in a live session was
+        # recognised as READY_TO_RESUME on 2026-09-18. The gate additionally
+        # requires that this process was seen blocked first (policy.py).
         all_of=(
-            _pattern(r"[Uu]sage limit (?:has reset|reset|available again)"),
-            _pattern(r"press enter to continue"),
+            re.compile(
+                r"^\s*(?:\N{BLACK CIRCLE}\s*)?Usage limit (?:has reset|reset|available again)"
+                r"\s*(?:\N{MIDDLE DOT}\s*)?press enter to continue\s*$",
+                re.IGNORECASE | re.MULTILINE,
+            ),
         ),
         # The provider states the expected input in so many words, so the action
         # is a bare Enter. The literal word "continue" is never typed: at this
         # prompt it would be echoed into the composer rather than accepted.
         action=ResumeAction(kind=ActionKind.ENTER),
-        note="Requires both the reset headline and the explicit affordance.",
+        note="The reset headline and affordance must form one whole screen line.",
         verified_against=VERIFIED_AGAINST,
     ),
     PromptPattern(

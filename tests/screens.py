@@ -47,6 +47,27 @@ CLAUDE_READY_TO_RESUME = [
     "❯ ",
 ]
 
+#: Reconstructed from the 2026-09-18 live false positive: an assistant turn in
+#: an unrelated Claude Code session *quoting* the affordance strings. The
+#: full-auto service read this as READY_TO_RESUME; only the quoted self-healing
+#: sentence, which carries a veto, stopped an Enter. Nothing here is a prompt.
+CLAUDE_QUOTED_AFFORDANCES = [
+    "● Short answer: yes, it is active. Here is what it does on each dialog:",
+    '  - Claude, "usage limit has reset · press enter to continue": presses Enter.',
+    '  - Claude already saying "Continuing automatically when your limit resets":',
+    "    stands down, because Claude resumes itself.",
+    "",
+    "❯ ",
+]
+
+#: The same quote without the vetoing sentence: the case that would have typed.
+CLAUDE_QUOTED_READY_AFFORDANCE = [
+    "● Short answer: yes, it is active. Here is what it does on each dialog:",
+    '  - Claude, "usage limit has reset · press enter to continue": presses Enter.',
+    "",
+    "❯ ",
+]
+
 CLAUDE_SELF_HEALING = [
     "● Usage limit reached · resets 8:10pm",
     "  Continuing automatically when your limit resets",

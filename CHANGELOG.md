@@ -13,6 +13,19 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.45.7] - 2026-09-18
+
+### Fixed
+
+- Recognise Claude's "usage limit has reset · press enter to continue" only as
+  the whole rendered screen line it actually is. The same words inside a
+  sentence - an agent talking about the prompt, a quoted document, a log line -
+  were read as `READY_TO_RESUME`; on 2026-09-18 a live, unrelated Claude Code
+  session whose reply quoted the affordance was recognised that way by the
+  full-auto service, and only a quoted self-healing sentence carrying a veto
+  stopped an Enter. Pattern table `claude-2.1.x/6`; the reconstructed screen is
+  a fixture.
+
 ## [0.45.6] - 2026-09-18
 
 ### Fixed
