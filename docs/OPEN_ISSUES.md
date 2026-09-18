@@ -56,6 +56,22 @@ behavior and must not be weakened merely to close the test.
    acceptance record. If the live event exposes a defect, add a redacted fixture
    and regression test before the smallest safety-preserving fix.
 
+## Fix backlog (evidence from the 2026-09-18 review and v0.45.6 live run)
+
+Ordered by impact. Each is a separate `fix` commit with its own regression test;
+none weakens a safety gate.
+
+| ID | Sev | Where | Defect | Evidence |
+| --- | --- | --- | --- | --- |
+| F1 | MEDIUM | `cli.py:398` | Non-interactive auto mode renders the full dashboard frame on every scan; observe mode prints one line per session. | Service journal: 29 frames/min, ~980 lines/min, 605.8 MB in four days of the 0.44.3 service. |
+| F2 | MEDIUM | `terminal/konsole.py:166` | `getAllDisplayedTextList` transfers the whole scrollback per observation; only the last `VISIBLE_LINES` are kept. Use `getDisplayedTextList` or otherwise bound the read. | Code reading; vision §14 and `terminal/base.py:9` forbid retaining scrollback. Magnitude depends on the Konsole history limit. |
+| F3 | MEDIUM | `fsm.py:621` | `_record_state` maps only four of classify's fourteen blocker strings to `UNSUPPORTED`; every other non-agent classification leaves the previous state on screen. | Live 14:30:14–14:30:16: tab held a shell (`idle-shell` refused) while the row still read `ACTIVE`. Input was correctly refused. |
+| F4 | LOW | `ui.py:195` | Countdown switches from hours to days at 1.5 days (36 h, `ceil`), so 37–47 h renders as `2d` while 34 h renders as `34h`. Wanted: hours below 48 h, days from 2 d. Align `format_reset` (`+Nd` from 24 h) with the same boundary. | Screenshot 2026-09-18 14:37: weekly resets `2d`, `2d`, `2d`, `7d`, `34h` side by side. |
+| F5 | LOW | `cli.py:295` | `Shift+A` is a two-state toggle over three modes: from ask it escalates to full-auto with the Codex opt-in and can never return to ask. | Code reading; USAGE §3 documents the current behaviour. |
+| F6 | LOW | `state_store.py:153` | Retry episodes are never expired; settled episodes accumulate in `state.json` and are rewritten with `fsync` on every save. | Code reading. |
+| F7 | LOW | `quota.py:360` | Each Codex rollout tail (256 KiB) is parsed at least four times per tick (`_warm_quota_sources` + `observe`, `find_codex_rollout` + `_last_rate_limits`). Cache per `(path, size, mtime_ns)`. | Code reading. |
+| F8 | LOW | `providers/timeparse.py:69` | `_WEEKDAY_RE` matches the words "sat" and "sun"; fails safe (waits longer). Needs a real fixture before the recognizer changes. | Code reading; no live occurrence. |
+
 ## Known conservative boundaries
 
 These are deliberate limits, not pending implementation bugs:
