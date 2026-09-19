@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.46.1] - 2026-09-19
+
+### Fixed
+
+- Point the refusal to start a second input-capable instance at the handover
+  that 0.46.0 added, instead of only at read-only watching. Starting `run` while
+  a service holds the lock still fails rather than taking input control
+  silently: that decision belongs to a key press at the keyboard.
+
 ## [0.46.0] - 2026-09-19
 
 ### Added

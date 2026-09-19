@@ -294,7 +294,8 @@ def command_run(
         except LockHeldError:
             stream.write(
                 "Another Agent While True instance is already running. Only one instance may send "
-                "input; use --observe to watch read-only.\n"
+                "input; start with --observe to watch read-only, and press Shift+A there to take "
+                "input control over from it.\n"
             )
             return EXIT_ERROR
     try:
