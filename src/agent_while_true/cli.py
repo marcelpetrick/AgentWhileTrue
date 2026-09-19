@@ -38,6 +38,13 @@ from agent_while_true.config import (
     describe,
     load,
 )
+from agent_while_true.control import (
+    OP_STATUS,
+    OP_YIELD_INPUT,
+    ControlError,
+    ControlServer,
+    request_yield_input,
+)
 from agent_while_true.fsm import Observation, Supervisor, SystemInspector
 from agent_while_true.identity import session_account
 from agent_while_true.lock import LockHeldError, SingleInstanceLock
@@ -68,6 +75,14 @@ EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_INTERRUPTED = 130
 REDISCOVERY_INTERVAL_SECONDS = 30.0
+#: A yielding instance releases the lock before it answers, so the successor
+#: normally takes it on the first try. The retries only cover the scheduler.
+HANDOVER_ACQUIRE_ATTEMPTS = 20
+HANDOVER_RETRY_SECONDS = 0.05
+#: How long a yielding instance keeps its hands off the lock afterwards. It has
+#: to outlast the successor's retries, or the instance that just gave input
+#: control away would take it straight back.
+HANDOVER_GRACE_SECONDS = 2.0
 PREFERENCE_FIELDS_BY_KEY = {
     "t": frozenset({"theme"}),
     "e": frozenset({"show_events"}),
@@ -288,6 +303,142 @@ def command_run(
         lock.release()
 
 
+class _InputControl:
+    """This instance's side of the control channel.
+
+    The socket is open exactly while this instance holds the lock, so whoever
+    reaches it is talking to the current input controller. Requests are served
+    between scans, never inside one, so a handover cannot split a keystroke from
+    the observation that follows it.
+    """
+
+    def __init__(self, supervisor: Supervisor, lock: SingleInstanceLock, config: Config) -> None:
+        self.supervisor = supervisor
+        self.lock = lock
+        self.config = config
+        self.server = ControlServer.in_directory(config.resolved_runtime_dir())
+        #: The configuration to return to once the successor releases the lock.
+        self.rearm: Config | None = None
+        self.rearm_not_before = 0.0
+        #: Whether the successor was observed holding the lock. Until it is, a
+        #: free lock means the handover fell through, not that it is over.
+        self.successor_seen = False
+        self.note = ""
+
+    def tick(self, config: Config) -> tuple[Config, str]:
+        """Serve what is waiting, then re-arm if the successor is gone."""
+        self.config = config
+        self.note = ""
+        self._match_socket_to_lock()
+        self.server.poll(self._handle)
+        self._rearm_if_free()
+        self._match_socket_to_lock()
+        return self.config, self.note
+
+    def close(self) -> None:
+        self.server.close()
+
+    def _match_socket_to_lock(self) -> None:
+        if self.lock.held and not self.server.active:
+            try:
+                self.server.start()
+            except ControlError as exc:
+                # Usually a predecessor that has not closed its socket yet.
+                # Trying again next tick is enough; nothing depends on it.
+                self.supervisor.log.warning("control_unavailable", reason=str(exc))
+        elif not self.lock.held and self.server.active:
+            self.server.close()
+
+    def _handle(self, op: str) -> dict[str, object]:
+        if op == OP_STATUS:
+            return {
+                "ok": True,
+                "pid": os.getpid(),
+                "mode": self.config.mode.value,
+                "codex_auto_resume": self.config.policy.allow_codex_auto_resume,
+                "version": __version__,
+            }
+        if op == OP_YIELD_INPUT:
+            return self._yield_input()
+        return {"ok": False, "reason": "unknown-op"}
+
+    def _yield_input(self) -> dict[str, object]:
+        if not self.lock.held:
+            return {"ok": False, "reason": "no-input-control"}
+        if any(session.verify_after is not None for session in self.supervisor.sessions.values()):
+            # Handing over between a keystroke and its verification would leave
+            # that result unverified. Refusing costs the caller one key press.
+            return {"ok": False, "reason": "action-in-flight"}
+        previous = self.config
+        self.config = replace(previous, mode=Mode.OBSERVE)
+        self.supervisor.config = self.config
+        self.lock.release()
+        self.rearm = previous
+        self.rearm_not_before = self.supervisor.monotonic_fn() + HANDOVER_GRACE_SECONDS
+        self.successor_seen = False
+        self.note = "input control handed over; re-arming when the other watcher exits"
+        self.supervisor.log.info(
+            "input_yielded",
+            previous=previous.mode.value,
+            codex_auto_resume=previous.policy.allow_codex_auto_resume,
+        )
+        return {"ok": True, "detail": "input control released"}
+
+    def _rearm_if_free(self) -> None:
+        """Take the lock back once the instance we yielded to has let go."""
+        if self.rearm is None or self.lock.held:
+            return
+        if self.supervisor.monotonic_fn() < self.rearm_not_before:
+            # Still the successor's moment to take the lock it just asked for.
+            return
+        try:
+            self.lock.acquire()
+        except LockHeldError:
+            self.successor_seen = True
+            return
+        if not self.successor_seen:
+            # The grace period passed with nobody taking over: the handover fell
+            # through, so this instance simply resumes its own role.
+            self.supervisor.log.info("input_handover_lapsed")
+        restored, self.rearm = self.rearm, None
+        self.config = restored
+        self.supervisor.config = restored
+        # The other watcher may have spent action budget while it was in charge.
+        self.supervisor.store.load()
+        self.supervisor.log.info(
+            "input_rearmed",
+            mode=restored.mode.value,
+            codex_auto_resume=restored.policy.allow_codex_auto_resume,
+        )
+        self.note = "input control returned; this watcher is armed again"
+
+
+def _take_input_control(
+    supervisor: Supervisor, config: Config, lock: SingleInstanceLock
+) -> tuple[bool, str]:
+    """Ask the running input controller to hand the lock over, then take it.
+
+    A person pressing the full-auto key is a deliberate decision made at the
+    keyboard, while the instance that happens to hold the lock is often a
+    service started at login. The handover is still the only way to get input
+    control, and the holder releases before it answers, so the guarantee that
+    exactly one instance can type is unchanged. A refusal leaves that holder
+    armed and this watcher read-only.
+    """
+    granted, detail = request_yield_input(config.resolved_runtime_dir())
+    supervisor.log.info("input_handover_requested", granted=granted, detail=detail)
+    if not granted:
+        return False, detail
+    for _ in range(HANDOVER_ACQUIRE_ATTEMPTS):
+        try:
+            lock.acquire()
+        except LockHeldError:
+            time.sleep(HANDOVER_RETRY_SECONDS)
+            continue
+        return True, "input control taken over"
+    return False, "the lock is still held after the handover"
+
+
 def _toggle_runtime_mode(
     supervisor: Supervisor, config: Config, lock: SingleInstanceLock
 ) -> tuple[Config, str]:
@@ -303,13 +454,16 @@ def _toggle_runtime_mode(
         if not lock.held:
             lock.acquire()
     except LockHeldError:
-        supervisor.log.warning(
-            "mode_change_refused",
-            previous=config.mode.value,
-            requested="full-auto",
-            reason="lock-held",
-        )
-        return config, "full auto refused: another input controller holds the lock"
+        taken, detail = _take_input_control(supervisor, config, lock)
+        if not taken:
+            supervisor.log.warning(
+                "mode_change_refused",
+                previous=config.mode.value,
+                requested="full-auto",
+                reason="lock-held",
+                detail=detail,
+            )
+            return config, f"full auto refused: {detail}"
 
     # Pressing the dedicated full-auto key is an explicit runtime opt-in to
     # Codex composer continuation. Paid and quality-changing policy stays off.
@@ -372,8 +526,12 @@ def _loop(
         health.start()
     if interactive:
         stream.write(HIDE_CURSOR)
+    # Only an instance that can type has anything to hand over.
+    control = _InputControl(supervisor, lock, config)
     try:
         while not stop["requested"]:
+            config, control_note = control.tick(config)
+            last_event = control_note or last_event
             monotonic_now = time.monotonic()
             if not dashboard.paused and (dashboard.rescan_requested or monotonic_now >= next_scan):
                 if dashboard.rescan_requested or monotonic_now >= next_rediscovery:
@@ -483,6 +641,7 @@ def _loop(
                 time.sleep(max(0.0, next_scan - time.monotonic()))
         return EXIT_INTERRUPTED
     finally:
+        control.close()
         if interactive and unsaved_preference_fields:
             save_preferences(preferences_path, dashboard, unsaved_preference_fields)
         metrics.reset()

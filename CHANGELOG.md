@@ -13,6 +13,32 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.46.0] - 2026-09-19
+
+### Added
+
+- Hand input control from a running instance to a watcher started later. The
+  instance that holds the single-instance lock now listens on a control socket
+  in the runtime directory, and the full-auto key in a second watcher asks it to
+  step aside instead of reporting `full auto refused: another input controller
+  holds the lock`. Until now a user service installed by
+  `scripts/install-user-service.sh` kept input control until it was stopped, so
+  a supervisor started at the keyboard could never be armed.
+- Re-arm the instance that handed input control over as soon as the watcher it
+  yielded to releases the lock, so a service configured for full auto returns to
+  full auto by itself.
+
+### Changed
+
+- Refuse a handover while any watched session is waiting for the verification of
+  an action already sent, and keep a yielding instance off the lock long enough
+  for its successor to take it. Exactly one instance holds the lock at any
+  moment: the holder releases it before it answers, and the successor takes it
+  through the unchanged path. The channel carries the mode, process id and
+  version only - never terminal contents, prompt text or account data.
+- Resolve a temporary `XDG_RUNTIME_DIR` in every test, so a test run can no
+  longer reach the lock or the control socket of a live instance.
+
 ## [0.45.10] - 2026-09-18
 
 ### Fixed

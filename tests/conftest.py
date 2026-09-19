@@ -58,6 +58,18 @@ def _isolate_process_tree(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _isolate_runtime_dir(tmp_path_factory, monkeypatch):
+    """Keep tests away from the runtime directory of a live instance.
+
+    The single-instance lock and the control socket both live there. A test that
+    resolved the real ``$XDG_RUNTIME_DIR`` could ask the developer's running
+    supervisor to hand over input control, which is exactly the kind of side
+    effect a test run must never have.
+    """
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path_factory.mktemp("xdg-runtime")))
+
+
+@pytest.fixture(autouse=True)
 def _isolate_proxy_environment(monkeypatch):
     """Keep the host's proxy configuration out of every test.
 
