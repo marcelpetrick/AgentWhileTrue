@@ -27,7 +27,8 @@ Codex auto-resume is explicitly enabled by this full-auto entry point. Paid,
 upgrade, reset-credit, and model-downgrade actions remain forbidden.
 
 If another input-capable watcher is already running, it is left untouched and
-this script opens an observe-only dashboard alongside it.
+this script opens an observe-only dashboard alongside it. Press Shift+A there to
+ask that watcher to hand input control over.
 
 --noRun, --no-run  Complete setup and checks without opening the dashboard.
 EOF
@@ -117,6 +118,7 @@ fi
 
 if grep -Eq '^Single instance[[:space:]]+WARN' <<< "$doctor_output"; then
     printf '\n%s\n' '[6/6] An input controller is already running; opening the observe dashboard'
+    printf '%s\n' '      Press Shift+A there to take input control over from it.'
     exec "$cli" run --observe --all --no-fzf
 fi
 

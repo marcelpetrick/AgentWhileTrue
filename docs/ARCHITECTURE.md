@@ -231,7 +231,11 @@ flowchart LR
 ```
 
 Only one input-capable process may hold the runtime lock. Observe-only processes
-may coexist. D-Bus access, state files, and the service all remain within the
+may coexist. The holder also serves a control socket beside the lock, so a
+watcher started later can ask for the lock instead of being locked out for the
+lifetime of a service: the holder releases before it answers and re-arms when
+the successor exits, which keeps the single-writer guarantee that the lock, not
+the protocol, enforces. D-Bus access, state files, and the service all remain within the
 desktop user account; root execution, SSH, containers, tmux/screen, and
 ambiguous process ancestry are non-automatable.
 

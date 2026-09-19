@@ -83,21 +83,27 @@ preselected. `fzf` is used when installed (`--no-fzf` disables it). With `--all`
 every eligible agent is watched and newly opened agent tabs are picked up on
 each rediscovery.
 
-Only one input-capable instance may run. If the background service owns the
-lock, stop it before opening the interactive TUI, then restore it afterwards:
+Only one input-capable instance may send input at a time. A second watcher can
+always be started read-only:
 
 ```bash
-systemctl --user stop agent-while-true.service
-agent-while-true run --observe --all  # press Shift+A to enable full auto
-systemctl --user start agent-while-true.service
+agent-while-true run --observe --all  # press Shift+A to take over full auto
 ```
 
 `Shift+A` in the dashboard toggles between observe and full-auto. Enabling
 full auto this way is an explicit runtime opt-in to Codex composer continuation
 (`ALLOW_CODEX_AUTO_RESUME`); paid, upgrade, reset-credit and model-downgrade
 policy stays off. Pressing it while running in ask mode also switches to full
-auto; restart the command to return to ask mode. The toggle is refused when
-another input controller holds the lock.
+auto; restart the command to return to ask mode.
+
+If a background service already owns the lock, `Shift+A` asks it to hand input
+control over rather than refusing. The service drops to observe and releases the
+lock before it answers, the dashboard takes the lock through the ordinary path,
+and the service arms itself again once the dashboard exits - so stopping and
+restarting the unit by hand is no longer necessary. A handover is refused while
+an action is waiting for verification: press the key again once it has settled.
+The channel is a socket in the runtime directory, restricted to the owning user,
+and carries the mode, process id and version only.
 
 ## 4. The dashboard
 
@@ -403,4 +409,5 @@ requires `doctor` to pass, shows live status and quota, and opens the auto-mode
 dashboard for all eligible sessions. Invoking it explicitly opts Codex into
 composer continuation; paid, upgrade, reset-credit and model-downgrade actions
 remain forbidden. If another input-capable watcher already owns the lock it
-stays in control and the launcher opens an observe-only dashboard instead.
+stays in control and the launcher opens an observe-only dashboard instead, where
+`Shift+A` asks that watcher to hand input control over.
