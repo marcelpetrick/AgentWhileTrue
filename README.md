@@ -8,8 +8,18 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 [![Quality](https://github.com/marcelpetrick/AgentWhileTrue/actions/workflows/quality.yml/badge.svg?branch=master)](https://github.com/marcelpetrick/AgentWhileTrue/actions/workflows/quality.yml)
 [![Release](https://github.com/marcelpetrick/AgentWhileTrue/actions/workflows/release.yml/badge.svg)](https://github.com/marcelpetrick/AgentWhileTrue/actions/workflows/release.yml)
-[![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB.svg)](https://www.python.org/)
-[![License: GPL v3 or later](https://img.shields.io/badge/license-GPLv3%2B-blue.svg)](LICENSE)
+[![Dependency audit](https://github.com/marcelpetrick/AgentWhileTrue/actions/workflows/security.yml/badge.svg?branch=master)](https://github.com/marcelpetrick/AgentWhileTrue/actions/workflows/security.yml)
+[![Latest release](https://img.shields.io/github/v/release/marcelpetrick/AgentWhileTrue?sort=semver&label=release)](https://github.com/marcelpetrick/AgentWhileTrue/releases/latest)
+[![License: GPL v3 or later](https://img.shields.io/badge/license-GPLv3%20or%20later-blue.svg)](LICENSE)
+[![Python 3.12 | 3.13 | 3.14](https://img.shields.io/badge/Python-3.12%20%7C%203.13%20%7C%203.14-3776ab.svg)](https://www.python.org/)
+[![Runtime dependencies: 0](https://img.shields.io/badge/runtime%20dependencies-0-2ea043.svg)](pyproject.toml)
+[![Coverage >= 91%](https://img.shields.io/badge/coverage-%E2%89%A591%25-brightgreen.svg)](scripts/quality.sh)
+[![Lint and format: ruff](https://img.shields.io/badge/lint%20%26%20format-ruff-261230.svg)](https://docs.astral.sh/ruff/)
+[![REUSE compliant](https://img.shields.io/badge/REUSE-compliant-green.svg)](https://reuse.software/)
+[![SBOM: SPDX and CycloneDX](https://img.shields.io/badge/SBOM-SPDX%20%2B%20CycloneDX-4a4a4a.svg)](https://github.com/marcelpetrick/AgentWhileTrue/releases/latest)
+[![Agents: Codex CLI and Claude Code](https://img.shields.io/badge/agents-Codex%20CLI%20%C2%B7%20Claude%20Code-6e40c9.svg)](docs/USAGE.md)
+[![Platform: KDE Konsole on Linux](https://img.shields.io/badge/platform-KDE%20Konsole%20on%20Linux-1d99f3.svg)](docs/USAGE.md)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-FE5196.svg)](https://www.conventionalcommits.org/en/v1.0.0/)
 
 **Agent While True** is a dashboard and babysitter for Codex CLI and Claude
 Code sessions running in KDE Konsole. One terminal shows every selected agent's
