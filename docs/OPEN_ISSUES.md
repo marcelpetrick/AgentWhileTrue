@@ -21,7 +21,8 @@ Claude event may never need the supervisor).
 
 Evidence, build 0.45.9 (commits `ac34510`, `1b51d0c`, `7846733` on top of the
 v0.45.6 release), full-auto user service with the Codex opt-in, six sessions
-supervised, no fabricated state, no manual input to the chosen session:
+supervised, no fabricated state, no manual input to the chosen session. The
+full write-up is [history/0.45.9_resume_trigger_report.md](history/0.45.9_resume_trigger_report.md):
 
 | Time (CEST) | Event |
 | --- | --- |
@@ -42,8 +43,8 @@ fixture-first: the 0.45.6 recognizer did not accept the Codex 0.154.0 composer
 under its animated particle chrome (no episode would have been created and the
 session would have waited past its reset), and an unrelated Claude Code
 session quoting the reset affordance was read as `READY_TO_RESUME` (F0). The
-accepted build therefore differs from the v0.45.6 release; tagging it is the
-remaining release step.
+accepted build therefore differs from the v0.45.6 release, and was published as
+`agentwhiletrue-v0.45.9`.
 
 The original acceptance criteria are kept below for the Claude path.
 
@@ -69,8 +70,8 @@ behavior and must not be weakened merely to close the test.
 
 ## Impact-ordered execution plan
 
-1. **High — publish the accepted build.** Run `./localPipeline.sh` on the
-   accepted commit, tag it, and verify the release workflow and SBOM hashes.
+1. **Done — the accepted build is published.** Tagged and released as
+   `agentwhiletrue-v0.45.9`; later releases follow the same verified path.
 2. **Medium — witness the Claude path if it ever arises.** Keep the service
    under observation; a Claude session that does not self-heal (reset more
    than 24 h out, or backgrounded) is the only case that needs the supervisor.
