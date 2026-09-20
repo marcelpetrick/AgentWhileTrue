@@ -307,5 +307,18 @@ def test_canonical_pipeline_covers_required_release_smokes() -> None:
     for command in ("doctor", "status", "quota", "simulate --all"):
         assert command in pipeline
     assert 'agent-while-true" --version' in pipeline
-    assert "git diff --check" in quality
+    assert "git --no-pager diff --check" in quality
     assert 'fail "shellcheck (not installed)"' in quality
+
+
+def test_quality_gate_never_starts_an_interactive_pager() -> None:
+    """A gate that can block on a keypress is not a gate.
+
+    `git diff` pages its output, and a developer `LESS` value without `-F`
+    keeps that pager open on empty output, so the whole run hung silently.
+    """
+    quality = QUALITY.read_text(encoding="utf-8")
+
+    assert "git --no-pager diff --check" in quality
+    for command in ("git diff", "git log", "git show"):
+        assert f"\n    {command}" not in quality

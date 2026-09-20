@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.48.2] - 2026-09-20
+
+### Fixed
+
+- Run the worktree whitespace check as `git --no-pager diff --check`. Git pages
+  `diff` output, and a developer `LESS` value without `-F` keeps that pager open
+  even with nothing to show, so `./localPipeline.sh` stopped dead on an
+  invisible prompt for a keypress. The gate now never starts a pager.
+
 ## [0.48.1] - 2026-09-20
 
 ### Fixed

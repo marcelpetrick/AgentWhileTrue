@@ -101,7 +101,9 @@ fi
 
 step "git diff --check"
 if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
-    git diff --check || fail "git diff --check"
+    # --no-pager: a developer's LESS setting (anything without -F) otherwise
+    # leaves the pager waiting for a keypress and the gate hangs forever.
+    git --no-pager diff --check || fail "git diff --check"
 else
     printf 'source archive: no Git diff to check\n'
 fi
