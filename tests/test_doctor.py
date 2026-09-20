@@ -120,11 +120,16 @@ def test_an_unreadable_version_line_raises_no_false_alarm(monkeypatch) -> None:
     assert doctor.check_agent("codex", "--version", adapter=providers.CODEX).status is Status.OK
 
 
-def test_pattern_drift_never_blocks_automatic_mode(tmp_path: Path, monkeypatch) -> None:
-    """Drift is a warning: it is a reason to look, not a reason to stop."""
+def test_pattern_drift_never_blocks_automatic_mode(monkeypatch) -> None:
+    """Drift is a warning: it is a reason to look, not a reason to stop.
+
+    Asserted against the verdict alone rather than a whole `doctor.run`, whose
+    outcome depends on whether the machine has a desktop bus at all.
+    """
     monkeypatch.setattr(doctor, "_tool_version", lambda *_: "codex-cli 99.0.0")
-    checks = doctor.run(
-        _config(tmp_path), adapter_factory=lambda: StubbedKonsole(qdbus="/bin/true")
-    )
-    verdict = next(check for check in checks if check.name == "Auto mode")
-    assert verdict.status is not Status.FAIL
+    drift = doctor.check_agent("codex", "--version", adapter=providers.CODEX)
+    assert drift.status is Status.WARN
+
+    verdict = doctor._auto_mode_verdict([drift], Config())
+
+    assert verdict.status is Status.OK

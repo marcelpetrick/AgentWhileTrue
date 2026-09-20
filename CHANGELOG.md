@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.48.1] - 2026-09-20
+
+### Fixed
+
+- Assert the pattern-drift verdict without depending on the machine running the
+  tests. The 0.48.0 test read the whole `doctor` verdict, which is `FAIL` on a
+  runner with no desktop bus for reasons that have nothing to do with drift, so
+  the release pipeline failed where a developer desktop passed.
+
 ## [0.48.0] - 2026-09-20
 
 ### Added
