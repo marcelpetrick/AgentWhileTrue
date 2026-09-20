@@ -20,6 +20,15 @@ assert SPEC.loader is not None
 sbom = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(sbom)
 
+# The standards validators are release tooling, not a runtime dependency, so a
+# lean checkout may not have them. localPipeline.sh installs them and validates
+# every release document with them, and that step fails hard when they are
+# missing; a bare `pytest` run should report their absence, not a defect.
+requires_standard_validators = pytest.mark.skipif(
+    importlib.util.find_spec("cyclonedx") is None or importlib.util.find_spec("spdx_tools") is None,
+    reason="pinned SBOM validation tools are not installed",
+)
+
 
 def _metadata(version: str, requirements: tuple[str, ...] = ()) -> bytes:
     requires = "".join(f"Requires-Dist: {requirement}\n" for requirement in requirements)
@@ -195,6 +204,7 @@ def test_cli_generates_and_validates_both_formats(
     ]
 
 
+@requires_standard_validators
 def test_maintained_standard_validators_accept_documents_and_reject_corruption(
     tmp_path: Path,
 ) -> None:

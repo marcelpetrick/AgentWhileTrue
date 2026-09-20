@@ -8,6 +8,7 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PYTHON_BIN="${PYTHON:-python3}"
+TOOLCHAIN_VENV="${AGENT_WHILE_TRUE_TOOLCHAIN_VENV:-$PROJECT_ROOT/.venv}"
 declare -a PIPELINE_RESULTS=()
 TEMP_ROOT=""
 
@@ -16,12 +17,16 @@ usage() {
 Usage: ./localPipeline.sh [--noRun]
 
 Runs the same complete gate used by GitHub Actions:
-  1. Verify Python 3.12+
+  1. Verify Python 3.12+ and the pinned quality toolchain
   2. Ruff lint and format check, ShellCheck, tests and coverage
   3. Run every safety simulation
   4. Build the source distribution and wheel
   5. Install the wheel in an isolated environment
   6. Smoke-test the canonical command, doctor, status, quota, and all simulations
+
+A fresh clone has none of the pinned tools, so step 1 provisions them once in
+.venv (override with AGENT_WHILE_TRUE_TOOLCHAIN_VENV). An environment that
+already provides them, such as CI after `pip install .[dev]`, is used unchanged.
 
 --noRun is accepted for consistency with this repository's other local
 pipelines. Agent While True has no final interactive launch, so it is a no-op.
@@ -47,6 +52,67 @@ cleanup() {
     if [[ -n "$TEMP_ROOT" && -d "$TEMP_ROOT" ]]; then
         rm -rf -- "$TEMP_ROOT"
     fi
+}
+
+# The pinned lint, test, build and SBOM tools declared in pyproject.toml. They
+# are the gate's single source of truth, so this bootstrap cannot drift from CI.
+toolchain_requirements() {
+    "$PYTHON_BIN" - "$PROJECT_ROOT/pyproject.toml" <<'REQUIREMENTS'
+import pathlib
+import sys
+import tomllib
+
+project = tomllib.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+print("\n".join(project["project"]["optional-dependencies"]["dev"]))
+REQUIREMENTS
+}
+
+toolchain_complete() {
+    local tool
+    for tool in ruff pytest reuse; do
+        command -v "$tool" > /dev/null 2>&1 || return 1
+    done
+    "$PYTHON_BIN" -c 'import build, cyclonedx, pytest_cov, spdx_tools' > /dev/null 2>&1
+}
+
+# Without this a fresh clone failed with "missing tool: reuse" and an SBOM
+# import error, which reads like a broken repository rather than a machine that
+# has never installed the tools.
+ensure_toolchain() {
+    if toolchain_complete; then
+        PIPELINE_RESULTS+=("Quality toolchain: PASS (pinned tools already available)")
+        return
+    fi
+
+    local -a requirements=()
+    mapfile -t requirements < <(toolchain_requirements)
+    [[ "${#requirements[@]}" -gt 0 ]]
+
+    printf '[INFO] Provisioning the pinned quality toolchain in %s\n' "$TOOLCHAIN_VENV"
+    if [[ ! -x "$TOOLCHAIN_VENV/bin/python" ]]; then
+        "$PYTHON_BIN" -m venv "$TOOLCHAIN_VENV"
+    fi
+    local stamp="$TOOLCHAIN_VENV/.toolchain-requirements"
+    local wanted
+    wanted="$(printf '%s\n' "${requirements[@]}")"
+    if [[ ! -f "$stamp" || "$(cat -- "$stamp")" != "$wanted" ]]; then
+        if ! "$TOOLCHAIN_VENV/bin/python" -m pip install --disable-pip-version-check \
+            --quiet "${requirements[@]}"; then
+            printf '[ERROR] cannot install the pinned quality tools; this step needs\n' >&2
+            printf '        network access once, or a pre-populated %s\n' "$TOOLCHAIN_VENV" >&2
+            return 1
+        fi
+        printf '%s\n' "$wanted" > "$stamp"
+    fi
+
+    PATH="$TOOLCHAIN_VENV/bin:$PATH"
+    export PATH
+    PYTHON_BIN="$TOOLCHAIN_VENV/bin/python"
+    if ! toolchain_complete; then
+        printf '[ERROR] the provisioned quality toolchain is still incomplete\n' >&2
+        return 1
+    fi
+    PIPELINE_RESULTS+=("Quality toolchain: PASS (provisioned in $TOOLCHAIN_VENV)")
 }
 
 smoke_command() {
@@ -89,6 +155,8 @@ if sys.version_info < (3, 12):
 print(f"[INFO] Python {sys.version.split()[0]}")
 PY
 PIPELINE_RESULTS+=("Python baseline  : PASS (3.12+)")
+
+ensure_toolchain
 
 scripts/quality.sh
 PIPELINE_RESULTS+=("Quality gate     : PASS (Ruff, format, ShellCheck, pytest coverage)")

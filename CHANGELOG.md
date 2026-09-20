@@ -13,6 +13,23 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.49.0] - 2026-09-20
+
+### Added
+
+- Provision the pinned quality toolchain from `./localPipeline.sh`. A fresh
+  clone has no `reuse`, `spdx-tools` or `cyclonedx-python-lib`, so the gate
+  failed with `missing tool: reuse` and an SBOM import error that read like a
+  broken repository. The pipeline now installs the `dev` extra from
+  `pyproject.toml` into `.venv` once, and leaves an environment that already
+  provides those tools, such as CI after `pip install .[dev]`, untouched.
+
+### Fixed
+
+- Skip the SBOM standards-validator test when those release-only libraries are
+  absent instead of failing. `./localPipeline.sh` still validates every
+  generated document with them and still fails hard when they are missing.
+
 ## [0.48.3] - 2026-09-20
 
 ### Fixed

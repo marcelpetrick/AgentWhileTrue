@@ -329,3 +329,23 @@ def test_quality_gate_never_starts_an_interactive_pager() -> None:
     assert "git --no-pager diff --check" in quality
     for command in ("git diff", "git log", "git show"):
         assert f"\n    {command}" not in quality
+
+
+def test_canonical_pipeline_provisions_the_pinned_toolchain_before_checking() -> None:
+    pipeline = LOCAL_PIPELINE.read_text(encoding="utf-8")
+
+    assert pipeline.index("\nensure_toolchain\n") < pipeline.index("\nscripts/quality.sh\n")
+    # pyproject.toml holds the pins; a second copy here could drift from CI.
+    assert "optional-dependencies" in pipeline
+    for pin in ("ruff==", "reuse==", "pytest==", "spdx-tools==", "cyclonedx-python-lib"):
+        assert pin not in pipeline
+
+
+def test_canonical_pipeline_help_describes_the_bootstrap() -> None:
+    result = subprocess.run(
+        [str(LOCAL_PIPELINE), "--help"], text=True, capture_output=True, timeout=10
+    )
+
+    assert result.returncode == 0
+    assert "pinned quality toolchain" in result.stdout
+    assert "AGENT_WHILE_TRUE_TOOLCHAIN_VENV" in result.stdout
