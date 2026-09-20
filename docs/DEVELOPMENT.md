@@ -15,10 +15,14 @@ procedure and the safety invariants — are in [AGENTS.md](../AGENTS.md).
 ```bash
 git clone https://github.com/marcelpetrick/AgentWhileTrue.git
 cd AgentWhileTrue
-python3 -m venv .venv
-.venv/bin/python -m pip install -e '.[dev]'
-PATH="$PWD/.venv/bin:$PATH" ./localPipeline.sh
+./localPipeline.sh
 ```
+
+The gate provisions what it needs: when any pinned tool is missing it installs
+the `dev` extra into `.venv` once and uses it, so a fresh clone runs its own
+gate with no setup step. An environment that already has those tools, such as
+CI after `pip install .[dev]`, is used unchanged. Set
+`AGENT_WHILE_TRUE_TOOLCHAIN_VENV` to put that environment elsewhere.
 
 Runtime code uses only the Python 3.12+ standard library; the `dev` extra pins
 exact versions of the test, lint, build, licensing and SBOM tooling.
@@ -28,10 +32,11 @@ exact versions of the test, lint, build, licensing and SBOM tooling.
 `./localPipeline.sh` is the canonical release gate and the same script GitHub
 Actions runs on Python 3.12, 3.13 and 3.14. It checks, in order:
 
-1. Python 3.12+.
+1. Python 3.12+, and the pinned toolchain, provisioned if it is missing.
 2. `scripts/quality.sh`: REUSE SPDX licensing, Ruff lint and format, ShellCheck
-   on every tracked shell script, `git diff --check`, pytest with a 91%
-   combined statement/branch coverage floor, and version/changelog consistency.
+   on every tracked shell script, the worktree whitespace check, pytest with a
+   91% combined statement/branch coverage floor, and version/changelog
+   consistency.
 3. Every built-in safety simulation (`simulate --all`).
 4. A synthetic application profile, retained under `artifacts/`.
 5. sdist and wheel construction; the wheel is built from the sdist.
@@ -47,8 +52,11 @@ The faster inner loop is the required pre-commit set from AGENTS.md:
 ```bash
 ruff check . && ruff format --check . && shellcheck --severity=style scripts/*.sh
 python3 -m pytest -q
-git diff --check
+git --no-pager diff --check
 ```
+
+`--no-pager` matters in a script: Git pages `diff` output, and a `LESS` value
+without `-F` then holds an automated run open on an empty diff.
 
 The opt-in live adapter test needs a running KDE Konsole and only reads:
 

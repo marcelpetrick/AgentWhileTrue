@@ -82,7 +82,7 @@ ruff check .
 ruff format --check .
 shellcheck --severity=style scripts/*.sh
 python3 -m pytest -q
-git diff --check
+git --no-pager diff --check
 ```
 
 Before pushing or tagging:

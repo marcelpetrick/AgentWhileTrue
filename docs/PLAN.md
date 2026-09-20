@@ -101,7 +101,7 @@ Maintenance is evidence-driven rather than scheduled feature growth.
    ruff format --check .
    shellcheck --severity=style scripts/*.sh
    python3 -m pytest -q
-   git diff --check
+   git --no-pager diff --check
    ```
 
 5. Commit with the established conventional subject style.
