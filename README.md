@@ -44,7 +44,7 @@ Python 3.12+, `qdbus6`. The runtime has no third-party dependencies.
 ## Install
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.48.0'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.48.1'
 agent-while-true --version
 agent-while-true doctor
 ```
