@@ -13,6 +13,19 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.47.0] - 2026-09-20
+
+### Changed
+
+- Defer arming instead of refusing to start when another instance already holds
+  input control. `run --auto` used to exit 1, which made the user service
+  unstartable for as long as any interactive watcher was open: systemd restarted
+  it every five seconds until the start limit was reached, observed on
+  2026-09-20 with the restart counter at 5. The second instance now watches
+  read-only and takes the lock the moment it is free, which is what it already
+  did after handing input control over. The lock remains the only way to send
+  input, and an instance that has not got it cannot type.
+
 ## [0.46.3] - 2026-09-20
 
 ### Fixed

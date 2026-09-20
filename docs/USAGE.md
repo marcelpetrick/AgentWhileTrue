@@ -83,8 +83,10 @@ preselected. `fzf` is used when installed (`--no-fzf` disables it). With `--all`
 every eligible agent is watched and newly opened agent tabs are picked up on
 each rediscovery.
 
-Only one input-capable instance may send input at a time. A second watcher can
-always be started read-only:
+Only one input-capable instance may send input at a time. Starting a second one
+does not fail: it watches read-only and arms itself as soon as the incumbent
+lets go, so a user service stays startable while a dashboard is open. A watcher
+can also be started read-only outright:
 
 ```bash
 agent-while-true run --observe --all  # press Shift+A to take over full auto

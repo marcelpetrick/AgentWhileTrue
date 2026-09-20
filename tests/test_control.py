@@ -16,6 +16,7 @@ from __future__ import annotations
 import socket
 import threading
 import time
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -219,6 +220,44 @@ def test_the_full_auto_key_takes_input_control_from_a_running_instance(tmp_path:
     log = "".join(path.read_text() for path in tmp_path.glob("*/agent-while-true.log"))
     assert "event=input_yielded" in log
     assert "event=input_rearmed" in log
+
+
+def test_a_deferred_start_arms_itself_once_the_lock_is_free(tmp_path: Path) -> None:
+    """A watcher that could not take the lock at startup arms when it frees.
+
+    This is what keeps a user service startable while an interactive watcher is
+    open, instead of exiting and being restarted until systemd gives up.
+    """
+    runtime = tmp_path / "runtime"
+    runtime.mkdir(parents=True, mode=0o700)
+    wanted = Config(
+        mode=Mode.AUTO,
+        policy=FULL_AUTO,
+        state_dir=tmp_path / "deferred",
+        runtime_dir=runtime,
+    )
+    kit = harness_module.build(tmp_path / "deferred", config=wanted)
+    incumbent = SingleInstanceLock.in_directory(runtime)
+    incumbent.acquire()
+
+    lock = SingleInstanceLock.in_directory(runtime)
+    observing = replace(wanted, mode=Mode.OBSERVE)
+    side = cli._InputControl(kit.supervisor, lock, observing, deferred=wanted)
+
+    config, _ = side.tick(observing)
+    assert config.mode is Mode.OBSERVE
+    assert not lock.held
+    assert not side.server.active
+
+    incumbent.release()
+    config = _serve_until(side, config, lambda current: current.mode is Mode.AUTO)
+
+    assert config.mode is Mode.AUTO
+    assert config.policy.allow_codex_auto_resume
+    assert lock.held
+    assert side.server.active
+    side.close()
+    lock.release()
 
 
 def test_a_handover_is_refused_while_an_action_waits_for_verification(tmp_path: Path) -> None:

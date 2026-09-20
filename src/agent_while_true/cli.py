@@ -288,18 +288,25 @@ def command_run(
 
     # Only a mode that can type needs to exclude a second instance.
     lock = SingleInstanceLock.in_directory(config.resolved_runtime_dir())
+    # Arming is deferred rather than refused when another instance is already
+    # the input controller: exiting made a service unstartable for as long as a
+    # watcher was open, and systemd then burned its restart budget on it. The
+    # single-writer guarantee is the lock, which is still the only way in.
+    deferred: Config | None = None
     if config.mode.may_send_input:
         try:
             lock.acquire()
         except LockHeldError:
+            deferred = config
+            config = replace(config, mode=Mode.OBSERVE)
+            supervisor.config = config
             stream.write(
-                "Another Agent While True instance is already running. Only one instance may send "
-                "input; start with --observe to watch read-only, and press Shift+A there to take "
-                "input control over from it.\n"
+                "Another Agent While True instance holds input control. Watching read-only and "
+                "arming as soon as it lets go; press Shift+A to take input control over now.\n"
             )
-            return EXIT_ERROR
+            supervisor.log.info("input_arming_deferred", requested=deferred.mode.value)
     try:
-        return _loop(supervisor, config, args, stream, lock)
+        return _loop(supervisor, config, args, stream, lock, deferred=deferred)
     finally:
         lock.release()
 
@@ -313,17 +320,26 @@ class _InputControl:
     the observation that follows it.
     """
 
-    def __init__(self, supervisor: Supervisor, lock: SingleInstanceLock, config: Config) -> None:
+    def __init__(
+        self,
+        supervisor: Supervisor,
+        lock: SingleInstanceLock,
+        config: Config,
+        deferred: Config | None = None,
+    ) -> None:
         self.supervisor = supervisor
         self.lock = lock
         self.config = config
         self.server = ControlServer.in_directory(config.resolved_runtime_dir())
-        #: The configuration to return to once the successor releases the lock.
-        self.rearm: Config | None = None
+        #: What to arm with once the lock is free: the configuration handed over
+        #: to a successor, or the one this instance started with while another
+        #: instance already held input control.
+        self.rearm: Config | None = deferred
         self.rearm_not_before = 0.0
-        #: Whether the successor was observed holding the lock. Until it is, a
-        #: free lock means the handover fell through, not that it is over.
-        self.successor_seen = False
+        #: Whether another instance was observed holding the lock. Until it is,
+        #: a free lock means a handover fell through, not that it is over. An
+        #: instance that deferred its arming has seen one by definition.
+        self.successor_seen = deferred is not None
         self.note = ""
 
     def tick(self, config: Config) -> tuple[Config, str]:
@@ -386,7 +402,7 @@ class _InputControl:
         return {"ok": True, "detail": "input control released"}
 
     def _rearm_if_free(self) -> None:
-        """Take the lock back once the instance we yielded to has let go."""
+        """Arm as soon as the instance that holds input control lets go."""
         if self.rearm is None or self.lock.held:
             return
         if self.supervisor.monotonic_fn() < self.rearm_not_before:
@@ -401,17 +417,17 @@ class _InputControl:
             # The grace period passed with nobody taking over: the handover fell
             # through, so this instance simply resumes its own role.
             self.supervisor.log.info("input_handover_lapsed")
-        restored, self.rearm = self.rearm, None
-        self.config = restored
-        self.supervisor.config = restored
+        armed, self.rearm = self.rearm, None
+        self.config = armed
+        self.supervisor.config = armed
         # The other watcher may have spent action budget while it was in charge.
         self.supervisor.store.load()
         self.supervisor.log.info(
             "input_rearmed",
-            mode=restored.mode.value,
-            codex_auto_resume=restored.policy.allow_codex_auto_resume,
+            mode=armed.mode.value,
+            codex_auto_resume=armed.policy.allow_codex_auto_resume,
         )
-        self.note = "input control returned; this watcher is armed again"
+        self.note = "input control is free; this watcher is armed"
 
 
 def _take_input_control(
@@ -493,6 +509,7 @@ def _loop(
     args: argparse.Namespace,
     stream,
     lock: SingleInstanceLock,
+    deferred: Config | None = None,
 ) -> int:
     stop = {"requested": False}
 
@@ -528,7 +545,7 @@ def _loop(
     if interactive:
         stream.write(HIDE_CURSOR)
     # Only an instance that can type has anything to hand over.
-    control = _InputControl(supervisor, lock, config)
+    control = _InputControl(supervisor, lock, config, deferred=deferred)
     try:
         while not stop["requested"]:
             config, control_note = control.tick(config)

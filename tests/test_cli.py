@@ -176,20 +176,28 @@ def test_all_mode_discovers_new_agents(tmp_path: Path) -> None:
     assert selected.provider_name == "claude"
 
 
-def test_a_second_instance_is_refused_but_observe_is_not(
+def test_a_second_instance_watches_read_only_until_the_lock_is_free(
     sandbox: Path, out: io.StringIO, monkeypatch
 ) -> None:
+    """Starting while another instance is the input controller defers arming.
+
+    Exiting instead made a service unstartable for as long as any watcher was
+    open, and systemd spent its restart budget on it. The lock is still the only
+    way to send input, so the second instance simply watches until it is free.
+    """
     from agent_while_true.config import load
     from agent_while_true.lock import SingleInstanceLock
 
-    _fake_world(monkeypatch)
+    terminal = _fake_world(monkeypatch)
     held = SingleInstanceLock.in_directory(load().resolved_runtime_dir())
     held.acquire()
     try:
-        assert main(["run", "--all", "--once", "--auto"], stream=out) == EXIT_ERROR
-        assert "Another Agent While True instance is already running" in out.getvalue()
-        # Observe mode does not need the lock, so it still starts.
+        assert main(["run", "--all", "--once", "--auto"], stream=out) == EXIT_OK
+        assert "holds input control" in out.getvalue()
+        assert terminal.sent == []
+        # Observe mode never wanted the lock, so it is unaffected.
         assert main(["run", "--all", "--once", "--observe"], stream=out) == EXIT_OK
+        assert terminal.sent == []
     finally:
         held.release()
 
