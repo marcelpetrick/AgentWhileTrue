@@ -30,11 +30,12 @@ from agent_while_true.providers.base import (
     ProviderAdapter,
     Recognition,
     ResumeAction,
+    normalise_typography,
 )
 
 NAME: Final = "codex"
-PATTERNS_VERSION: Final = "codex-0.154.x/5"
-VERIFIED_AGAINST: Final = "Codex CLI 0.153.2, 0.153.4 and 0.154.0"
+PATTERNS_VERSION: Final = "codex-0.155.x/6"
+VERIFIED_AGAINST: Final = "Codex CLI 0.153.2, 0.153.4, 0.154.0 and 0.155.1"
 
 # Codex's compact blocking composer fits inside eight rows, including the
 # wrapped purchase links seen in 0.153.4. A wider generic window retained the
@@ -213,7 +214,9 @@ class CodexAdapter(ProviderAdapter):
             (
                 index
                 for index, line in enumerate(live)
-                if re.match(r"^\s*[▌■]\s+You've hit your usage limit\.", line)
+                # Folded like every other comparison: 0.155 writes U+2019 here,
+                # and an unfolded anchor silently disabled the bounded retry.
+                if re.match(r"^\s*[▌■]\s+You've hit your usage limit\.", normalise_typography(line))
             ),
             -1,
         )

@@ -33,6 +33,7 @@ from agent_while_true.providers.base import (
     ProviderAdapter,
     Recognition,
     ResumeAction,
+    normalise_typography,
 )
 
 NAME: Final = "claude"
@@ -283,7 +284,7 @@ class ClaudeAdapter(ProviderAdapter):
         live = lines[latest_turn:]
         latest_limit = 0
         for index, line in enumerate(live):
-            if limit_headline.search(line):
+            if limit_headline.search(normalise_typography(line)):
                 latest_limit = index
         scoped = [
             re.sub(r"/(?:upgrade|usage-credits|extra-usage)\b", "/historical-command", line)

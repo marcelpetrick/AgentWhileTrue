@@ -218,6 +218,35 @@ def test_real_codex_mixed_limit_banner_is_recognised_without_losing_paid_evidenc
     assert result.vetoes == ("paid-action-required:codex/purchase-offer",)
 
 
+def test_codex_typographic_apostrophe_still_matches_the_limit_banner() -> None:
+    """Regression: Codex 0.155.1 renders U+2019 and stopped matching entirely.
+
+    Observed live on two blocked sessions on 2026-09-20. `codex/limit-usage`
+    missed, so no action was proposed and the purchase-offer veto could not be
+    suppressed: the sessions could never have been continued, whatever the
+    quota or the policy said.
+    """
+    result = providers.CODEX.recognise(screens.CODEX_USAGE_LIMIT_TYPOGRAPHIC, now=NOW)
+
+    assert result.matched_ids == (
+        "codex/limit-usage",
+        "codex/try-again-at",
+        "codex/purchase-offer",
+    )
+    assert result.action is not None
+    assert result.action.kind is ActionKind.TEXT_THEN_ENTER
+    assert result.retry_prompt
+    assert result.vetoes == ("paid-action-required:codex/purchase-offer",)
+
+
+def test_claude_typographic_apostrophe_still_matches_the_session_limit() -> None:
+    """The same fold applies to Claude, whose patterns share the apostrophe."""
+    result = providers.CLAUDE.recognise(screens.CLAUDE_SESSION_LIMIT_TYPOGRAPHIC, now=NOW)
+
+    assert "claude/limit-session" in result.matched_ids
+    assert result.state is SessionState.LIMIT_BLOCKED
+
+
 def test_codex_old_limit_above_a_completed_turn_is_not_actionable() -> None:
     result = providers.CODEX.recognise(screens.CODEX_COMPLETED_TURN_BELOW_OLD_LIMIT, now=NOW)
 

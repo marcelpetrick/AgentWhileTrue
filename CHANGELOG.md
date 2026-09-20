@@ -13,6 +13,24 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.46.2] - 2026-09-20
+
+### Fixed
+
+- Recognise limit banners that use typographic punctuation. Codex CLI 0.155.1
+  writes `You’ve hit your usage limit` with U+2019 where 0.154 used an ASCII
+  apostrophe, so `codex/limit-usage` stopped matching: no action was proposed,
+  the purchase-offer veto could not be suppressed, and the bounded post-reset
+  retry never armed. Two sessions blocked overnight on 2026-09-20 could not have
+  been continued whatever the quota or the policy said. Every comparison now
+  folds curly quotes, apostrophes and non-breaking spaces onto the ASCII the
+  patterns are written in, including the two raw-line anchors - Codex's exact
+  banner anchor and Claude's limit headline - that bypassed the folded windows.
+  Claude's own patterns share that apostrophe, so the fold is provider-wide
+  rather than a Codex special case.
+- Bump the Codex pattern table to `codex-0.155.x/6` and record 0.155.1 as
+  verified, so a log says which table read a screen.
+
 ## [0.46.1] - 2026-09-19
 
 ### Fixed

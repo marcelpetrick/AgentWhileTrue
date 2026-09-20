@@ -187,11 +187,35 @@ class Recognition:
         return actions[0]
 
 
+#: Providers render their banners with typographic punctuation, and which
+#: characters they use changes between builds: Codex 0.155 writes the usage
+#: banner with U+2019 where 0.154 wrote an ASCII apostrophe. A pattern is about
+#: the words, so fold the characters that differ only in typography before any
+#: comparison rather than spelling every variant into every pattern.
+_TYPOGRAPHY = str.maketrans(
+    {
+        "\u2018": "'",
+        "\u2019": "'",
+        "\u201b": "'",
+        "\u201c": '"',
+        "\u201d": '"',
+        "\u00a0": " ",
+        "\u202f": " ",
+        "\u2009": " ",
+    }
+)
+
+
+def normalise_typography(text: str) -> str:
+    """Fold typographic punctuation onto the ASCII the patterns are written in."""
+    return text.translate(_TYPOGRAPHY)
+
+
 def _matched_text(lines: list[str], pattern: PromptPattern) -> tuple[str, str]:
     """Return the triggering line and that line joined with its successor."""
     for index in range(len(lines) - 1, -1, -1):
         line = lines[index]
-        if any(candidate.search(line) for candidate in pattern.all_of):
+        if any(candidate.search(normalise_typography(line)) for candidate in pattern.all_of):
             successor = lines[index + 1] if index + 1 < len(lines) else ""
             return line, f"{line.rstrip()} {successor.strip()}".strip()
     return "", ""
@@ -202,9 +226,10 @@ def _windows(lines: list[str]) -> tuple[str, ...]:
 
     The first keeps line structure; the second undoes soft wrapping by joining
     every line with a single space, so a sentence broken across a wrap is still
-    one string.
+    one string. Both are folded onto ASCII punctuation first.
     """
-    return ("\n".join(lines), " ".join(line.strip() for line in lines))
+    folded = [normalise_typography(line) for line in lines]
+    return ("\n".join(folded), " ".join(line.strip() for line in folded))
 
 
 class ProviderAdapter(ABC):

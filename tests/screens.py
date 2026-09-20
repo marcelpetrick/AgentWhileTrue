@@ -186,6 +186,26 @@ CODEX_USAGE_LIMIT_WITH_PARTICLES = [
     "  gpt-5-codex high · ~/project · 67% used · resets 3:23 PM",
 ]
 
+# Shape observed live on Codex CLI 0.155.1 (2026-09-20, two blocked sessions):
+# the same banner as CODEX_USAGE_LIMIT_WITH_PURCHASE_LINKS, but rendered with a
+# typographic apostrophe (U+2019) where 0.154 used an ASCII one. That single
+# character stopped `codex/limit-usage` from matching, so no action was proposed
+# and the purchase-offer veto could not be suppressed.
+CODEX_USAGE_LIMIT_TYPOGRAPHIC = [
+    "\u25a0 You\u2019ve hit your usage limit. Upgrade to Pro (https://chatgpt.com/explore/pro), visit",
+    "  https://chatgpt.com/codex/settings/usage to purchase more credits or try again at 3:42 AM.",
+    "",
+    "\u203a Ask Codex to do anything",
+]
+
+# Claude writes the same apostrophe in its own limit banners, so the fold has to
+# be provider-independent rather than a Codex special case.
+CLAUDE_SESSION_LIMIT_TYPOGRAPHIC = [
+    "\u25b8 You\u2019ve hit your session limit \u00b7 resets 2:20 AM",
+    "",
+    '\u203a Try "continue" to pick up where you left off',
+]
+
 CODEX_COMPLETED_TURN_BELOW_OLD_LIMIT = [
     *CODEX_USAGE_LIMIT_WITH_PURCHASE_LINKS,
     "continue",
