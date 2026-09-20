@@ -11,6 +11,7 @@ log file, no matter what the screen contained.
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 
 from agent_while_true.logging_setup import (
@@ -73,6 +74,27 @@ def test_log_file_is_owner_only(tmp_path: Path) -> None:
     setup(log_file)
     assert log_file.stat().st_mode & 0o777 == 0o600
     assert log_file.parent.stat().st_mode & 0o077 == 0
+
+
+def test_rotation_keeps_every_log_file_owner_only(tmp_path: Path) -> None:
+    """Regression: the live log and its backup were world-readable after a
+    rollover on 2026-09-20, because the stock handler creates successors with
+    the process umask and the 0600 was only ever applied once, at startup.
+    """
+    log_file = tmp_path / "agent-while-true.log"
+    previous_umask = os.umask(0o022)  # a permissive umask, as a desktop has
+    try:
+        log = setup(log_file, max_bytes=512, backups=2)
+        for index in range(200):
+            log.info("state_change", session=f"/Sessions/{index}")
+        logging.getLogger("agent_while_true").handlers[0].flush()
+    finally:
+        os.umask(previous_umask)
+
+    rotated = sorted(tmp_path.glob("agent-while-true.log*"))
+    assert len(rotated) > 1, "the test did not rotate, so it proves nothing"
+    for path in rotated:
+        assert path.stat().st_mode & 0o777 == 0o600, path.name
 
 
 def test_format_event_quotes_values_containing_spaces() -> None:

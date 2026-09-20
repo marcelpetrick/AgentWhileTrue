@@ -17,6 +17,7 @@ import contextlib
 import hashlib
 import logging
 import logging.handlers
+import os
 import re
 from collections.abc import Mapping
 from datetime import datetime
@@ -28,6 +29,34 @@ LOGGER_NAME = "agent_while_true"
 #: Vision section 31.
 MAX_LOG_BYTES = 10 * 1024 * 1024
 LOG_BACKUPS = 5
+
+#: The mode every log file is created with. The log records which sessions the
+#: supervisor controls, which is not something other local users need to read.
+LOG_FILE_MODE = 0o600
+
+
+class OwnerOnlyRotatingFileHandler(logging.handlers.RotatingFileHandler):
+    """A rotating handler whose every file is created owner-only.
+
+    The stock handler creates each successor with the process umask, so a log
+    chmodded once at startup silently becomes world-readable at the first
+    rollover - as observed on 2026-09-20, where the live log and its backup were
+    both ``-rw-r--r--`` while the file written before the rotation was not. The
+    permission has to be a property of how the file is opened, not a one-off.
+    """
+
+    def _open(self):
+        def opener(path: str, flags: int) -> int:
+            return os.open(path, flags, LOG_FILE_MODE)
+
+        return open(
+            self.baseFilename,
+            self.mode,
+            encoding=self.encoding,
+            errors=self.errors,
+            opener=opener,
+        )
+
 
 #: Field values are single-token by construction; anything with whitespace or a
 #: quote is quoted so a parser can still split the line on spaces.
@@ -112,9 +141,10 @@ def setup(
 ) -> EventLogger:
     """Configure and return the event logger.
 
-    The log directory is created with owner-only permissions, and the log file
-    itself is chmodded to 0600: the file records which sessions the supervisor
-    controls, which is not something other local users need to read.
+    The log directory is created with owner-only permissions, and every log
+    file is *opened* 0600 rather than chmodded once, so the permission survives
+    rotation. A file that already existed is chmodded as well, which is what
+    repairs a log left world-readable by an earlier version.
     """
     log_file.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     logger = logging.getLogger(LOGGER_NAME)
@@ -124,7 +154,7 @@ def setup(
         logger.removeHandler(existing)
         existing.close()
 
-    handler = logging.handlers.RotatingFileHandler(
+    handler = OwnerOnlyRotatingFileHandler(
         log_file, maxBytes=max_bytes, backupCount=backups, encoding="utf-8"
     )
     handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))

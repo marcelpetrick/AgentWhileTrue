@@ -13,6 +13,20 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.46.3] - 2026-09-20
+
+### Fixed
+
+- Keep every log file owner-only across rotation. `RotatingFileHandler` creates
+  each successor with the process umask, and the `0600` was applied once at
+  startup, so from the first rollover the live log and every backup were
+  world-readable - observed on 2026-09-20, where `agent-while-true.log` and
+  `.log.1` were both `-rw-r--r--` while the file written before the rotation was
+  not. The log records which sessions the supervisor controls, so the mode is
+  now a property of how the file is opened rather than a one-off chmod. An
+  existing file is still chmodded, which repairs a log left readable by an
+  earlier version.
+
 ## [0.46.2] - 2026-09-20
 
 ### Fixed
