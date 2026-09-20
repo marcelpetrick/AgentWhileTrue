@@ -6,6 +6,6 @@ recursive-include docs *.md
 recursive-include LICENSES *.txt
 recursive-include scripts *.py *.sh
 recursive-include tests *.py
-recursive-include media *.png *.license
+recursive-include media *.png *.gif *.license
 recursive-include systemd *.service *.license
 recursive-include src *.license

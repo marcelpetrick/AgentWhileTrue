@@ -32,6 +32,13 @@ tested prompts, only after fresh provider evidence, and never a paid, upgrade,
 reset-credit or model-downgrade choice. Start in observe mode, read why a
 session is waiting, and switch automation on when you trust it.
 
+![Agent While True watching six sessions through a limit and a resume](media/agentWhileTrue_demo_v0.48.1.gif)
+
+*A scripted demo: six invented sessions across three invented accounts, walked from
+the first limit warning through the reset to a verified resume. The frames come from
+the real renderer — `scripts/record_demo.py` feeds fabricated sessions to the same
+`render_status` the tool uses — so the layout is genuine and the data is fiction.*
+
 ![Agent While True auto-mode dashboard](media/agentWhileTrue_v0.33.0.png)
 
 ## What it does
