@@ -113,6 +113,45 @@ def test_claude_timed_self_healing_status_vetoes_action() -> None:
     assert result.action is None
 
 
+def test_claude_untimed_self_healing_status_vetoes_action() -> None:
+    """Claude Code 2.1.278 arms its own wait without naming a time.
+
+    Read live on 2026-09-20 from a session that had just used
+    ``/rate-limit-options``. Neither self-healing pattern matched "shortly", so
+    the supervisor read an already-waiting session as merely blocked.
+    """
+    result = providers.CLAUDE.recognise(screens.CLAUDE_CONTINUING_SHORTLY, now=NOW)
+    assert "claude/self-healing-soon" in result.matched_ids
+    assert "claude/self-healing-status" in result.matched_ids
+    assert any(veto.startswith("provider-resumes-itself") for veto in result.vetoes)
+    assert result.action is None
+
+
+@pytest.mark.parametrize(
+    "screen",
+    [screens.CLAUDE_LIMIT_MENU_SHORTLY, screens.CLAUDE_LIMIT_MENU_WITH_CREDIT_LINKS],
+    ids=["shortly", "credit-links"],
+)
+def test_the_2026_09_20_wait_menu_is_recognised_with_its_banner(screen) -> None:
+    result = providers.CLAUDE.recognise(screen, now=NOW)
+    assert result.state is SessionState.LIMIT_BLOCKED
+    assert "claude/limit-session" in result.matched_ids
+    assert "claude/arm-automatic-wait" in result.matched_ids
+    assert result.action is not None
+    assert result.action.kind is ActionKind.ARROW_DOWN_THEN_ENTER
+    # NOW is 19:31, so a 6:50pm reset belongs to the next day.
+    assert result.reset_at == datetime(2026, 9, 6, 18, 50, tzinfo=BERLIN)
+
+
+def test_the_wait_menu_without_a_banner_still_proposes_the_action() -> None:
+    # Recognition is unchanged; it is the gate that refuses this one, because
+    # nothing on screen says the session is out of usage.
+    result = providers.CLAUDE.recognise(screens.CLAUDE_LIMIT_MENU_WITHOUT_BANNER, now=NOW)
+    assert "claude/limit-session" not in result.matched_ids
+    assert result.action is not None
+    assert result.action.kind is ActionKind.ARROW_DOWN_THEN_ENTER
+
+
 def test_claude_weekly_limit_is_a_separate_scope() -> None:
     result = providers.CLAUDE.recognise(screens.CLAUDE_WEEKLY_LIMIT, now=NOW)
     assert result.blocked_scopes == {"weekly"}

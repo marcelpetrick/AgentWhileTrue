@@ -28,7 +28,12 @@ from datetime import datetime, timedelta
 from agent_while_true.classify import Classification
 from agent_while_true.config import Config, Mode
 from agent_while_true.proc import ProcessIdentity
-from agent_while_true.providers.base import ActionKind, Recognition, ResumeAction
+from agent_while_true.providers.base import (
+    ActionKind,
+    PromptKind,
+    Recognition,
+    ResumeAction,
+)
 from agent_while_true.quota import Availability, QuotaSnapshot
 from agent_while_true.states import SessionState
 from agent_while_true.terminal.base import SessionRef
@@ -167,10 +172,20 @@ def _check_no_veto(request: ResumeRequest) -> str | None:
     vetoes = request.recognition.vetoes
     action = request.recognition.action
     if action is not None and action.kind is ActionKind.ARROW_DOWN_THEN_ENTER:
-        # The exact menu action selects item 2. Merely displaying item 3's paid
-        # upgrade is therefore not ambiguous, but every other veto still is.
+        # The exact menu action selects item 2. Item 3's paid upgrade and the
+        # "/upgrade or /usage-credits" line the banner prints above the menu are
+        # therefore not ambiguous: arrow-down-then-Enter cannot reach either,
+        # and both were observed refusing this menu on 2026-09-20. Every other
+        # veto still is - a spend limit, a reset credit, a downgrade offer and a
+        # wait Claude already armed all stay unconditional.
         vetoes = tuple(
-            veto for veto in vetoes if veto != "paid-action-required:claude/upgrade-plan-offer"
+            veto
+            for veto in vetoes
+            if veto
+            not in {
+                "paid-action-required:claude/upgrade-plan-offer",
+                "paid-action-required:claude/usage-credits-offer",
+            }
         )
     if (
         request.recognition.provider == "codex"
@@ -298,6 +313,28 @@ _CONDITIONS: tuple[Callable[[ResumeRequest], str | None], ...] = (
 # -- authorization ---------------------------------------------------------
 
 
+def _provider_states_limit(request: ResumeRequest) -> bool:
+    """True when the screen carries the provider's own limit banner.
+
+    A usage gauge cannot be relied on to say "spent". Claude's status line caps
+    the five-hour figure at 99 %, the limit that actually fires is sometimes a
+    window the gauge does not report at all - one 2026-09-20 session was cut off
+    at 62 % - and the gauge stops refreshing the moment the session parks on a
+    blocking prompt, so the sample goes stale exactly when it is needed. The
+    banner has none of those problems: it is the provider stating, first-hand
+    and about this session, that usage is gone right now, and the same rule that
+    lets "usage limit has reset" outrank a clock applies here in reverse.
+
+    The menu carries a ``LIMIT_BLOCKED`` kind of its own, so only banner
+    patterns - the ones that propose no action - count as the statement. A menu
+    whose banner has scrolled away still fails closed.
+    """
+    return any(
+        match.pattern.kind is PromptKind.LIMIT_BLOCKED and match.pattern.action is None
+        for match in request.recognition.matches
+    )
+
+
 def _resume_at(request: ResumeRequest) -> datetime | None:
     """When the relevant limit is expected to clear, plus the grace period.
 
@@ -329,6 +366,8 @@ def authorization_for(request: ResumeRequest) -> tuple[Authorization, datetime |
     # the session limit is exhausted. It is not a claim that usage returned.
     if action is not None and action.kind is ActionKind.ARROW_DOWN_THEN_ENTER:
         if fresh and quota.availability is Availability.EXHAUSTED:
+            return Authorization.PROVIDER_CONFIRMED, None
+        if _provider_states_limit(request):
             return Authorization.PROVIDER_CONFIRMED, None
         return Authorization.NONE, None
 

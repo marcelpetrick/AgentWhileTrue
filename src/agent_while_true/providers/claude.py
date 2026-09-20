@@ -37,9 +37,9 @@ from agent_while_true.providers.base import (
 )
 
 NAME: Final = "claude"
-PATTERNS_VERSION: Final = "claude-2.1.x/6"
+PATTERNS_VERSION: Final = "claude-2.1.x/7"
 #: Versions whose screens were actually read, oldest first.
-VERIFIED_VERSIONS: Final = ("2.1.261", "2.1.270")
+VERIFIED_VERSIONS: Final = ("2.1.261", "2.1.270", "2.1.278")
 VERIFIED_AGAINST: Final = f"Claude Code {' and '.join(VERIFIED_VERSIONS)}"
 
 
@@ -169,6 +169,26 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
             ),
         ),
         note="Timed automatic wait is already armed; the supervisor must stand down.",
+        verified_against=VERIFIED_AGAINST,
+    ),
+    PromptPattern(
+        id="claude/self-healing-soon",
+        provider=NAME,
+        kind=PromptKind.SELF_HEALING,
+        scope="session",
+        all_of=(_pattern(r"(?:Claude Code will continue|continuing) automatically shortly"),),
+        note="2.1.278 arms its own wait without naming a time; the supervisor must stand down.",
+        verified_against=VERIFIED_AGAINST,
+    ),
+    PromptPattern(
+        id="claude/self-healing-status",
+        provider=NAME,
+        kind=PromptKind.SELF_HEALING,
+        scope="session",
+        # The status line of an already-armed wait. Matched separately from the
+        # sentence above because the sentence scrolls away while this stays.
+        all_of=(_pattern(r"continuing shortly.{0,4}esc to cancel"),),
+        note="Status line of an armed 2.1.278 wait.",
         verified_against=VERIFIED_AGAINST,
     ),
     PromptPattern(

@@ -310,11 +310,21 @@ summaries count scheduled attempts and exhausted episodes.
 Claude continuation is a bare Enter, and only when Claude explicitly asks for
 it ("usage limit has reset … press enter to continue"). Claude's exact
 three-choice limit menu may also be armed so Claude itself continues at reset:
-with fresh quota confirming the session is exhausted, auto mode moves from the
-visibly selected first item to the exact "wait here, then continue
-automatically" item and confirms it. It never selects "upgrade your plan", and
-any different menu, cursor position, or unknown quota fails closed. Set
+auto mode moves from the visibly selected first item to the exact "wait here,
+then continue automatically" item and confirms it. It never selects "upgrade
+your plan", and any different menu or cursor position fails closed. Set
 `ALLOW_CLAUDE_AUTO_WAIT=false` to disable arming.
+
+Arming needs evidence that the session is out of usage, which is either a fresh
+quota sample reporting the window exhausted or Claude's own limit banner above
+the menu. The banner is required because the quota bridge cannot supply that
+evidence here: Claude's status line caps the five-hour figure at 99 %, the limit
+that fires is sometimes a window the status line does not report at all, and a
+session parked on the menu stops refreshing its status line, so the sample goes
+stale exactly when it matters. A menu whose banner has scrolled out of the live
+window still fails closed. Arming is not a claim that usage returned — it only
+hands the waiting back to Claude — so a first-hand banner outranks the gauge,
+just as "usage limit has reset" outranks a clock.
 
 ![Claude Code session-limit menu](../media/claude_out_of_quota.png)
 

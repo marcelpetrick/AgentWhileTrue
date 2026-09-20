@@ -253,21 +253,106 @@ def test_a_blocked_claude_screen_offers_no_action_yet() -> None:
     assert decision.reason == "no-unambiguous-action-for-prompt"
 
 
-def test_claude_wait_menu_can_be_armed_only_with_fresh_exhausted_quota() -> None:
+def test_claude_wait_menu_can_be_armed_with_fresh_exhausted_quota() -> None:
     menu = providers.CLAUDE.recognise(screens.CLAUDE_LIMIT_MENU, now=NOW)
     allowed = evaluate(make_request(recognition=menu, quota=QUOTA_EXHAUSTED))
     assert allowed.allowed
     assert allowed.action is not None
     assert allowed.action.kind is ActionKind.ARROW_DOWN_THEN_ENTER
 
-    unknown = evaluate(make_request(recognition=menu, quota=QUOTA_UNKNOWN))
-    assert not unknown.allowed
-    assert unknown.reason == "usage-not-confirmed-available"
-
     disabled = Config(mode=Mode.AUTO, policy=Policy(allow_claude_auto_wait=False))
     refused = evaluate(make_request(config=disabled, recognition=menu, quota=QUOTA_EXHAUSTED))
     assert not refused.allowed
     assert refused.reason == "action-requires-policy:allow_claude_auto_wait"
+
+
+#: The three quota shapes that were live on 2026-09-20 while sessions sat on the
+#: wait menu through their reset. None of them can ever reach EXHAUSTED: the
+#: status line caps the five-hour figure at 99 %, the limit that fired on one
+#: session was a window the gauge does not report at 62 %, and a parked session
+#: stops refreshing the sample altogether.
+QUOTA_NINETY_NINE = QuotaSnapshot(
+    provider="claude",
+    availability=Availability.AVAILABLE,
+    source="claude-statusline",
+    observed_at=NOW,
+    windows=(QuotaWindow("session", 99.0, NOW + timedelta(minutes=10)),),
+)
+QUOTA_SIXTY_TWO = QuotaSnapshot(
+    provider="claude",
+    availability=Availability.AVAILABLE,
+    source="claude-statusline",
+    observed_at=NOW,
+    windows=(QuotaWindow("session", 62.0, NOW + timedelta(minutes=10)),),
+)
+QUOTA_STALE = QuotaSnapshot(
+    provider="claude",
+    availability=Availability.AVAILABLE,
+    source="claude-statusline",
+    observed_at=NOW - timedelta(hours=1),
+    windows=(QuotaWindow("session", 99.0, NOW + timedelta(minutes=10)),),
+)
+
+
+@pytest.mark.parametrize(
+    "screen",
+    [
+        screens.CLAUDE_LIMIT_MENU,
+        screens.CLAUDE_LIMIT_MENU_SHORTLY,
+        screens.CLAUDE_LIMIT_MENU_WITH_CREDIT_LINKS,
+    ],
+    ids=["timed", "shortly", "credit-links"],
+)
+@pytest.mark.parametrize(
+    "quota",
+    [QUOTA_NINETY_NINE, QUOTA_SIXTY_TWO, QUOTA_STALE, QUOTA_UNKNOWN],
+    ids=["99-percent", "62-percent", "stale", "unknown"],
+)
+def test_the_limit_banner_arms_the_wait_when_the_gauge_cannot(screen, quota) -> None:
+    # 2026-09-20: three sessions held this menu through their 6:50pm reset
+    # because arming demanded an EXHAUSTED gauge that the status line cannot
+    # produce. The banner above the menu is the provider saying so first-hand.
+    decision = evaluate(
+        make_request(recognition=providers.CLAUDE.recognise(screen, now=NOW), quota=quota)
+    )
+    assert decision.allowed, decision.reason
+    assert decision.action is not None
+    assert decision.action.kind is ActionKind.ARROW_DOWN_THEN_ENTER
+    assert decision.authorization is Authorization.PROVIDER_CONFIRMED
+
+
+def test_the_wait_menu_without_a_limit_banner_still_fails_closed() -> None:
+    # No banner and no exhausted gauge: nothing on screen or off it says this
+    # session is out of usage, so the menu is not armed.
+    menu = providers.CLAUDE.recognise(screens.CLAUDE_LIMIT_MENU_WITHOUT_BANNER, now=NOW)
+    for quota in (QUOTA_NINETY_NINE, QUOTA_STALE, QUOTA_UNKNOWN):
+        decision = evaluate(make_request(recognition=menu, quota=quota))
+        assert not decision.allowed
+        assert decision.reason == "usage-not-confirmed-available"
+
+
+def test_arming_the_wait_never_survives_a_money_or_quality_veto() -> None:
+    # Only the two advertisements that arrow-down-then-Enter cannot reach are
+    # suppressed. Everything that costs money or changes quality still refuses.
+    menu = list(screens.CLAUDE_LIMIT_MENU_SHORTLY)
+    for extra, expected in (
+        ("  You've hit your monthly spend limit", "paid-action-required:claude/spend-limit"),
+        ("  Reset your session limit now", "paid-action-required:claude/session-limit-reset"),
+        ("  Switch to another model", "model-downgrade-offer:claude/model-downgrade"),
+        ("  Continue now at lower priority", "model-downgrade-offer:claude/lower-priority"),
+        (
+            "  Continuing automatically when your limit resets",
+            "provider-resumes-itself:claude/self-healing",
+        ),
+        (
+            "  Claude Code will continue automatically shortly",
+            "provider-resumes-itself:claude/self-healing-soon",
+        ),
+    ):
+        recognition = providers.CLAUDE.recognise([*menu, extra], now=NOW)
+        decision = evaluate(make_request(recognition=recognition, quota=QUOTA_EXHAUSTED))
+        assert not decision.allowed
+        assert decision.reason == expected
 
 
 def test_a_refusal_still_says_when_to_look_again() -> None:

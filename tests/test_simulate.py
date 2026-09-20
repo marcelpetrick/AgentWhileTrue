@@ -31,12 +31,18 @@ def test_the_happy_path_actually_sends_something(tmp_path: Path) -> None:
     assert result.sent == [(simulate.SESSION, "\r")]
 
 
+#: The only scenarios that are supposed to type, and exactly what they type.
+TALKATIVE = {
+    "reset-and-resume": [(simulate.SESSION, "\r")],
+    "duplicate-prompt": [(simulate.SESSION, "\r")],
+    "wait-menu-gauge-says-available": [(simulate.SESSION, "\x1b[B\r")],
+}
+
+
 def test_every_other_scenario_stays_silent(tmp_path: Path) -> None:
-    talkative = {"reset-and-resume", "duplicate-prompt"}
     for name in simulate.SCENARIOS:
-        if name in talkative:
-            continue
-        assert simulate.run(name, tmp_path).sent == [], name
+        expected = TALKATIVE.get(name, [])
+        assert simulate.run(name, tmp_path).sent == expected, name
 
 
 def test_scenarios_are_documented() -> None:

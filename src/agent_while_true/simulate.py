@@ -57,6 +57,24 @@ SELF_HEALING_SCREEN = [
     "  Continuing automatically when your limit resets",
     "❯ ",
 ]
+#: The 2026-09-20 wait menu, verbatim from Claude Code 2.1.278.
+WAIT_MENU_SCREEN = [
+    "  ⎿  You've hit your session limit · resets in 5m",
+    "",
+    "   What do you want to do?",
+    "",
+    "   ❯ 1. Stop and wait for limit to reset",
+    "     2. Wait here, then continue automatically shortly",
+    "     3. Upgrade your plan",
+    "",
+    "   Enter to confirm · Esc to cancel",
+]
+#: What 2.1.278 shows once the wait is armed. It names no time.
+ARMED_WAIT_SCREEN = [
+    "  ⎿  Claude Code will continue automatically shortly. Keep this session open.",
+    "",
+    "  ⚠ Usage limit reached · continuing shortly · esc to cancel",
+]
 CODEX_BLOCKED_SCREEN = ["▌ You've hit your usage limit. Try again at 8:10 PM.", "", "› "]
 
 
@@ -384,6 +402,38 @@ def scenario_self_healing_provider(directory: Path) -> Result:
     )
 
 
+def scenario_wait_menu_gauge_says_available(directory: Path) -> Result:
+    world = _world(directory, screen=WAIT_MENU_SCREEN)
+    world.quota["claude"].availability = Availability.AVAILABLE
+    world.quota["claude"].windows = (QuotaWindow("session", 99.0, None),)
+    world.step("the wait menu is up while the gauge still reads 99 %")
+    world.screen(ARMED_WAIT_SCREEN)
+    world.clock.advance(10)
+    world.step("verify Claude took over the waiting")
+    return _result(
+        "wait-menu-gauge-says-available",
+        "Claude's status line caps at 99 %, so the gauge never says exhausted.",
+        "the banner above the menu arms Claude's own wait, and nothing paid is touched",
+        world,
+        passed=world.terminal.sent == [(SESSION, "\x1b[B\r")],
+    )
+
+
+def scenario_armed_wait_is_left_alone(directory: Path) -> Result:
+    world = _world(directory, screen=ARMED_WAIT_SCREEN)
+    world.quota["claude"].availability = Availability.EXHAUSTED
+    world.step("Claude is already waiting by itself, without naming a time")
+    world.clock.advance(600)
+    world.step("after the reset")
+    return _result(
+        "armed-wait-is-left-alone",
+        "2.1.278 announces an armed wait without naming a time.",
+        "the supervisor stands down instead of racing the provider",
+        world,
+        passed=world.terminal.sent == [],
+    )
+
+
 def scenario_duplicate_prompt(directory: Path) -> Result:
     world = _world(directory, screen=READY_SCREEN)
     world.step("ready prompt seen")
@@ -458,6 +508,8 @@ SCENARIOS: dict[str, ScenarioFn] = {
     "weekly-limit-still-blocked": scenario_weekly_limit_still_blocked,
     "provider-unavailable": scenario_provider_unavailable,
     "self-healing-provider": scenario_self_healing_provider,
+    "wait-menu-gauge-says-available": scenario_wait_menu_gauge_says_available,
+    "armed-wait-is-left-alone": scenario_armed_wait_is_left_alone,
     "duplicate-prompt": scenario_duplicate_prompt,
     "crash-recovery": scenario_crash_between_send_and_persist,
     "codex-needs-opt-in": scenario_codex_needs_opt_in,

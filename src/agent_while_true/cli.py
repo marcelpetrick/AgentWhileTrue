@@ -822,7 +822,7 @@ def command_init(config: Config, args: argparse.Namespace, stream) -> int:
 
 def command_config(config: Config, stream) -> int:
     for key, value in describe(config):
-        stream.write(f"{key:<28} {value}\n")
+        stream.write(f"{key:<31} {value}\n")
     return EXIT_OK
 
 
@@ -837,12 +837,12 @@ def command_simulate(args: argparse.Namespace, stream) -> int:
     if args.run_all:
         results = simulate.run_all()
         for result in results:
-            stream.write(f"{result.name:<28} {'PASS' if result.passed else 'FAIL'}\n")
+            stream.write(f"{result.name:<31} {'PASS' if result.passed else 'FAIL'}\n")
         return EXIT_OK if all(result.passed for result in results) else EXIT_ERROR
     if not args.scenario:
         stream.write("Available scenarios:\n")
         for name, description in simulate.catalogue():
-            stream.write(f"  {name:<28} {description}\n")
+            stream.write(f"  {name:<31} {description}\n")
         return EXIT_OK
     try:
         result = simulate.run(args.scenario)

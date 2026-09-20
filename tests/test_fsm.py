@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from agent_while_true.config import Config, Mode, Policy
-from agent_while_true.quota import Availability, QuotaSnapshot
+from agent_while_true.quota import Availability, QuotaSnapshot, QuotaWindow
 from agent_while_true.states import ActionState, SessionState
 from tests import harness as harness_module
 from tests import screens
@@ -57,6 +57,55 @@ def test_claude_limit_menu_arms_provider_auto_wait_and_verifies(tmp_path: Path) 
     assert verified[0].reason == "verify:armed-provider-wait"
     session = kit.supervisor.sessions[kit.terminal.ref(SESSION).key()]
     assert session.state is SessionState.WAITING_FOR_RESET
+
+
+def test_the_2026_09_20_deadlock_arms_and_verifies_end_to_end(tmp_path: Path) -> None:
+    """The whole live failure, start to finish.
+
+    Three Claude sessions held the wait menu through their 6:50pm reset because
+    arming demanded an EXHAUSTED gauge, and Claude's status line reports at most
+    99 %. The banner above the menu is the evidence; the wait Claude then
+    announces without naming a time is what verifies the keystrokes landed.
+    """
+    kit, _ = _claude_session(tmp_path, screen=list(screens.CLAUDE_LIMIT_MENU_SHORTLY))
+    kit.quota["claude"].availability = Availability.AVAILABLE
+    kit.quota["claude"].windows = (QuotaWindow("session", 99.0, None),)
+
+    decisions = kit.supervisor.tick()
+    assert decisions[0].allowed, decisions[0].reason
+    assert kit.sent == [(SESSION, "\x1b[B\r")]
+
+    kit.terminal.set_screen(SESSION, list(screens.CLAUDE_CONTINUING_SHORTLY))
+    kit.clock.advance(5)
+    harness_module.refresh_quota(kit)
+    verified = kit.supervisor.tick()
+    assert verified[0].reason == "verify:armed-provider-wait"
+    session = kit.supervisor.sessions[kit.terminal.ref(SESSION).key()]
+    assert session.state is SessionState.WAITING_FOR_RESET
+
+
+def test_a_stale_gauge_does_not_stop_the_banner_from_arming(tmp_path: Path) -> None:
+    # A session parked on the menu stops refreshing its status line, so the
+    # sample rots exactly when it is needed. The banner does not rot.
+    kit, _ = _claude_session(tmp_path, screen=list(screens.CLAUDE_LIMIT_MENU_SHORTLY))
+    kit.quota["claude"].availability = Availability.AVAILABLE
+    kit.quota["claude"].observed_at = kit.clock.wall - timedelta(hours=1)
+
+    decisions = kit.supervisor.tick()
+    assert decisions[0].allowed, decisions[0].reason
+    assert kit.sent == [(SESSION, "\x1b[B\r")]
+
+
+def test_an_already_armed_wait_is_never_typed_into(tmp_path: Path) -> None:
+    # The screen Claude shows once it is waiting by itself carries no action and
+    # a stand-down veto, in the 2.1.278 wording that named no time.
+    kit, _ = _claude_session(tmp_path, screen=list(screens.CLAUDE_CONTINUING_SHORTLY))
+    kit.quota["claude"].availability = Availability.EXHAUSTED
+
+    decisions = kit.supervisor.tick()
+    assert not decisions[0].allowed
+    assert decisions[0].reason == "provider-resumes-itself:claude/self-healing-soon"
+    assert kit.sent == []
 
 
 def test_claude_timed_auto_wait_banner_verifies_the_menu_action(tmp_path: Path) -> None:

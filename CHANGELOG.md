@@ -13,6 +13,46 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.50.0] - 2026-09-20
+
+### Fixed
+
+- Arm Claude's automatic-wait menu on the evidence that actually exists. Three
+  live sessions held the exact wait menu through their 18:50 reset and refused
+  with `usage-not-confirmed-available` for as long as they were watched. Arming
+  demanded a fresh quota sample reporting the window exhausted, and that sample
+  can never say so: Claude's status line caps the five-hour figure at 99 %, one
+  of the three sessions was cut off while its gauge read 62 % because the limit
+  that fired was a window the status line does not report, and a session parked
+  on the menu stops refreshing its status line, so the sample goes stale exactly
+  when it is needed. Claude's own limit banner above the menu now counts as the
+  provider saying, first-hand, that usage is spent. A menu whose banner has
+  scrolled out of the live window still fails closed, and arming still only
+  hands the waiting back to Claude.
+- Stop the banner's `/upgrade or /usage-credits` advertisement from vetoing that
+  same menu. Arrow-down-then-Enter can only reach item 2, so the line is an
+  advertisement rather than an action, exactly as already reasoned for Codex's
+  purchase links. Monthly spend limits, reset credits, model-downgrade offers
+  and waits Claude has already armed still veto unconditionally.
+
+### Added
+
+- Recognise the two Claude Code 2.1.278 wordings for a wait Claude has already
+  armed: "Claude Code will continue automatically shortly" and the
+  "continuing shortly · esc to cancel" status line. Neither named a time, so
+  neither matched, and the supervisor read an already-waiting session as merely
+  blocked instead of standing down - and would not have verified its own arming
+  keystrokes either.
+- `simulate wait-menu-gauge-says-available` and `simulate armed-wait-is-left-alone`
+  reproduce both halves without waiting for a real reset.
+- Screen fixtures transcribed from the three live 2.1.278 sessions read on
+  2026-09-20, including the menu with its banner, the menu with the paid
+  advertisement, the menu with no banner at all, and the armed-wait screen.
+
+### Changed
+
+- Pattern table `claude-2.1.x/7`, verified against Claude Code 2.1.278.
+
 ## [0.49.0] - 2026-09-20
 
 ### Added

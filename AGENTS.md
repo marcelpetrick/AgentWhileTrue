@@ -44,8 +44,13 @@ when recognizer behavior changes.
 - Never automate upgrades, purchases, paid credits, reset credits, or model
   downgrades.
 - Select Claude's automatic-wait item only for the exact tested menu with the
-  cursor visibly on item 1, safe item 2, fresh exhausted quota, and
-  `allow_claude_auto_wait`; every variation fails closed.
+  cursor visibly on item 1, safe item 2, `allow_claude_auto_wait`, and evidence
+  that usage is spent: either fresh exhausted quota or Claude's own limit banner
+  on the same screen. A usage gauge alone cannot carry that evidence - the
+  status line caps at 99 %, misses the window that fires, and goes stale while
+  the session is parked - so the banner outranks it. Arming only hands the
+  waiting back to Claude; it never claims usage returned. Every variation,
+  including a menu with no banner, fails closed.
 - Codex resume types into its composer and therefore remains opt-in.
 - Never log terminal contents, environment values, credentials, or prompt text.
 - Preserve the persisted action lifecycle and single-instance lock.

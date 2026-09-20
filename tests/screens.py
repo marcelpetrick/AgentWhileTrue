@@ -5,10 +5,10 @@
 """Screen fixtures reproducing what the real CLIs display.
 
 The Claude blocks are transcribed from a screenshot of an actual five-hour limit
-event on Claude Code 2.1.261; the wording of the other blocks comes from the
-strings shipped inside the Claude Code 2.1.261/2.1.270 and Codex CLI 0.153.2
-binaries. Keeping them here, verbatim, is what makes the recognizer tests
-meaningful.
+event on Claude Code 2.1.261 and from three live 2.1.278 sessions read on
+2026-09-20; the wording of the other blocks comes from the strings shipped
+inside the Claude Code 2.1.261/2.1.270 and Codex CLI 0.153.2 binaries. Keeping
+them here, verbatim, is what makes the recognizer tests meaningful.
 """
 
 from __future__ import annotations
@@ -35,6 +35,72 @@ CLAUDE_LIMIT_MENU = [
     "     3. Upgrade your plan",
     "",
     "   Enter to confirm · Esc to cancel",
+]
+
+#: Transcribed from three live sessions on 2026-09-20, Claude Code 2.1.278.
+#: Item 2 no longer names a time, the banner is indented with U+00A0 after the
+#: "⎿" glyph, and a rule separates the transcript from the menu. All three
+#: sessions sat on this screen through their 6:50pm reset without being armed.
+CLAUDE_LIMIT_MENU_SHORTLY = [
+    "  Ran 1 shell command",
+    "  ⎿ \xa0You've hit your session limit · resets 6:50pm (Europe/Berlin)",
+    "",
+    "✻ Worked for 1h 27m 24s · done 6:43 PM",
+    "▔" * 138,
+    "   What do you want to do?",
+    "",
+    "   ❯ 1. Stop and wait for limit to reset",
+    "     2. Wait here, then continue automatically shortly",
+    "     3. Upgrade your plan",
+    "",
+    "   Enter to confirm · Esc to cancel",
+]
+
+#: The same menu while the banner's paid advertisement is still on screen.
+#: Live sessions refused this with `paid-action-required:claude/usage-credits-offer`
+#: on 2026-09-20, although arrow-down-then-Enter can only reach item 2.
+CLAUDE_LIMIT_MENU_WITH_CREDIT_LINKS = [
+    "  ⎿ \xa0You've hit your session limit · resets 6:50pm (Europe/Berlin)",
+    "     /upgrade or /usage-credits to finish what you're working on.",
+    "",
+    "✻ Worked for 1h 27m 24s · done 6:43 PM",
+    "▔" * 138,
+    "   What do you want to do?",
+    "",
+    "   ❯ 1. Stop and wait for limit to reset",
+    "     2. Wait here, then continue automatically shortly",
+    "     3. Upgrade your plan",
+    "",
+    "   Enter to confirm · Esc to cancel",
+]
+
+#: The menu with the limit banner scrolled out of the live window. Nothing on
+#: screen states that usage is spent, so arming must still fail closed unless a
+#: quota source says so.
+CLAUDE_LIMIT_MENU_WITHOUT_BANNER = [
+    "   What do you want to do?",
+    "",
+    "   ❯ 1. Stop and wait for limit to reset",
+    "     2. Wait here, then continue automatically shortly",
+    "     3. Upgrade your plan",
+    "",
+    "   Enter to confirm · Esc to cancel",
+]
+
+#: Claude Code 2.1.278 arms its own wait from `/rate-limit-options` and then
+#: says so without naming a time. Read live on 2026-09-20, where the supervisor
+#: classified it LIMIT_BLOCKED because neither self-healing wording matched.
+CLAUDE_CONTINUING_SHORTLY = [
+    "✻ Cooked for 0s · done 6:49 PM",
+    "",
+    "❯ /rate-limit-options",
+    "  ⎿  Claude Code will continue automatically shortly. Keep this session "
+    "open; it may still pause for permission prompts. Press esc to",
+    "     cancel the wait.",
+    "",
+    "❯",
+    "  ⚠ Usage limit reached · continuing shortly · esc to cancel",
+    "  Opus 5 ctx:5%",
 ]
 
 CLAUDE_READY_TO_RESUME = [
