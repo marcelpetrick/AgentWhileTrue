@@ -10,6 +10,7 @@ import json
 import os
 import shutil
 import subprocess
+import time
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
@@ -59,8 +60,14 @@ def _fake_claude(tmp_path: Path) -> Iterator[subprocess.Popen]:
     executable = tmp_path / "claude"
     executable.symlink_to(shutil.which("sleep") or "/usr/bin/sleep")
     process = subprocess.Popen([str(executable), "30"])
+    comm = Path("/proc") / str(process.pid) / "comm"
     try:
-        assert (Path("/proc") / str(process.pid) / "comm").read_text().strip() == "claude"
+        # Popen returns as soon as the child is forked, so for a moment /proc
+        # still reports the forking interpreter's name instead of "claude".
+        deadline = time.monotonic() + 5.0
+        while comm.read_text().strip() != "claude":
+            assert time.monotonic() < deadline, "the fake claude process never exec()ed"
+            time.sleep(0.01)
         yield process
     finally:
         process.terminate()

@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.48.3] - 2026-09-20
+
+### Fixed
+
+- Wait for the fake `claude` process to `exec()` in the status-line proxy
+  tests. `Popen` returns once the child is forked, so `/proc/<pid>/comm` still
+  named the forking interpreter and roughly one run in five failed for a reason
+  that had nothing to do with the proxy.
+
 ## [0.48.2] - 2026-09-20
 
 ### Fixed
