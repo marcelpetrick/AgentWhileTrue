@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from agent_while_true import doctor
+from agent_while_true import doctor, providers
 from agent_while_true.config import Config, Policy
 from agent_while_true.doctor import Check, Status, exit_code, render
 from tests.test_terminal import StubbedKonsole
@@ -90,3 +90,41 @@ def test_render_and_exit_code() -> None:
     assert "Linux" in text
     assert exit_code(checks) == 0
     assert exit_code([*checks, Check("x", Status.FAIL)]) == 1
+
+
+def test_a_provider_newer_than_the_patterns_is_warned_about(monkeypatch) -> None:
+    """A reworded banner fails silently, so the version gap has to be announced.
+
+    On 2026-09-20 Codex 0.155.1 changed one apostrophe and no blocked session
+    could be continued; nothing in the log said the recognizer had gone blind.
+    """
+    monkeypatch.setattr(doctor, "_tool_version", lambda *_: "codex-cli 0.156.0")
+
+    check = doctor.check_agent("codex", "--version", adapter=providers.CODEX)
+
+    assert check.status is Status.WARN
+    assert "0.155.1" in check.detail
+    assert "verify the prompts" in check.detail
+
+
+def test_a_verified_provider_version_is_not_warned_about(monkeypatch) -> None:
+    monkeypatch.setattr(doctor, "_tool_version", lambda *_: "codex-cli 0.155.1")
+    assert doctor.check_agent("codex", "--version", adapter=providers.CODEX).status is Status.OK
+
+    monkeypatch.setattr(doctor, "_tool_version", lambda *_: "codex-cli 0.154.0")
+    assert doctor.check_agent("codex", "--version", adapter=providers.CODEX).status is Status.OK
+
+
+def test_an_unreadable_version_line_raises_no_false_alarm(monkeypatch) -> None:
+    monkeypatch.setattr(doctor, "_tool_version", lambda *_: "codex (development build)")
+    assert doctor.check_agent("codex", "--version", adapter=providers.CODEX).status is Status.OK
+
+
+def test_pattern_drift_never_blocks_automatic_mode(tmp_path: Path, monkeypatch) -> None:
+    """Drift is a warning: it is a reason to look, not a reason to stop."""
+    monkeypatch.setattr(doctor, "_tool_version", lambda *_: "codex-cli 99.0.0")
+    checks = doctor.run(
+        _config(tmp_path), adapter_factory=lambda: StubbedKonsole(qdbus="/bin/true")
+    )
+    verdict = next(check for check in checks if check.name == "Auto mode")
+    assert verdict.status is not Status.FAIL

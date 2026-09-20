@@ -240,6 +240,12 @@ class ProviderAdapter(ABC):
     #: Bumped whenever the pattern table changes, so logs say which table
     #: produced a decision (vision DANGER 11).
     patterns_version: str = "0"
+    #: Provider CLI versions these patterns were actually read against, oldest
+    #: first. A provider that has moved past the newest of them may have
+    #: reworded a banner, and a reworded banner is not a loud failure: the
+    #: recognizer simply stops understanding the screen. `doctor` compares the
+    #: installed version against this so that silence gets announced.
+    verified_versions: tuple[str, ...] = ()
 
     @property
     @abstractmethod

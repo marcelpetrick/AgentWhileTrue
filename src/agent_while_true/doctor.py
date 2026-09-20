@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import os
 import platform
+import re
 import shutil
 import subprocess
 from collections.abc import Callable
@@ -24,6 +25,7 @@ from pathlib import Path
 
 from agent_while_true.config import Config
 from agent_while_true.lock import LockHeldError, SingleInstanceLock
+from agent_while_true.providers import CLAUDE, CODEX, ProviderAdapter
 from agent_while_true.terminal.konsole import KonsoleAdapter, find_qdbus
 
 _VERSION_TIMEOUT_SECONDS = 15.0
@@ -153,11 +155,46 @@ def check_konsole(adapter: KonsoleAdapter) -> tuple[Check, Check, Check]:
     )
 
 
-def check_agent(name: str, *args: str) -> Check:
+#: A dotted release number anywhere in a `--version` line.
+_VERSION_NUMBER = re.compile(r"\b(\d+(?:\.\d+){1,3})\b")
+
+
+def _release(text: str) -> tuple[int, ...] | None:
+    """The first dotted release number in a version line, as comparable ints."""
+    found = _VERSION_NUMBER.search(text)
+    if found is None:
+        return None
+    return tuple(int(part) for part in found.group(1).split("."))
+
+
+def check_agent(name: str, *args: str, adapter: ProviderAdapter | None = None) -> Check:
     version = _tool_version(name, *args)
     if version is None:
         return Check(name.title(), Status.WARN, "not installed")
-    return Check(name.title(), Status.OK, version or "installed")
+    if not version:
+        return Check(name.title(), Status.OK, "installed")
+    drift = _pattern_drift(version, adapter)
+    if drift is not None:
+        return Check(name.title(), Status.WARN, drift)
+    return Check(name.title(), Status.OK, version)
+
+
+def _pattern_drift(version: str, adapter: ProviderAdapter | None) -> str | None:
+    """Warn when the installed provider is newer than the patterns were read against.
+
+    A provider that rewords a banner produces no error at all: the recognizer
+    simply stops understanding the screen and the supervisor refuses for a
+    reason that looks plausible. That is what happened on 2026-09-20, where
+    Codex 0.155.1 changed one apostrophe and no blocked session could be
+    continued. Saying it out loud is cheap; noticing it by hand is not.
+    """
+    if adapter is None or not adapter.verified_versions:
+        return None
+    installed = _release(version)
+    newest = _release(adapter.verified_versions[-1])
+    if installed is None or newest is None or installed <= newest:
+        return None
+    return f"{version}; patterns read against {adapter.verified_versions[-1]}, verify the prompts"
 
 
 def check_lock(config: Config) -> Check:
@@ -194,8 +231,8 @@ def run(
         konsole_bus,
         konsole_sessions,
         konsole_input,
-        check_agent("codex", "--version"),
-        check_agent("claude", "--version"),
+        check_agent("codex", "--version", adapter=CODEX),
+        check_agent("claude", "--version", adapter=CLAUDE),
         check_optional("fzf"),
         check_optional("jq"),
         _writable_dir("State dir", config.resolved_state_dir()),

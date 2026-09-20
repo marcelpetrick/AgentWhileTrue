@@ -13,6 +13,19 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.48.0] - 2026-09-20
+
+### Added
+
+- Warn in `doctor` when an installed provider CLI is newer than the versions its
+  pattern table was read against. A reworded banner is a silent failure: the
+  recognizer stops understanding the screen and the supervisor refuses for a
+  reason that looks plausible, which is exactly how one changed apostrophe in
+  Codex 0.155.1 went unnoticed until sessions sat blocked overnight. The
+  verified versions are now machine-readable on each adapter, and the existing
+  `Codex` and `Claude` rows carry the warning. It stays a warning: drift is a
+  reason to check the prompts, not a reason to stop automating.
+
 ## [0.47.0] - 2026-09-20
 
 ### Changed

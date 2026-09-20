@@ -35,7 +35,11 @@ from agent_while_true.providers.base import (
 
 NAME: Final = "codex"
 PATTERNS_VERSION: Final = "codex-0.155.x/6"
-VERIFIED_AGAINST: Final = "Codex CLI 0.153.2, 0.153.4, 0.154.0 and 0.155.1"
+#: Versions whose screens were actually read, oldest first.
+VERIFIED_VERSIONS: Final = ("0.153.2", "0.153.4", "0.154.0", "0.155.1")
+VERIFIED_AGAINST: Final = (
+    f"Codex CLI {', '.join(VERIFIED_VERSIONS[:-1])} and {VERIFIED_VERSIONS[-1]}"
+)
 
 # Codex's compact blocking composer fits inside eight rows, including the
 # wrapped purchase links seen in 0.153.4. A wider generic window retained the
@@ -169,6 +173,7 @@ class CodexAdapter(ProviderAdapter):
 
     name = NAME
     patterns_version = PATTERNS_VERSION
+    verified_versions = VERIFIED_VERSIONS
 
     @property
     def patterns(self) -> tuple[PromptPattern, ...]:

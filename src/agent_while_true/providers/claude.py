@@ -38,7 +38,9 @@ from agent_while_true.providers.base import (
 
 NAME: Final = "claude"
 PATTERNS_VERSION: Final = "claude-2.1.x/6"
-VERIFIED_AGAINST: Final = "Claude Code 2.1.261 and 2.1.270"
+#: Versions whose screens were actually read, oldest first.
+VERIFIED_VERSIONS: Final = ("2.1.261", "2.1.270")
+VERIFIED_AGAINST: Final = f"Claude Code {' and '.join(VERIFIED_VERSIONS)}"
 
 
 def _pattern(text: str) -> re.Pattern[str]:
@@ -240,6 +242,7 @@ class ClaudeAdapter(ProviderAdapter):
 
     name = NAME
     patterns_version = PATTERNS_VERSION
+    verified_versions = VERIFIED_VERSIONS
 
     @property
     def patterns(self) -> tuple[PromptPattern, ...]:
