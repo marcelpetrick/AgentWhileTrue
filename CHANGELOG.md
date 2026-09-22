@@ -13,6 +13,21 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.50.3] - 2026-09-22
+
+### Fixed
+
+- Stop a tab from keeping its previous agent state once something else holds
+  the foreground (F3). The recorded state mapped only four literal blocker
+  strings to `UNSUPPORTED` and left everything else untouched, so on
+  2026-09-18 a tab holding an idle shell still read `ACTIVE`, and an agent
+  under `screen`, a `TMUX` marker, a container environment marker or an SSH
+  ancestor showed its prompt state instead of `UNSUPPORTED`. The mapping now
+  follows the classification: SSH, tmux, screen, containers and those
+  ancestors read `UNSUPPORTED`, and a shell, an editor or contradictory
+  evidence reads `UNKNOWN`. Input was always refused in these cases; only the
+  displayed and logged state was wrong.
+
 ## [0.50.2] - 2026-09-22
 
 ### Fixed

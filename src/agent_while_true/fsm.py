@@ -64,6 +64,20 @@ _LIMIT_STATES = frozenset(
     {SessionState.LIMIT_BLOCKED, SessionState.WAITING_FOR_RESET, SessionState.RESET_GRACE_PERIOD}
 )
 
+#: Where the foreground runs somewhere this supervisor does not automate.
+_UNSUPPORTED_CLASSES = frozenset(
+    {ProcessClass.SSH, ProcessClass.TMUX, ProcessClass.SCREEN, ProcessClass.CONTAINER}
+)
+_UNSUPPORTED_ANCESTRY = ("nested-terminal-ancestor=", "remote-ancestor=")
+
+
+def _unsupported_environment(classification: Classification) -> bool:
+    """SSH, a multiplexer or a container, on the process itself or above it."""
+    return classification.process_class in _UNSUPPORTED_CLASSES or (
+        classification.blocker or ""
+    ).startswith(_UNSUPPORTED_ANCESTRY)
+
+
 _NOT_AN_AGENT = Classification(ProcessClass.UNKNOWN, Confidence.NONE, (), blocker="process-gone")
 
 
@@ -629,14 +643,14 @@ class Supervisor:
             return
         if observation.identity is None:
             session.state = SessionState.PROCESS_GONE
-        elif observation.classification.blocker in {
-            "nested-terminal-ancestor=tmux",
-            "ssh-environment-marker",
-            "ssh-foreground-process",
-            "container-cgroup",
-        }:
+        elif _unsupported_environment(observation.classification):
             session.state = SessionState.UNSUPPORTED
-        elif observation.recognition is not None:
+        elif observation.recognition is None:
+            # Something other than a recognisable agent holds the foreground -
+            # a shell, an editor, contradictory evidence. The previous agent
+            # state no longer describes this tab.
+            session.state = SessionState.UNKNOWN
+        else:
             session.state = observation.recognition.state
             if observation.identity == session.identity and session.state in _LIMIT_STATES:
                 session.limit_seen = True

@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import timedelta
 from pathlib import Path
 
@@ -498,3 +499,53 @@ def test_the_event_log_records_the_send_without_the_screen(tmp_path: Path) -> No
     assert "event=resume_sent" in written
     assert "press enter to continue" not in written
     assert "session limit" not in written
+
+
+def _session_state(kit):
+    return kit.supervisor.sessions[kit.terminal.ref(SESSION).key()].state
+
+
+def test_a_shell_in_the_foreground_does_not_keep_the_agent_state(tmp_path: Path) -> None:
+    """F3, live 2026-09-18 14:30: the tab held a shell while the row read ACTIVE."""
+    kit, _ = _claude_session(tmp_path, screen=list(screens.CLAUDE_ACTIVE))
+    kit.supervisor.tick()
+    assert _session_state(kit) is SessionState.ACTIVE
+
+    shell = kit.inspector.add_shell(PID + 1)
+    kit.terminal.set_foreground(SESSION, shell.identity.pid)
+    kit.clock.advance(2)
+    decisions = kit.supervisor.tick()
+    assert decisions[0].reason == "not-automatable:idle-shell"
+    assert _session_state(kit) is SessionState.UNKNOWN
+    assert kit.sent == []
+
+
+@pytest.mark.parametrize(
+    ("hook", "value"),
+    [
+        ("environ", "TMUX"),
+        ("environ", "STY"),
+        ("environ", "SSH_CONNECTION"),
+        ("_detect_container", "container-cgroup"),
+        ("_ancestor_blocker", "remote-ancestor=ssh"),
+        ("_ancestor_blocker", "nested-terminal-ancestor=screen"),
+    ],
+)
+def test_every_unsupported_environment_reads_unsupported(
+    tmp_path: Path, monkeypatch, hook: str, value: str
+) -> None:
+    # The old mapping matched four literal blocker strings and missed, e.g.,
+    # tmux-environment-marker, screen, and every ancestor other than tmux.
+    from agent_while_true import classify as classify_module
+
+    kit, _ = _claude_session(tmp_path, screen=list(screens.CLAUDE_ACTIVE))
+    kit.supervisor.tick()
+    if hook == "environ":
+        info = kit.inspector.processes[PID]
+        kit.inspector.processes[PID] = replace(info, environ_keys=info.environ_keys | {value})
+    else:
+        monkeypatch.setattr(classify_module, hook, lambda info: value)
+    kit.clock.advance(2)
+    kit.supervisor.tick()
+    assert _session_state(kit) is SessionState.UNSUPPORTED
+    assert kit.sent == []
