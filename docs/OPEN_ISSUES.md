@@ -75,7 +75,8 @@ behavior and must not be weakened merely to close the test.
 2. **Medium — witness the Claude path if it ever arises.** Keep the service
    under observation; a Claude session that does not self-heal (reset more
    than 24 h out, or backgrounded) is the only case that needs the supervisor.
-3. **Ongoing — work the fix backlog below in impact order**, F1 first. F0
+3. **Ongoing — work the fix backlog below in impact order**, F2 first. F1
+   (a frame per scan in the journal) is closed in 0.50.2; F0
    (a quoted reset affordance authorising an Enter) is closed: the pattern is
    anchored since 0.45.9 and the gate requires a preceding limit since 0.50.1.
 
@@ -86,7 +87,6 @@ none weakens a safety gate.
 
 | ID | Sev | Where | Defect | Evidence |
 | --- | --- | --- | --- | --- |
-| F1 | MEDIUM | `cli.py:398` | Non-interactive auto mode renders the full dashboard frame on every scan; observe mode prints one line per session. | Service journal: 29 frames/min, ~980 lines/min, 605.8 MB in four days of the 0.44.3 service. |
 | F2 | MEDIUM | `terminal/konsole.py:166` | `getAllDisplayedTextList` transfers the whole scrollback per observation; only the last `VISIBLE_LINES` are kept. Use `getDisplayedTextList` or otherwise bound the read. | Code reading; vision §14 and `terminal/base.py:9` forbid retaining scrollback. Magnitude depends on the Konsole history limit. |
 | F3 | MEDIUM | `fsm.py:621` | `_record_state` maps only four of classify's fourteen blocker strings to `UNSUPPORTED`; every other non-agent classification leaves the previous state on screen. | Live 14:30:14–14:30:16: tab held a shell (`idle-shell` refused) while the row still read `ACTIVE`. Input was correctly refused. |
 | F4 | LOW | `ui.py:195` | Countdown switches from hours to days at 1.5 days (36 h, `ceil`), so 37–47 h renders as `2d` while 34 h renders as `34h`. Wanted: hours below 48 h, days from 2 d. Align `format_reset` (`+Nd` from 24 h) with the same boundary. | Screenshot 2026-09-18 14:37: weekly resets `2d`, `2d`, `2d`, `7d`, `34h` side by side. |

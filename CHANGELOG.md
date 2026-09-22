@@ -13,6 +13,18 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.50.2] - 2026-09-22
+
+### Fixed
+
+- Stop the headless service from writing the full dashboard frame to its
+  journal on every scan (F1). A non-interactive full-auto run rendered a
+  168-column frame per scan - 29 frames and about 980 lines a minute, 605.8 MB
+  in four days of the 0.44.3 service - and observe mode repeated one line per
+  session per scan. A continuous headless run now writes one line per session
+  and repeats it only when its state, quota or reset text changes. `--once` and
+  the interactive dashboard are unchanged.
+
 ## [0.50.1] - 2026-09-22
 
 ### Fixed

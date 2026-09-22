@@ -12,13 +12,14 @@ without a desktop session.
 from __future__ import annotations
 
 import io
+import signal
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from agent_while_true import cli
-from agent_while_true.cli import EXIT_ERROR, EXIT_OK, main
+from agent_while_true.cli import EXIT_ERROR, EXIT_INTERRUPTED, EXIT_OK, main
 from agent_while_true.config import Config, Mode
 from agent_while_true.lock import LockHeldError, SingleInstanceLock
 from agent_while_true.quota import Availability, QuotaSnapshot
@@ -502,3 +503,37 @@ def test_interactive_navigation_focuses_panels_and_scrolls_back_from_end(
     assert all("j/k scroll" in page for _, page in pages)
     assert kit.sent == []
     assert not lock.held
+
+
+def _run_scans(monkeypatch, scans: int, argv: list[str], out: io.StringIO) -> int:
+    """Run the continuous loop for ``scans`` iterations, then stop it like systemd does."""
+    remaining = {"n": scans}
+
+    def fake_sleep(seconds: float) -> None:
+        remaining["n"] -= 1
+        if remaining["n"] <= 0:
+            signal.raise_signal(signal.SIGTERM)
+
+    monkeypatch.setattr(cli.time, "sleep", fake_sleep)
+    previous = signal.getsignal(signal.SIGTERM)
+    try:
+        return main(argv, stream=out)
+    finally:
+        signal.signal(signal.SIGTERM, previous)
+
+
+@pytest.mark.parametrize("mode", ["--auto", "--observe"])
+def test_a_headless_run_logs_changes_not_frames(
+    sandbox: Path, out: io.StringIO, monkeypatch, mode: str
+) -> None:
+    """F1: the service wrote a 168-column dashboard frame on every scan.
+
+    29 frames a minute filled 605.8 MB of journal in four days. A headless run
+    writes one line per session, and only when that line changes.
+    """
+    _fake_world(monkeypatch, screen=screens.CLAUDE_ACTIVE)
+    assert _run_scans(monkeypatch, 3, ["run", "--all", mode], out) == EXIT_INTERRUPTED
+    lines = [line for line in out.getvalue().splitlines() if line.strip()]
+    assert len(lines) == 1, lines
+    assert "claude pts/3: ACTIVE" in lines[0]
+    assert "│" not in out.getvalue()

@@ -535,6 +535,7 @@ def _loop(
     unsaved_preference_fields: set[str] = set()
     focus_section = ""
     event_history: list[str] = []
+    headless_lines: dict[str, str] = {}
     metrics = ObservationMetrics(supervisor.log)
     health = HealthMonitor(interval=config.service_status_interval)
     # command_run() has just completed initial discovery and selection.
@@ -571,7 +572,7 @@ def _loop(
                 # a busy loop. Input authorization still revalidates in Supervisor.
                 next_scan = time.monotonic() + _scan_delay(supervisor, dashboard.interval)
             now = datetime.now(UTC)
-            if interactive or config.mode is not Mode.OBSERVE:
+            if interactive or (args.once and config.mode is not Mode.OBSERVE):
                 if interactive:
                     stream.write(CLEAR_SCREEN)
                 size = shutil.get_terminal_size((168, 24))
@@ -608,10 +609,20 @@ def _loop(
                     )
                     frame = render_viewport(frame, height, dashboard.scroll_offset)
                 stream.write(frame + "\n")
-            else:
+            elif args.once:
                 for session in supervisor.sessions.values():
                     stream.write(render_line(session, now) + "\n")
                 stream.write("\n")
+            else:
+                # A headless run is a service whose stdout is the journal: a
+                # frame per scan filled 605.8 MB in four days. Write a session's
+                # line only when it says something new; the clock alone is not.
+                for session in supervisor.sessions.values():
+                    line = render_line(session, now)
+                    body = line.partition("] ")[2]
+                    if headless_lines.get(session.ref.key()) != body:
+                        headless_lines[session.ref.key()] = body
+                        stream.write(line + "\n")
             stream.flush()
             if args.once:
                 return EXIT_OK

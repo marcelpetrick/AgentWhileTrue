@@ -115,6 +115,12 @@ plain theme, `NO_COLOR=1`, or `--no-color` produce ANSI-free output. Colors
 carry meaning: green is available/healthy, yellow is waiting or unknown, and
 red is exhausted or unsafe.
 
+Without a terminal - the user service, a pipe - a continuous `run` writes one
+plain line per session (state, quota, reset) and repeats it only when it
+changes, so the journal records transitions rather than a frame per scan.
+`--once` prints a single frame in full-auto/ask mode and one line per session in
+observe mode.
+
 | Key | Effect |
 | --- | --- |
 | `-` / `+` | Refresh faster / slower across `0.25 0.5 1 2 3 5 10 30 60` seconds |
