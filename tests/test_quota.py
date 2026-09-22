@@ -526,3 +526,31 @@ def test_null_source_is_always_unknown() -> None:
 def test_default_sources_cover_both_providers(tmp_path: Path) -> None:
     sources = quota.default_sources(tmp_path)
     assert set(sources) == {"codex", "claude"}
+
+
+def test_an_unchanged_rollout_is_parsed_once_across_a_tick(tmp_path: Path, monkeypatch) -> None:
+    """F7: one tick parsed each 256 KiB rollout tail at least four times."""
+    path = _write_rollout(tmp_path, CODEX_EVENT)
+    parses = {"n": 0}
+    real = quota._parse_rate_limits
+
+    def counting(tail: bytes):
+        parses["n"] += 1
+        return real(tail)
+
+    monkeypatch.setattr(quota, "_parse_rate_limits", counting)
+    monkeypatch.setattr(quota, "_find_codex_rollouts", lambda pid: (path,))
+    source = CodexRolloutSource()
+    first = source.snapshot(pid=123)
+    second = source.snapshot(pid=123)
+    assert parses["n"] == 1
+    assert second == first
+
+    # Codex appends; the next read must see the new event, not the cache.
+    exhausted = json.loads(json.dumps(CODEX_EVENT))
+    exhausted["timestamp"] = "2026-09-05T20:55:00.000Z"
+    exhausted["payload"]["rate_limits"]["primary"]["used_percent"] = 100.0
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(exhausted) + "\n")
+    assert source.snapshot(pid=123).exhausted_scopes == frozenset({"session"})
+    assert parses["n"] == 2

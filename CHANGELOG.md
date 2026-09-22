@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.50.7] - 2026-09-22
+
+### Fixed
+
+- Parse each Codex rollout tail once per change instead of four times per tick
+  (F7). The quota warm-up, the observation, the freshest-rollout search and the
+  snapshot each read and parsed the same 256 KiB tail. Parsed tails are now
+  cached by path, inode, size, modification and change time, so an append by
+  Codex is always read and an unchanged file is not parsed again.
+
 ## [0.50.6] - 2026-09-22
 
 ### Fixed

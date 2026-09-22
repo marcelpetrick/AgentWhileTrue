@@ -34,6 +34,7 @@ from __future__ import annotations
 import enum
 import json
 import math
+import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -265,16 +266,41 @@ def find_codex_rollout(pid: int) -> Path | None:
     return max(by_mtime, default=(0, None), key=lambda item: (item[0], str(item[1])))[1]
 
 
-def _last_rate_limits(path: Path) -> tuple[dict, datetime | None] | None:
+_RateLimits = tuple[dict, datetime | None] | None
+
+#: Parsed tails keyed by file identity and version. A tick used to parse every
+#: rollout tail at least four times; an unchanged file is now parsed once.
+_TAIL_CACHE: dict[tuple[str, int, int, int, int], _RateLimits] = {}
+_TAIL_CACHE_LIMIT = 64
+
+
+def _last_rate_limits(path: Path) -> _RateLimits:
     """Return the newest ``rate_limits`` object in a rollout file."""
     try:
         with path.open("rb") as handle:
-            handle.seek(0, 2)
-            size = handle.tell()
-            handle.seek(max(0, size - _ROLLOUT_TAIL_BYTES))
+            status = os.fstat(handle.fileno())
+            key = (
+                str(path),
+                status.st_ino,
+                status.st_size,
+                status.st_mtime_ns,
+                status.st_ctime_ns,
+            )
+            if key in _TAIL_CACHE:
+                return _TAIL_CACHE[key]
+            handle.seek(max(0, status.st_size - _ROLLOUT_TAIL_BYTES))
             tail = handle.read(_ROLLOUT_TAIL_BYTES)
     except OSError:
         return None
+    found = _parse_rate_limits(tail)
+    if len(_TAIL_CACHE) >= _TAIL_CACHE_LIMIT:
+        _TAIL_CACHE.clear()
+    _TAIL_CACHE[key] = found
+    return found
+
+
+def _parse_rate_limits(tail: bytes) -> _RateLimits:
+    """Return the newest usable ``rate_limits`` object in a rollout tail."""
     fallback: tuple[dict, None] | None = None
     newest: tuple[dict, datetime] | None = None
     # A partial first line is expected after seeking; it simply fails to parse.
