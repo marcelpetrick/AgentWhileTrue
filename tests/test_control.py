@@ -13,6 +13,7 @@ verification.
 
 from __future__ import annotations
 
+import contextlib
 import socket
 import threading
 import time
@@ -288,3 +289,116 @@ def _session_awaiting_verification() -> SupervisedSession:
         provider_name="codex",
         verify_after=datetime(2026, 9, 19, 21, 0, tzinfo=UTC),
     )
+
+
+# -- protocol edges: a misbehaving peer never breaks the run loop -----------
+
+
+def _raw_client(path: Path, payload: bytes) -> threading.Thread:
+    def send() -> None:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+            sock.connect(str(path))
+            sock.sendall(payload)
+            sock.shutdown(socket.SHUT_WR)
+            sock.settimeout(2.0)
+            with contextlib.suppress(OSError):  # the server may just close
+                sock.recv(1024)
+
+    thread = threading.Thread(target=send)
+    thread.start()
+    return thread
+
+
+def _poll_until_done(server: ControlServer, thread: threading.Thread, handler) -> int:
+    served = 0
+    deadline = time.monotonic() + 5.0
+    while thread.is_alive() and time.monotonic() < deadline:
+        served += server.poll(handler)
+        time.sleep(0.01)
+    thread.join(timeout=5.0)
+    return served
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [b"", b'{"op": "status"}', b"x" * 5000, b"not json\n", b'{"no": "op"}\n'],
+)
+def test_a_malformed_request_is_answered_without_serving(tmp_path: Path, payload: bytes) -> None:
+    server = ControlServer.in_directory(tmp_path)
+    server.start()
+    server.start()  # idempotent while bound
+    calls: list[str] = []
+    try:
+
+        def handler(op: str) -> dict[str, object]:
+            calls.append(op)
+            return {"ok": True}
+
+        served = _poll_until_done(server, _raw_client(server.path, payload), handler)
+    finally:
+        server.close()
+    if payload == b'{"op": "status"}':
+        # A request without a newline is still one request once the peer is done.
+        assert calls == ["status"]
+        assert served == 1
+    else:
+        assert calls == []
+        assert served == 0
+    assert not server.path.exists()
+    server.close()  # closing twice is harmless
+
+
+def test_poll_survives_a_socket_error(tmp_path: Path) -> None:
+    server = ControlServer.in_directory(tmp_path)
+    assert server.poll(lambda op: {"ok": True}) == 0
+
+    class Broken:
+        def accept(self):
+            raise OSError("gone")
+
+        def close(self) -> None:
+            pass
+
+    server._sock = Broken()  # type: ignore[assignment]
+    assert server.poll(lambda op: {"ok": True}) == 0
+    server.close()
+
+
+def test_a_successor_socket_is_not_unlinked(tmp_path: Path) -> None:
+    server = ControlServer.in_directory(tmp_path)
+    server.start()
+    server.path.unlink()
+    server.close()  # the path is gone: nothing to remove, nothing raised
+    assert not server.path.exists()
+
+
+def _fake_controller(path: Path, reply: bytes) -> threading.Thread:
+    listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    listener.bind(str(path))
+    listener.listen(1)
+
+    def answer() -> None:
+        with listener:
+            connection, _ = listener.accept()
+            with connection:
+                connection.recv(1024)
+                connection.sendall(reply)
+
+    thread = threading.Thread(target=answer)
+    thread.start()
+    return thread
+
+
+@pytest.mark.parametrize("reply", [b"garbage\n", b"[1, 2]\n"])
+def test_a_malformed_reply_is_a_control_error(tmp_path: Path, reply: bytes) -> None:
+    path = tmp_path / "control.sock"
+    thread = _fake_controller(path, reply)
+    with pytest.raises(ControlError, match="malformed reply"):
+        control.request(path, "status", timeout=2.0)
+    thread.join(timeout=5.0)
+
+
+def test_a_refused_yield_reports_the_reason(tmp_path: Path) -> None:
+    thread = _fake_controller(tmp_path / control.SOCKET_FILENAME, b'{"ok": false}\n')
+    assert control.request_yield_input(tmp_path, timeout=2.0) == (False, "refused")
+    thread.join(timeout=5.0)

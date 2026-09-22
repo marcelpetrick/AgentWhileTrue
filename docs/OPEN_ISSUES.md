@@ -147,7 +147,7 @@ New issues belong in this file only when evidence makes them actionable:
   adapter test without sending a real continuation;
 - failed or duplicate live action: preserve privacy-safe lifecycle identifiers,
   add a deterministic regression, and fix the smallest responsible layer;
-- coverage regression: restore the enforced 91% combined floor with meaningful
+- coverage regression: restore the enforced 98% combined floor with meaningful
   failure-path tests, prioritizing process classification and Konsole errors;
 - dependency advisory: update the exact development/build pin and run the full
   source, wheel, audit, and SBOM gates.

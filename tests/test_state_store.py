@@ -396,3 +396,144 @@ def test_a_long_running_save_prunes_expired_episodes(tmp_path: Path) -> None:
     store.prune_episodes(now=datetime.fromisoformat(RESET) + timedelta(hours=25))
     assert "completed-old" not in store.episodes
     assert "completed-old" not in store.path.read_text()
+
+
+# -- rejection paths: malformed state never grants a fresh budget -----------
+
+
+def _write_state(tmp_path: Path, actions: list, episodes: list | None = None) -> StateStore:
+    document = {"version": 1, "actions": actions}
+    if episodes is not None:
+        document["episodes"] = episodes
+    (tmp_path / "state.json").write_text(json.dumps(document))
+    return StateStore.in_directory(tmp_path).load(now=datetime.fromisoformat(RESET))
+
+
+def _action(**overrides) -> dict:
+    return {
+        "key": "k",
+        "provider": "codex",
+        "session": "s",
+        "process": "p",
+        "state": "PLANNED",
+        "attempts": 0,
+        "updated_at": RESET,
+        **overrides,
+    }
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [{"key": ""}, {"attempts": -1}, {"attempts": "1"}, {"session": 3}],
+)
+def test_an_invalid_action_record_invalidates_retry_state(tmp_path: Path, bad: dict) -> None:
+    store = _write_state(tmp_path, [_action(**bad)], [])
+    assert store.records == {}
+    assert not store.retry_state_valid
+
+
+def test_action_records_with_unusable_timestamps_are_dropped(tmp_path: Path) -> None:
+    store = _write_state(
+        tmp_path,
+        [
+            _action(key="naive", updated_at="2026-09-10T21:00:00"),
+            _action(key="junk", updated_at="x"),
+        ],
+    )
+    # A naive timestamp is read as UTC; an unreadable one is treated as expired.
+    assert set(store.records) == {"naive"}
+
+
+def test_marking_or_forgetting_an_unknown_key_changes_nothing(tmp_path: Path) -> None:
+    store = _store(tmp_path)
+    assert store.mark("nope", ActionState.SENT) is None
+    store.forget("nope")
+    assert not store.path.exists()
+
+
+def test_a_failed_write_leaves_no_temporary_file(tmp_path: Path, monkeypatch) -> None:
+    store = _store(tmp_path)
+
+    def broken_fsync(descriptor: int) -> None:
+        raise OSError("disk full")
+
+    monkeypatch.setattr("agent_while_true.state_store.os.fsync", broken_fsync)
+    with pytest.raises(OSError, match="disk full"):
+        store.plan(KEY, provider="claude", session="s", process="p")
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_reservations_refuse_invalid_keys_and_settled_episodes(tmp_path: Path) -> None:
+    store = _store(tmp_path)
+    _episode(store)
+    with pytest.raises(ValueError, match="invalid pending action key"):
+        store.reserve_episode_attempt("episode-one", "")
+    with pytest.raises(ValueError, match="invalid episode attempt reservation"):
+        store.plan_episode_attempt("episode-one", "", provider="codex", session="s", process="p")
+    store.update_episode("episode-one", exhausted=True)
+    with pytest.raises(ValueError, match="invalid episode attempt reservation"):
+        store.plan_episode_attempt("episode-one", "a1", provider="codex", session="s", process="p")
+
+
+def test_a_reservation_that_would_corrupt_the_episode_is_refused(
+    tmp_path: Path, monkeypatch
+) -> None:
+    store = _store(tmp_path)
+    _episode(store)
+    store.plan(KEY, provider="codex", session="s", process="p")
+    store.mark(KEY, ActionState.FAILED)
+    monkeypatch.setattr("agent_while_true.state_store._parse_episode", lambda raw: None)
+    with pytest.raises(ValueError, match="invalid episode attempt reservation"):
+        store.plan_episode_attempt("episode-one", "a1", provider="codex", session="s", process="p")
+    with pytest.raises(ValueError, match="invalid retry episode update"):
+        store.update_episode("episode-one", completed=True)
+
+
+def test_an_unsent_release_must_match_the_reservation(tmp_path: Path, monkeypatch) -> None:
+    store = _store(tmp_path)
+    _episode(store)
+    with pytest.raises(ValueError, match="invalid unsent episode attempt release"):
+        store.release_unsent_episode_attempt("episode-one", "a1", result="x")
+    store.plan_episode_attempt("episode-one", "a1", provider="codex", session="s", process="p")
+    monkeypatch.setattr("agent_while_true.state_store._parse_episode", lambda raw: None)
+    with pytest.raises(ValueError, match="invalid unsent episode attempt release"):
+        store.release_unsent_episode_attempt("episode-one", "a1", result="x")
+
+
+def _raw_episode(**overrides) -> dict:
+    return {
+        "key": "e",
+        "provider": "codex",
+        "session": "s",
+        "process": "p",
+        "prompt_key": PROMPT_KEY,
+        "reset_at": RESET,
+        "first_seen_at": FIRST_SEEN,
+        **overrides,
+    }
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "not-a-dict",
+        {"unexpected": 1},
+        {"provider": ""},
+        {"prompt_key": "short"},
+        {"reset_at": "2026-09-10T21:52:00"},
+        {"next_retry_at": "later"},
+        {"attempts": -1},
+        {"completed": "yes"},
+        {"pending_key": 5},
+    ],
+)
+def test_a_malformed_episode_invalidates_retry_state(tmp_path: Path, bad) -> None:
+    raw = bad if isinstance(bad, str) else _raw_episode(**bad)
+    store = _write_state(tmp_path, [], [raw])
+    assert store.episodes == {}
+    assert not store.retry_state_valid
+
+
+def test_a_duplicate_episode_key_invalidates_retry_state(tmp_path: Path) -> None:
+    store = _write_state(tmp_path, [], [_raw_episode(), _raw_episode()])
+    assert not store.retry_state_valid

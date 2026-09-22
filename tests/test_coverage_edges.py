@@ -266,3 +266,111 @@ def test_health_monitor_thread_lifecycle_and_idempotent_start() -> None:
         time.sleep(0.001)
     monitor.stop()
     assert set(calls) == {"openai", "anthropic"}
+
+
+# -- configuration, /proc, preferences, identity and logging edges ----------
+
+
+@pytest.mark.parametrize(
+    ("key", "value", "message"),
+    [
+        ("MAX_RESUME_ATTEMPTS", "many", "cannot parse integer"),
+        ("MODE", "yolo", "unknown mode"),
+    ],
+)
+def test_bad_configuration_values_are_named(key: str, value: str, message: str) -> None:
+    from agent_while_true.config import ConfigError, load
+
+    with pytest.raises(ConfigError, match=message):
+        load(config_path=Path("/nonexistent"), environ={}, overrides={key: value})
+
+
+def test_prefixed_environment_names_outside_the_schema_are_ignored() -> None:
+    from agent_while_true.config import load
+
+    config = load(
+        config_path=Path("/nonexistent"),
+        environ={"AGENT_WHILE_TRUE_NOT_A_KEY": "1", "AGENT_WHILE_TRUE_MODE": "ask"},
+    )
+    assert config.mode.value == "ask"
+
+
+def test_proc_reads_fail_in_the_expected_direction(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(proc, "PROC", tmp_path)
+    (tmp_path / "5").mkdir()
+    (tmp_path / "5" / "stat").write_text("5 (x) S 1 2 3")
+    with pytest.raises(proc.ProcessGoneError, match="truncated"):
+        proc.read_start_time(5)
+    assert proc.exists(5)
+    assert not proc.exists(6)
+    # A vanished link is a vanished process; an unreadable one is merely unknown.
+    with pytest.raises(proc.ProcessGoneError):
+        proc._read_link(tmp_path / "5" / "exe")
+    (tmp_path / "5" / "cwd").write_text("")
+    assert proc._read_link(tmp_path / "5" / "cwd") == ""
+
+
+@pytest.mark.parametrize(
+    "document",
+    [
+        {"theme": "neon"},
+        {"show_events": "yes"},
+    ],
+)
+def test_preferences_with_an_invalid_field_are_ignored(document: dict) -> None:
+    from agent_while_true.preferences import PREFERENCES_VERSION, _validated_values
+
+    base = {
+        "version": PREFERENCES_VERSION,
+        "theme": "dark",
+        "history_length": 10,
+        "show_events": True,
+        "details_visible": False,
+        "help_visible": False,
+    }
+    assert _validated_values(base) is not None
+    assert _validated_values({**base, **document}) is None
+
+
+def test_oversized_preferences_are_not_read(tmp_path: Path) -> None:
+    from agent_while_true.preferences import MAX_PREFERENCES_BYTES, _current_document
+
+    path = tmp_path / "preferences.json"
+    path.write_text(" " * (MAX_PREFERENCES_BYTES + 1))
+    assert _current_document(path) is None
+
+
+def test_codex_identity_rejects_documents_without_usable_tokens(tmp_path: Path) -> None:
+    auth = tmp_path / "auth.json"
+    for document in ([1, 2], {"tokens": "x"}):
+        auth.write_text(json.dumps(document))
+        auth.chmod(0o600)
+        assert identity.codex_email(auth_file=auth) is None
+        assert identity.codex_account_key(auth_file=auth) is None
+
+
+def test_a_vanished_process_has_no_environment_value() -> None:
+    assert identity._process_environment_value(2**22 + 12345, "CODEX_HOME") is None
+
+
+def test_an_unusual_codex_home_reads_as_a_generic_profile(monkeypatch) -> None:
+    monkeypatch.setattr(identity, "_process_environment_value", lambda pid, key: "/srv/odd home")
+    monkeypatch.setattr(identity, "codex_email", lambda **kwargs: None)
+    assert identity.codex_session_account(1).profile == "codex-profile"
+
+
+def test_an_unknown_provider_has_no_account() -> None:
+    account = identity.session_account("gemini", 1)
+    assert account.profile == "gemini"
+    assert account.email == "unavailable"
+
+
+def test_log_values_render_compactly(tmp_path: Path) -> None:
+    from agent_while_true import logging_setup
+
+    assert (
+        logging_setup.format_event("x", {"ratio": 0.5, "whole": 2.0}) == "event=x ratio=0.5 whole=2"
+    )
+    logger = logging_setup.setup(tmp_path / "a.log", to_stderr=True)
+    logger.debug("quiet")
+    assert logging_setup.get_logger()._logger is logger._logger

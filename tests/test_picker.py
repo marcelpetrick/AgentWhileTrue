@@ -128,3 +128,66 @@ def test_rescan_drops_selections_for_sessions_that_vanished(tmp_path: Path) -> N
 def test_fzf_is_optional(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr("agent_while_true.picker.fzf_available", lambda: False)
     assert pick_with_fzf(_candidates(tmp_path)) is None
+
+
+def test_discovery_survives_an_unreachable_terminal(tmp_path: Path) -> None:
+    kit = harness_module.build(tmp_path)
+    kit.terminal.available = False
+    assert discover(kit.terminal, kit.inspector) == []
+
+
+def test_discovery_skips_vanished_and_half_classified_processes(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from agent_while_true.proc import ProcessGoneError
+
+    kit = harness_module.build(tmp_path)
+    kit.terminal.add("/Sessions/1", shell_pid=1, foreground_pid=4242)  # no such process
+    shell = kit.inspector.add_shell(15201)
+    kit.terminal.add("/Sessions/2", shell_pid=2, foreground_pid=shell.identity.pid)
+
+    def exits_midway(info):
+        raise ProcessGoneError(info.pid)
+
+    monkeypatch.setattr("agent_while_true.picker.classify", exits_midway)
+    assert discover(kit.terminal, kit.inspector) == []
+
+
+def _fzf(monkeypatch, returncode: int, stdout: str = "", raises: bool = False) -> list:
+    calls = []
+
+    def run(argv, **kwargs):
+        calls.append((argv, kwargs["input"]))
+        if raises:
+            raise OSError("fzf vanished")
+        return type("Done", (), {"returncode": returncode, "stdout": stdout})()
+
+    monkeypatch.setattr("agent_while_true.picker.fzf_available", lambda: True)
+    monkeypatch.setattr("agent_while_true.picker.subprocess.run", run)
+    return calls
+
+
+def test_fzf_returns_the_chosen_eligible_sessions(tmp_path: Path, monkeypatch) -> None:
+    calls = _fzf(monkeypatch, 0, "2\tcodex\n9\tbogus\nnoise\n")
+    chosen = pick_with_fzf(_candidates(tmp_path))
+    assert [candidate.provider for candidate in chosen] == ["codex"]
+    # Only eligible sessions are offered, one numbered line each.
+    assert len(calls[0][1].splitlines()) == 2
+
+
+def test_fzf_cancelled_selects_nothing(tmp_path: Path, monkeypatch) -> None:
+    _fzf(monkeypatch, 130)
+    assert pick_with_fzf(_candidates(tmp_path)) == []
+
+
+def test_fzf_that_cannot_start_falls_back(tmp_path: Path, monkeypatch) -> None:
+    _fzf(monkeypatch, 0, raises=True)
+    assert pick_with_fzf(_candidates(tmp_path)) is None
+
+
+def test_rescan_without_a_rescanner_keeps_the_list(tmp_path: Path) -> None:
+    found = _candidates(tmp_path)
+    answers = iter(["r", "1", ""])
+    picker = NumberedPicker(read=lambda prompt: next(answers), write=lambda text: None)
+    chosen = picker.run(found)
+    assert [candidate.provider for candidate in chosen] == ["codex"]

@@ -13,6 +13,27 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.50.8] - 2026-09-22
+
+### Changed
+
+- Raise the enforced coverage floor from 91 % to 98 % of statements and branches
+  combined; this release measures 98.7 %. The new tests pin behaviour rather
+  than lines: every revalidation read between the decision and `sendText`
+  (a shell, a vanished process, a changed identity or classification, a new
+  prompt, an unreadable terminal) cancels and settles the persisted intent;
+  malformed state files, episodes, reservations and releases never mint a
+  budget; real container, ancestry and child-process probes; the Konsole
+  adapter against a stand-in `qdbus`; control-socket protocol abuse; doctor
+  rows on a broken bus; and every malformed quota file staying `UNKNOWN`.
+  `docs/DEVELOPMENT.md` records how coverage is to be earned.
+
+### Removed
+
+- Three branches that could not run: a Codex rate-limit shape check that the
+  parser already guarantees, a Claude status-line type check the loop already
+  guarantees, and an unused `text` configuration kind.
+
 ## [0.50.7] - 2026-09-22
 
 ### Fixed

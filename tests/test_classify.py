@@ -183,3 +183,109 @@ def test_an_unreadable_parent_pid_also_fails_closed(info_factory, monkeypatch) -
 
     assert result.blocker == "ancestor-unreadable"
     assert not result.automatable
+
+
+# -- the real environment probes, which conftest replaces by default --------
+
+_REAL_DETECT_CONTAINER = classify_module._detect_container
+_REAL_CHILD_COMMS = classify_module._child_comms
+
+
+@pytest.mark.parametrize(
+    ("keys", "expected"),
+    [
+        (frozenset({"container"}), "container-environment-marker"),
+        (frozenset({"DISTROBOX_ENTER_PATH"}), "container-environment-marker"),
+    ],
+)
+def test_container_environment_markers_block(info_factory, keys, expected) -> None:
+    assert _REAL_DETECT_CONTAINER(info_factory(environ_keys=keys)) == expected
+
+
+@pytest.mark.parametrize(
+    ("cgroup", "expected"),
+    [
+        ("0::/system.slice/docker-abc.scope\n", "container-cgroup"),
+        ("0::/user.slice/user-1000.slice/session-2.scope\n", None),
+    ],
+)
+def test_container_cgroups_are_read_from_proc(
+    info_factory, tmp_path, monkeypatch, cgroup, expected
+) -> None:
+    (tmp_path / "1000").mkdir()
+    (tmp_path / "1000" / "cgroup").write_text(cgroup)
+    monkeypatch.setattr(classify_module.proc, "PROC", tmp_path)
+    monkeypatch.setattr(classify_module, "_CONTAINER_FILES", ())
+    assert _REAL_DETECT_CONTAINER(info_factory()) == expected
+
+
+def test_a_container_runtime_file_blocks(info_factory, tmp_path, monkeypatch) -> None:
+    marker = tmp_path / ".dockerenv"
+    marker.write_text("")
+    # No cgroup file at all: an unreadable cgroup is simply not evidence.
+    monkeypatch.setattr(classify_module.proc, "PROC", tmp_path)
+    monkeypatch.setattr(classify_module, "_CONTAINER_FILES", (marker,))
+    assert _REAL_DETECT_CONTAINER(info_factory()) == "container-runtime-file"
+
+
+def test_a_node_launcher_for_claude_is_a_signal(info_factory) -> None:
+    info = info_factory(comm="node", exe="/usr/bin/node", cmdline=("node", "/opt/bin/claude"))
+    result = classify(info)
+    assert result.process_class is ProcessClass.CLAUDE
+    assert "argv1=claude" in result.signals
+
+
+def test_the_codex_js_shim_script_is_a_signal(info_factory) -> None:
+    script = "/usr/lib/node_modules/@openai/codex/bin/codex.js"
+    info = info_factory(comm="node", exe="/usr/bin/node", cmdline=("node", script))
+    result = classify(info)
+    assert result.process_class is ProcessClass.CODEX
+    assert "node-shim-script=codex.js" in result.signals
+
+
+def test_child_comms_skip_children_that_vanish(monkeypatch) -> None:
+    def read_comm(pid: int) -> str:
+        if pid == 2:
+            raise ProcessGoneError(pid)
+        return "codex"
+
+    monkeypatch.setattr(classify_module.proc, "children", lambda pid: (2, 3))
+    monkeypatch.setattr(classify_module.proc, "read_comm", read_comm)
+    assert _REAL_CHILD_COMMS(1) == ("codex",)
+
+
+def test_child_comms_of_a_vanished_parent_are_empty(monkeypatch) -> None:
+    def children(pid: int) -> tuple[int, ...]:
+        raise ProcessGoneError(pid)
+
+    monkeypatch.setattr(classify_module.proc, "children", children)
+    assert _REAL_CHILD_COMMS(1) == ()
+
+
+def _ancestry(monkeypatch, chain: dict[int, tuple[str, int]]) -> None:
+    """Install a fake process tree: pid -> (comm, ppid)."""
+    monkeypatch.setattr(classify_module.proc, "exists", lambda pid: pid in chain)
+    monkeypatch.setattr(classify_module.proc, "read_comm", lambda pid: chain[pid][0])
+    monkeypatch.setattr(classify_module.proc, "read_ppid", lambda pid: chain[pid][1])
+
+
+@pytest.mark.parametrize(
+    ("chain", "expected"),
+    [
+        ({999: ("zsh", 998), 998: ("tmux: server", 1)}, None),
+        ({999: ("zsh", 998), 998: ("tmux", 1)}, "nested-terminal-ancestor=tmux"),
+        ({999: ("zsh", 998), 998: ("sshd", 1)}, "remote-ancestor=sshd"),
+        ({999: ("zsh", 998), 998: ("konsole", 997), 997: ("tmux", 1)}, None),
+        ({999: ("zsh", 1)}, None),
+        ({}, None),
+    ],
+)
+def test_the_ancestry_walk(info_factory, monkeypatch, chain, expected) -> None:
+    _ancestry(monkeypatch, chain)
+    assert _REAL_ANCESTOR_BLOCKER(info_factory(ppid=999)) == expected
+
+
+def test_an_endless_ancestry_stops_at_the_depth_limit(info_factory, monkeypatch) -> None:
+    # A cycle can only come from a corrupted read; the walk still terminates.
+    _ancestry(monkeypatch, {999: ("zsh", 999)})
+    assert _REAL_ANCESTOR_BLOCKER(info_factory(ppid=999)) is None

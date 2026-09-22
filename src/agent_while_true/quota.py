@@ -390,9 +390,8 @@ class CodexRolloutSource(QuotaSource):
             if found is None:
                 return unknown(self.provider, self.name, "no-rate-limit-event")
             limits, observed_at = found
+            # _parse_rate_limits only returns limits that yield windows.
             windows = _codex_windows(limits)
-            if not windows:
-                return unknown(self.provider, self.name, "unrecognised-rate-limit-shape")
             reached = limits.get("rate_limit_reached_type")
             availability = _availability(windows)
             if reached:
@@ -473,8 +472,6 @@ class ClaudeStatuslineSource(QuotaSource):
                     _timestamp(item.get("updated_at")) or datetime.min.replace(tzinfo=UTC)
                 ),
             )
-            if not isinstance(document, dict):
-                return unknown(self.provider, self.name, "unrecognised-statusline-shape")
             windows = []
             for key, scope in _CLAUDE_SCOPES.items():
                 entry = document.get(key)

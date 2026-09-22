@@ -65,7 +65,13 @@ branch = true
 source = ["agent_while_true"]
 
 [tool.coverage.report]
-exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError"]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    # Structural interfaces have no behaviour of their own to cover.
+    "class .*\\(Protocol\\):",
+]
 
 [tool.ruff]
 line-length = 100

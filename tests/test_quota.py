@@ -554,3 +554,130 @@ def test_an_unchanged_rollout_is_parsed_once_across_a_tick(tmp_path: Path, monke
         handle.write(json.dumps(exhausted) + "\n")
     assert source.snapshot(pid=123).exhausted_scopes == frozenset({"session"})
     assert parses["n"] == 2
+
+
+# -- every malformed or missing piece of evidence stays UNKNOWN -------------
+
+
+def test_no_windows_means_unknown() -> None:
+    assert quota._availability([]) is Availability.UNKNOWN
+
+
+@pytest.mark.parametrize(
+    ("environ", "expected"),
+    [
+        (b"HOME=/h\0CODEX_HOME=/c\0", Path("/c")),
+        (b"CODEX_HOME=\0", None),
+        (b"HOME=/h\0", None),
+        (b"X" * (65 * 1024), None),
+    ],
+)
+def test_the_codex_home_is_read_from_a_bounded_environment(
+    tmp_path: Path, monkeypatch, environ: bytes, expected
+) -> None:
+    (tmp_path / "7").mkdir()
+    (tmp_path / "7" / "environ").write_bytes(environ)
+    monkeypatch.setattr(quota, "PROC", tmp_path)
+    assert quota._process_codex_home(7) == expected
+
+
+def test_rollout_discovery_tolerates_odd_descriptors_and_children(
+    tmp_path: Path, monkeypatch
+) -> None:
+    home = tmp_path / "home" / ".codex"
+    rollout = home / "sessions/2026/09/05/rollout-a.jsonl"
+    rollout.parent.mkdir(parents=True)
+    rollout.write_text(json.dumps(CODEX_EVENT) + "\n")
+    proc_root = tmp_path / "proc"
+    _attach_rollouts(proc_root, 50, rollout, rollout, codex_home=home)
+    fd = proc_root / "50" / "fd"
+    (fd / "3").write_text("")  # not a symlink: readlink fails
+    (fd / "4").symlink_to(tmp_path / "notes.txt")  # not a rollout
+    # The child list names the parent again and then garbage.
+    (proc_root / "50" / "task" / "50" / "children").write_text("50 x")
+    monkeypatch.setattr(quota, "PROC", proc_root)
+    assert quota._find_codex_rollouts(50) == (rollout,)
+
+
+def test_a_vanished_candidate_is_skipped_by_mtime(tmp_path: Path, monkeypatch) -> None:
+    kept = _write_rollout(tmp_path, {"type": "other"})
+    gone = tmp_path / "rollout-gone.jsonl"
+    monkeypatch.setattr(quota, "_find_codex_rollouts", lambda pid: (gone, kept))
+    assert quota.find_codex_rollout(1) == kept
+
+
+def test_an_unreadable_rollout_has_no_rate_limits(tmp_path: Path) -> None:
+    assert quota._last_rate_limits(tmp_path / "missing.jsonl") is None
+
+
+def test_the_tail_cache_stays_bounded(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(quota, "_TAIL_CACHE", {})
+    monkeypatch.setattr(quota, "_TAIL_CACHE_LIMIT", 2)
+    for index in range(3):
+        quota._last_rate_limits(_rollout_in(tmp_path / str(index), CODEX_EVENT))
+    assert len(quota._TAIL_CACHE) == 1
+
+
+def _rollout_in(directory: Path, event: dict) -> Path:
+    directory.mkdir(parents=True, exist_ok=True)
+    return _write_rollout(directory, event)
+
+
+def test_unusable_rate_limit_lines_are_skipped() -> None:
+    lines = [
+        b'{"rate_limits": broken',
+        json.dumps({"payload": "rate_limits"}).encode(),
+        json.dumps({"payload": {"rate_limits": {"primary": {"used_percent": None}}}}).encode(),
+        json.dumps(
+            {"payload": {"rate_limits": {"primary": {"used_percent": 5.0}}}, "timestamp": "x"}
+        ).encode(),
+    ]
+    limits, observed_at = quota._parse_rate_limits(b"\n".join(lines))
+    # Only the last line is usable; without a timestamp it is the fallback.
+    assert observed_at is None
+    assert quota._codex_windows(limits)[0].scope == "session"
+
+
+def test_no_rollout_or_no_event_is_unknown(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(quota, "find_codex_rollout", lambda pid: None)
+    assert CodexRolloutSource().snapshot(pid=1).note == "no-rollout-file"
+    empty = _write_rollout(tmp_path, {"type": "other"})
+    monkeypatch.setattr(quota, "find_codex_rollout", lambda pid: empty)
+    assert CodexRolloutSource().snapshot(pid=1).note == "no-rate-limit-event"
+
+
+def test_a_timestamp_beats_a_missing_one() -> None:
+    dated = QuotaSnapshot("codex", Availability.AVAILABLE, "t", observed_at=NOW)
+    undated = QuotaSnapshot("codex", Availability.EXHAUSTED, "t")
+    assert quota._newer_snapshot(undated, dated) is dated
+    assert quota._newer_snapshot(dated, undated) is dated
+
+
+def test_claude_files_that_do_not_qualify_are_ignored(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(quota, "read_start_time", lambda pid: 456)
+    (tmp_path / "claude-big.json").write_text(" " * (65 * 1024))
+    (tmp_path / "claude-other.json").write_text(json.dumps({"source": "codex"}))
+    (tmp_path / "claude-unbound.json").write_text(
+        json.dumps({**CLAUDE_STATUSLINE, "process": "123"})
+    )
+    source = ClaudeStatuslineSource(path=tmp_path / "claude.json")
+    assert source.snapshot(pid=123).note == "no-process-bound-statusline-file"
+
+
+def test_claude_without_usable_windows_is_unknown(tmp_path: Path) -> None:
+    path = tmp_path / "claude.json"
+    path.write_text(
+        json.dumps({"source": "claude", "five_hour": {"resets_at": 1}, "seven_day": "x"})
+    )
+    assert ClaudeStatuslineSource(path=path).snapshot().note == "no-usable-windows"
+
+
+def test_claude_for_a_vanished_process_is_unknown(tmp_path: Path, monkeypatch) -> None:
+    from agent_while_true.proc import ProcessGoneError
+
+    def gone(pid: int) -> int:
+        raise ProcessGoneError(pid)
+
+    (tmp_path / "claude-a.json").write_text(json.dumps(CLAUDE_STATUSLINE))
+    monkeypatch.setattr(quota, "read_start_time", gone)
+    assert ClaudeStatuslineSource(path=tmp_path / "c.json").snapshot(pid=1).note == "process-gone"

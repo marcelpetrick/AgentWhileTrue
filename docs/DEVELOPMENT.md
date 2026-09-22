@@ -35,7 +35,7 @@ Actions runs on Python 3.12, 3.13 and 3.14. It checks, in order:
 1. Python 3.12+, and the pinned toolchain, provisioned if it is missing.
 2. `scripts/quality.sh`: REUSE SPDX licensing, Ruff lint and format, ShellCheck
    on every tracked shell script, the worktree whitespace check, pytest with a
-   91% combined statement/branch coverage floor, and version/changelog
+   98% combined statement/branch coverage floor, and version/changelog
    consistency.
 3. Every built-in safety simulation (`simulate --all`).
 4. A synthetic application profile, retained under `artifacts/`.
@@ -46,6 +46,26 @@ Actions runs on Python 3.12, 3.13 and 3.14. It checks, in order:
 8. The wheel installed into a fresh virtual environment, with `PYTHONPATH`
    removed, exercising `--version`, `doctor`, `status`, `quota`, `summary` and
    `simulate --all`.
+
+### Coverage
+
+The floor is 98% of statements and branches combined, measured over
+`src/agent_while_true` by `scripts/quality.sh`; 0.50.8 measured 98.7%. It is a
+floor for behaviour, not for lines:
+
+- Cover a branch with a test that states what the branch is for - a refusal, a
+  fail-closed read, a degraded diagnostic - not with a call that merely
+  executes it. Fake-terminal, fake-`/proc` and stand-in-executable tests are
+  the norm; nothing may send input to a real session or depend on the host.
+- Delete a branch that cannot run instead of excluding it. `# pragma: no cover`
+  is reserved for code that is reachable only outside a test process (signal
+  handlers, `__main__`) or defensively unreachable by construction, with the
+  reason written beside it.
+- `Protocol` classes are excluded in `pyproject.toml`: a structural interface
+  has no behaviour of its own.
+
+Run `.venv/bin/python -m pytest --cov=agent_while_true
+--cov-report=term-missing:skip-covered` to see what a change left uncovered.
 
 The faster inner loop is the required pre-commit set from AGENTS.md:
 

@@ -132,3 +132,40 @@ def test_unconvertible_timestamp_does_not_break_report(tmp_path: Path, monkeypat
     monkeypatch.setattr(summary, "datetime", LocalDatetime)
     text = render_summary(path, now=NOW, days=1)
     assert "sent=0" in text
+
+
+def test_lines_that_are_not_structured_events_are_skipped(tmp_path: Path) -> None:
+    path = tmp_path / "agent-while-true.log"
+    path.write_text(
+        _line("2026-09-10T10:00:00+00:00", 'event=resume_sent note="unbalanced')
+        + _line("2026-09-10T10:00:01+00:00", "")
+        + _line("2026-09-10T10:00:02+00:00", "plain words")
+        + _line("2026-09-10T10:00:03+00:00", "event= provider=claude")
+        + _line("2026-09-10T10:00:04+00:00", "kind=resume_sent")
+        + _line("2026-09-10T10:00:05+00:00", "event=resume_sent stray 9bad=1 provider=claude")
+    )
+    assert "sent=1 " in render_summary(path, now=NOW, days=1)
+
+
+def test_durations_read_naturally() -> None:
+    from agent_while_true.summary import _duration
+
+    assert _duration(-5) == "0s"
+    assert _duration(59) == "59s"
+    assert _duration(120) == "2m"
+    assert _duration(125) == "2m 5s"
+    assert _duration(7200) == "2h"
+    assert _duration(7260) == "2h 1m"
+
+
+def test_an_interval_before_the_window_or_without_bounds_is_ignored(tmp_path: Path) -> None:
+    path = tmp_path / "agent-while-true.log"
+    path.write_text(
+        _line(
+            "2026-09-10T11:00:00+00:00",
+            "event=supervision_interval blocked=true "
+            "start=2026-09-09T11:57:00+00:00 end=2026-09-09T11:58:00+00:00",
+        )
+        + _line("2026-09-10T11:00:01+00:00", "event=supervision_interval blocked=true")
+    )
+    assert "unavailable" in render_summary(path, now=NOW, days=1)

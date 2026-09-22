@@ -122,3 +122,53 @@ def test_live_konsole_enumeration() -> None:
     assert adapter.is_available()
     for session in adapter.list_sessions():
         assert session.shell_pid > 0
+
+
+# -- the real qdbus round trip, against a stand-in executable ---------------
+
+
+def _fake_qdbus(tmp_path, body: str):
+    script = tmp_path / "qdbus6"
+    script.write_text(f"#!/bin/sh\n{body}\n")
+    script.chmod(0o755)
+    return str(script)
+
+
+def test_find_qdbus_prefers_the_first_installed_candidate(monkeypatch) -> None:
+    from agent_while_true.terminal import konsole
+
+    installed = {"qdbus": "/usr/bin/qdbus"}
+    monkeypatch.setattr(konsole.shutil, "which", installed.get)
+    assert konsole.find_qdbus() == "/usr/bin/qdbus"
+    assert KonsoleAdapter().qdbus == "/usr/bin/qdbus"
+    monkeypatch.setattr(konsole.shutil, "which", lambda name: None)
+    assert konsole.find_qdbus() is None
+
+
+def test_a_real_call_passes_arguments_without_a_shell(tmp_path) -> None:
+    adapter = KonsoleAdapter(qdbus=_fake_qdbus(tmp_path, 'printf "%s|" "$@"'))
+    assert adapter._call("svc", "/Sessions/1", "a b; $HOME") == "svc|/Sessions/1|a b; $HOME|"
+    assert adapter.is_available()
+
+
+def test_a_failing_call_is_none_and_every_reader_degrades(tmp_path) -> None:
+    adapter = KonsoleAdapter(qdbus=_fake_qdbus(tmp_path, "exit 3"))
+    ref = SessionRef("konsole", "org.kde.konsole-1", "/Sessions/1")
+    assert adapter._call("x") is None
+    assert not adapter.is_available()
+    with pytest.raises(TerminalUnavailableError):
+        adapter.services()
+    assert adapter._session_paths("org.kde.konsole-1") == []
+    assert adapter.foreground_pid(ref) == 0
+    assert adapter.read_visible_text(ref) == []
+
+
+def test_an_unstartable_qdbus_is_a_failed_call(tmp_path) -> None:
+    adapter = KonsoleAdapter(qdbus=str(tmp_path / "missing"))
+    assert adapter._call() is None
+
+
+def test_a_non_numeric_pid_reads_as_zero(tmp_path) -> None:
+    adapter = KonsoleAdapter(qdbus=_fake_qdbus(tmp_path, "echo not-a-pid"))
+    ref = SessionRef("konsole", "org.kde.konsole-1", "/Sessions/1")
+    assert adapter.foreground_pid(ref) == 0

@@ -13,7 +13,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [![License: GPL v3 or later](https://img.shields.io/badge/license-GPLv3%20or%20later-blue.svg)](LICENSE)
 [![Python 3.12 | 3.13 | 3.14](https://img.shields.io/badge/Python-3.12%20%7C%203.13%20%7C%203.14-3776ab.svg)](https://www.python.org/)
 [![Runtime dependencies: 0](https://img.shields.io/badge/runtime%20dependencies-0-2ea043.svg)](pyproject.toml)
-[![Coverage >= 91%](https://img.shields.io/badge/coverage-%E2%89%A591%25-brightgreen.svg)](scripts/quality.sh)
+[![Coverage >= 98%](https://img.shields.io/badge/coverage-%E2%89%A598%25-brightgreen.svg)](scripts/quality.sh)
 [![Lint and format: ruff](https://img.shields.io/badge/lint%20%26%20format-ruff-261230.svg)](https://docs.astral.sh/ruff/)
 [![REUSE compliant](https://img.shields.io/badge/REUSE-compliant-green.svg)](https://reuse.software/)
 [![SBOM: SPDX and CycloneDX](https://img.shields.io/badge/SBOM-SPDX%20%2B%20CycloneDX-4a4a4a.svg)](https://github.com/marcelpetrick/AgentWhileTrue/releases/latest)

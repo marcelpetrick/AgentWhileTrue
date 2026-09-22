@@ -8,10 +8,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from agent_while_true import doctor, providers
 from agent_while_true.config import Config, Policy
 from agent_while_true.doctor import Check, Status, exit_code, render
+from agent_while_true.terminal.base import SessionRef, TerminalSession
 from tests.test_terminal import StubbedKonsole
+
+doctor_module = doctor
 
 
 def _config(tmp_path: Path) -> Config:
@@ -133,3 +138,85 @@ def test_pattern_drift_never_blocks_automatic_mode(monkeypatch) -> None:
     verdict = doctor._auto_mode_verdict([drift], Config())
 
     assert verdict.status is Status.OK
+
+
+# -- failure rows: a broken environment is reported, never raised -----------
+
+
+class _StubKonsole:
+    def __init__(self, *, services=(), sessions=(), send_fails=False, services_raise=False):
+        self._services = list(services)
+        self._sessions = list(sessions)
+        self._send_fails = send_fails
+        self._services_raise = services_raise
+        self.sent: list[str] = []
+
+    def is_available(self) -> bool:
+        return True
+
+    def services(self) -> list[str]:
+        if self._services_raise:
+            raise RuntimeError("bus broke")
+        return self._services
+
+    def list_sessions(self):
+        return self._sessions
+
+    def send_text(self, ref, text: str) -> None:
+        if self._send_fails:
+            raise RuntimeError("disabled")
+        self.sent.append(text)
+
+
+_ONE = TerminalSession(
+    ref=SessionRef("konsole", "org.kde.konsole-1", "/Sessions/1"),
+    shell_pid=1,
+    foreground_pid=1,
+    title="",
+)
+
+
+@pytest.mark.parametrize(
+    ("stub", "statuses"),
+    [
+        (_StubKonsole(services_raise=True), ("FAIL", "FAIL", "FAIL")),
+        (_StubKonsole(), ("WARN", "WARN", "WARN")),
+        (_StubKonsole(services=["org.kde.konsole-1"]), ("OK", "OK", "WARN")),
+        (_StubKonsole(services=["s"], sessions=[_ONE], send_fails=True), ("OK", "OK", "FAIL")),
+    ],
+)
+def test_konsole_rows_degrade_without_raising(stub, statuses) -> None:
+    rows = doctor_module.check_konsole(stub)  # type: ignore[arg-type]
+    assert tuple(row.status.value for row in rows) == statuses
+    # The permission probe only ever sends empty text.
+    assert stub.sent in ([], [""])
+
+
+def test_tool_versions(monkeypatch) -> None:
+    monkeypatch.setattr(doctor_module.shutil, "which", lambda name: None)
+    assert doctor_module._tool_version("codex", "--version") is None
+    assert doctor_module.check_agent("codex", "--version").status.value == "WARN"
+    monkeypatch.setattr(doctor_module, "_tool_version", lambda *args: "")
+    assert doctor_module.check_agent("codex", "--version").detail == "installed"
+    assert doctor_module._pattern_drift("9.9.9", None) is None
+
+
+def test_privileges_warn_as_root(monkeypatch) -> None:
+    monkeypatch.setattr(doctor_module.os, "geteuid", lambda: 0)
+    assert doctor_module.check_privileges().status.value == "WARN"
+
+
+def test_an_unwritable_directory_fails(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(doctor_module.os, "access", lambda path, mode: False)
+    assert doctor_module._writable_dir("State", tmp_path).status.value == "FAIL"
+
+
+def test_an_unusable_lock_directory_fails(tmp_path, monkeypatch) -> None:
+    from agent_while_true.config import Config
+
+    def refuse(self) -> None:
+        raise PermissionError("read-only runtime dir")
+
+    monkeypatch.setattr(doctor_module.SingleInstanceLock, "acquire", refuse)
+    config = Config(runtime_dir=tmp_path)
+    assert doctor_module.check_lock(config).status.value == "FAIL"

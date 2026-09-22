@@ -218,11 +218,6 @@ def _coerce(kind: str, raw: str, key: str):
             raise ConfigError(f"{key}: cannot parse integer {raw!r}") from exc
     if kind == "path":
         return Path(os.path.expandvars(raw.strip())).expanduser()
-    if kind == "text":
-        value = raw.strip()
-        if not value or len(value) > 80:
-            raise ConfigError(f"{key}: expected 1-80 display characters")
-        return value
     if kind == "mode":
         try:
             return Mode(raw.strip().lower())

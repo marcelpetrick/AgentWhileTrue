@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import io
 import signal
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -561,3 +562,150 @@ def test_a_headless_run_logs_changes_not_frames(
     assert len(lines) == 1, lines
     assert "claude pts/3: ACTIVE" in lines[0]
     assert "│" not in out.getvalue()
+
+
+# -- command-line edges ------------------------------------------------------
+
+
+def test_every_override_reaches_the_configuration(sandbox: Path) -> None:
+    args = cli.build_parser().parse_args(
+        [
+            "--log-file",
+            str(sandbox / "x.log"),
+            "--allow-root",
+            "run",
+            "--ask",
+            "--scan-interval",
+            "3s",
+            "--no-fzf",
+        ]
+    )
+    assert cli._overrides(args) == {
+        "MODE": "ask",
+        "SCAN_INTERVAL": "3s",
+        "LOG_FILE": str(sandbox / "x.log"),
+        "ALLOW_ROOT": "true",
+        "USE_FZF": "false",
+    }
+
+
+def test_fzf_is_used_when_it_answers(sandbox: Path, out: io.StringIO, monkeypatch) -> None:
+    terminal = _fake_world(monkeypatch, screen=screens.CLAUDE_LIMIT_MENU_SHORTLY)
+    monkeypatch.setattr(cli, "pick_with_fzf", lambda candidates: list(candidates))
+    assert main(["run", "--once", "--auto"], stream=out, reader=lambda prompt: "q") == EXIT_OK
+    assert terminal.sent == [("/Sessions/1", "\x1b[B\r")]
+
+
+def test_selecting_nothing_watches_nothing(sandbox: Path, out: io.StringIO, monkeypatch) -> None:
+    terminal = _fake_world(monkeypatch, screen=screens.CLAUDE_LIMIT_MENU_SHORTLY)
+    answers = iter(["n", ""])
+    assert (
+        main(["run", "--once", "--auto", "--no-fzf"], stream=out, reader=lambda p: next(answers))
+        == EXIT_OK
+    )
+    assert "Nothing selected." in out.getvalue()
+    assert terminal.sent == []
+
+
+@pytest.mark.parametrize(("answer", "expected"), [("y", True), ("YES", True), ("", False)])
+def test_the_confirmation_prompt(answer: str, expected: bool) -> None:
+    stream = io.StringIO()
+    observation = SimpleNamespace(recognition=None, ref=SimpleNamespace(session_id="/Sessions/1"))
+    decision = SimpleNamespace(action=None)
+    assert cli._confirmer(stream, lambda prompt: answer)(observation, decision) is expected
+    assert "[y/N]" in stream.getvalue()
+
+
+def test_a_closed_stdin_declines_the_confirmation() -> None:
+    def closed(prompt: str) -> str:
+        raise EOFError
+
+    observation = SimpleNamespace(recognition=None, ref=SimpleNamespace(session_id="/Sessions/1"))
+    assert not cli._confirmer(io.StringIO(), closed)(observation, SimpleNamespace(action=None))
+
+
+def test_the_control_side_answers_status_and_unknown_requests(tmp_path: Path) -> None:
+    config = Config(mode=Mode.OBSERVE, state_dir=tmp_path, runtime_dir=tmp_path / "run")
+    kit = harness_module.build(tmp_path, config=config)
+    side = cli._InputControl(kit.supervisor, SingleInstanceLock.in_directory(tmp_path), config)
+    status = side._handle("status")
+    assert status["ok"]
+    assert status["version"] == __version__
+    assert side._handle("bogus") == {"ok": False, "reason": "unknown-op"}
+    # Without the lock there is nothing to hand over.
+    assert side._handle("yield-input")["reason"] == "no-input-control"
+
+
+def test_a_handover_that_nobody_takes_lapses_and_rearms(tmp_path: Path) -> None:
+    config = Config(mode=Mode.AUTO, state_dir=tmp_path, runtime_dir=tmp_path / "run")
+    kit = harness_module.build(tmp_path, config=config)
+    lock = SingleInstanceLock.in_directory(tmp_path / "run")
+    side = cli._InputControl(
+        kit.supervisor, lock, replace(config, mode=Mode.OBSERVE), deferred=config
+    )
+    side.successor_seen = False
+    side._rearm_if_free()
+    assert lock.held
+    assert "event=input_handover_lapsed" in (tmp_path / "agent-while-true.log").read_text()
+    lock.release()
+
+
+def test_taking_input_control_waits_for_the_lock(tmp_path: Path, monkeypatch) -> None:
+    kit = harness_module.build(tmp_path)
+    monkeypatch.setattr(cli, "request_yield_input", lambda runtime: (True, "ok"))
+    monkeypatch.setattr(cli.time, "sleep", lambda seconds: None)
+
+    class SlowLock:
+        attempts = 0
+
+        def acquire(self) -> None:
+            self.attempts += 1
+            if self.attempts < 3:
+                raise LockHeldError
+
+    assert cli._take_input_control(kit.supervisor, Config(), SlowLock())[0]  # type: ignore[arg-type]
+
+    class StuckLock:
+        def acquire(self) -> None:
+            raise LockHeldError
+
+    taken, detail = cli._take_input_control(kit.supervisor, Config(), StuckLock())  # type: ignore[arg-type]
+    assert not taken
+    assert "still held" in detail
+
+
+def test_a_headless_run_adopts_new_sessions_at_rediscovery(
+    sandbox: Path, out: io.StringIO, monkeypatch
+) -> None:
+    terminal = _fake_world(monkeypatch, screen=screens.CLAUDE_ACTIVE)
+    terminal.add("/Sessions/2", shell_pid=7, foreground_pid=4242)  # no such process
+    monkeypatch.setattr(cli, "REDISCOVERY_INTERVAL_SECONDS", 0.0)
+    assert _run_scans(monkeypatch, 3, ["run", "--all", "--observe"], out) == EXIT_INTERRUPTED
+    assert "claude pts/3: ACTIVE" in out.getvalue()
+
+
+def test_status_and_quota_with_nothing_to_show(
+    sandbox: Path, out: io.StringIO, monkeypatch
+) -> None:
+    empty = FakeAdapter()
+    monkeypatch.setattr(cli, "KonsoleAdapter", lambda: empty)
+    monkeypatch.setattr(cli, "SystemInspector", harness_module.FakeInspector)
+    assert main(["status"], stream=out) == EXIT_OK
+    assert main(["quota"], stream=out) == EXIT_OK
+    assert "No Konsole sessions found." in out.getvalue()
+    assert "No Codex or Claude sessions found." in out.getvalue()
+    empty.available = False
+    assert main(["quota"], stream=out) == EXIT_ERROR
+
+
+def test_doctor_and_logs_through_main(sandbox: Path, out: io.StringIO, monkeypatch) -> None:
+    from agent_while_true import doctor
+
+    monkeypatch.setattr(doctor, "run", lambda config: [doctor.Check("Linux", doctor.Status.OK)])
+    assert main(["doctor"], stream=out) == EXIT_OK
+    log = sandbox / "state" / "agent-while-true" / "agent-while-true.log"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    log.write_text("first\nsecond\nthird\n")
+    tail = io.StringIO()
+    assert main(["logs", "-n", "2"], stream=tail) == EXIT_OK
+    assert tail.getvalue().split() == ["second", "third"]

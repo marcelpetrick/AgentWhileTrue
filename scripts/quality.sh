@@ -111,7 +111,7 @@ fi
 step "pytest"
 if [ "$COVERAGE" -eq 1 ]; then
     run_tool pytest --cov=agent_while_true --cov-report=term-missing --cov-report=xml \
-        --cov-report=json --cov-fail-under=91 \
+        --cov-report=json --cov-fail-under=98 \
         || fail "pytest"
 else
     run_tool pytest || fail "pytest"
