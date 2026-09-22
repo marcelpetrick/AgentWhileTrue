@@ -457,11 +457,25 @@ def _take_input_control(
 
 
 def _toggle_runtime_mode(
-    supervisor: Supervisor, config: Config, lock: SingleInstanceLock
+    supervisor: Supervisor,
+    config: Config,
+    lock: SingleInstanceLock,
+    before: Config | None = None,
 ) -> tuple[Config, str]:
-    """Toggle the interactive watcher without weakening the single-writer gate."""
+    """Toggle the interactive watcher without weakening the single-writer gate.
+
+    Leaving full auto returns to ``before``, the configuration it was entered
+    from, including that configuration's Codex policy; without one it falls
+    back to observe. Ask mode keeps the input lock, because it still types
+    once a human confirms.
+    """
     if config.mode is Mode.AUTO:
-        updated = replace(config, mode=Mode.OBSERVE)
+        if before is not None and before.mode is Mode.ASK:
+            updated = before
+            supervisor.config = updated
+            supervisor.log.info("mode_changed", previous="full-auto", new="ask", source="tui")
+            return updated, "full auto disabled; ask mode confirms every action"
+        updated = replace(before or config, mode=Mode.OBSERVE)
         supervisor.config = updated
         lock.release()
         supervisor.log.info("mode_changed", previous="full-auto", new="observe", source="tui")
@@ -536,6 +550,8 @@ def _loop(
     focus_section = ""
     event_history: list[str] = []
     headless_lines: dict[str, str] = {}
+    #: The configuration Shift+A left for full auto, and returns to.
+    before_auto: Config | None = None
     metrics = ObservationMetrics(supervisor.log)
     health = HealthMonitor(interval=config.service_status_interval)
     # command_run() has just completed initial discovery and selection.
@@ -661,7 +677,14 @@ def _loop(
                         else "Display preferences could not be saved; current choices remain active"
                     )
                 if dashboard.consume_mode_toggle():
-                    config, last_event = _toggle_runtime_mode(supervisor, config, lock)
+                    previous_config = config
+                    config, last_event = _toggle_runtime_mode(
+                        supervisor, config, lock, before=before_auto
+                    )
+                    if config.mode is Mode.AUTO and previous_config.mode is not Mode.AUTO:
+                        before_auto = previous_config
+                    elif config.mode is not Mode.AUTO:
+                        before_auto = None
                     next_scan = 0.0
                     event_history = read_history(
                         config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES

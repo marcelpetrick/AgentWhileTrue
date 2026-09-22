@@ -13,6 +13,18 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.50.5] - 2026-09-22
+
+### Fixed
+
+- Return `Shift+A` to the mode full auto was entered from (F5). It was a
+  two-state toggle over three modes: from ask mode it escalated to full auto
+  with the Codex opt-in, and pressing it again dropped to observe, so ask mode
+  could only be regained by restarting. Leaving full auto now restores the
+  previous mode together with its Codex policy - the runtime opt-in lasts only
+  as long as full auto - and ask mode keeps the input lock it needs to type
+  after confirmation.
+
 ## [0.50.4] - 2026-09-22
 
 ### Fixed

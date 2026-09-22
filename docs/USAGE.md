@@ -92,11 +92,12 @@ can also be started read-only outright:
 agent-while-true run --observe --all  # press Shift+A to take over full auto
 ```
 
-`Shift+A` in the dashboard toggles between observe and full-auto. Enabling
-full auto this way is an explicit runtime opt-in to Codex composer continuation
-(`ALLOW_CODEX_AUTO_RESUME`); paid, upgrade, reset-credit and model-downgrade
-policy stays off. Pressing it while running in ask mode also switches to full
-auto; restart the command to return to ask mode.
+`Shift+A` in the dashboard switches to full auto and, pressed again, back to the
+mode it came from - observe or ask. Enabling full auto this way is an explicit
+runtime opt-in to Codex composer continuation (`ALLOW_CODEX_AUTO_RESUME`) that
+lasts only while full auto does; paid, upgrade, reset-credit and model-downgrade
+policy stays off. Returning to ask keeps input control, since ask mode still
+types once you confirm; returning to observe releases it.
 
 If a background service already owns the lock, `Shift+A` asks it to hand input
 control over rather than refusing. The service drops to observe and releases the
@@ -124,7 +125,7 @@ observe mode.
 | Key | Effect |
 | --- | --- |
 | `-` / `+` | Refresh faster / slower across `0.25 0.5 1 2 3 5 10 30 60` seconds |
-| `A` | Toggle observe/full-auto; uppercase activation is an explicit Codex resume opt-in |
+| `A` | Toggle full-auto and back to observe/ask; uppercase activation is an explicit Codex resume opt-in |
 | `p` | Pause/resume; pause performs no terminal or quota polling |
 | `r` | Rediscover Konsole sessions immediately |
 | `t` | Cycle dark, vivid, CGA, amber, and plain themes |

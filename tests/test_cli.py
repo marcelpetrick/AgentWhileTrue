@@ -235,6 +235,30 @@ def test_tui_toggle_takes_lock_and_explicitly_enables_full_auto(tmp_path: Path) 
     assert history.count("event=mode_changed") == 2
 
 
+def test_tui_toggle_returns_to_ask_mode_rather_than_escalating_past_it(
+    tmp_path: Path,
+) -> None:
+    """F5: from ask mode, Shift+A reached full auto and could never return."""
+    kit = harness_module.build(tmp_path, mode=Mode.ASK)
+    lock = SingleInstanceLock.in_directory(tmp_path / "runtime")
+    lock.acquire()
+    ask = kit.supervisor.config
+    assert not ask.policy.allow_codex_auto_resume
+
+    enabled, _ = cli._toggle_runtime_mode(kit.supervisor, ask, lock)
+    assert enabled.mode is Mode.AUTO
+
+    restored, message = cli._toggle_runtime_mode(kit.supervisor, enabled, lock, before=ask)
+    assert restored.mode is Mode.ASK
+    # The runtime Codex opt-in belonged to full auto and leaves with it.
+    assert not restored.policy.allow_codex_auto_resume
+    assert kit.supervisor.config is restored
+    # Ask mode can still type once a human confirms, so it keeps the lock.
+    assert lock.held
+    assert "ask mode" in message
+    lock.release()
+
+
 def test_tui_toggle_stays_read_only_when_input_lock_is_held(tmp_path: Path) -> None:
     kit = harness_module.build(tmp_path, mode=Mode.OBSERVE)
 
