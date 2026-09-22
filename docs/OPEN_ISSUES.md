@@ -75,10 +75,14 @@ behavior and must not be weakened merely to close the test.
 2. **Medium — witness the Claude path if it ever arises.** Keep the service
    under observation; a Claude session that does not self-heal (reset more
    than 24 h out, or backgrounded) is the only case that needs the supervisor.
-3. **Ongoing — work the fix backlog below in impact order**, F2 first. F1
-   (a frame per scan in the journal) is closed in 0.50.2; F0
-   (a quoted reset affordance authorising an Enter) is closed: the pattern is
-   anchored since 0.45.9 and the gate requires a preceding limit since 0.50.1.
+3. **Ongoing — work the fix backlog below in impact order.** F0 (a quoted
+   reset affordance authorising an Enter) is closed: the pattern is anchored
+   since 0.45.9 and the gate requires a preceding limit since 0.50.1. F1, F3,
+   F4, F5, F6 and F7 are fixed in 0.50.2-0.50.7. F2 was not a defect: on
+   2026-09-22 `getAllDisplayedTextList` returned 76-80 lines - the displayed
+   screen - in each of ten live Konsole sessions with a 1000-line history, and
+   `getDisplayedTextList` offsets count from the top of that same buffer, so
+   there is no scrollback transfer to bound. F8 waits for a real fixture.
 
 ## Fix backlog (evidence from the 2026-09-18 review and v0.45.6 live run)
 
@@ -87,7 +91,6 @@ none weakens a safety gate.
 
 | ID | Sev | Where | Defect | Evidence |
 | --- | --- | --- | --- | --- |
-| F2 | MEDIUM | `terminal/konsole.py:166` | `getAllDisplayedTextList` transfers the whole scrollback per observation; only the last `VISIBLE_LINES` are kept. Use `getDisplayedTextList` or otherwise bound the read. | Code reading; vision §14 and `terminal/base.py:9` forbid retaining scrollback. Magnitude depends on the Konsole history limit. |
 | F8 | LOW | `providers/timeparse.py:69` | `_WEEKDAY_RE` matches the words "sat" and "sun"; fails safe (waits longer). Needs a real fixture before the recognizer changes. | Code reading; no live occurrence. |
 
 ## Known conservative boundaries
