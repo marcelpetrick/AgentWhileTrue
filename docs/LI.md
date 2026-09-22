@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 Marcel Petrick
+
+SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
 Release: Agent While True
 
 Image you are doing a barbecue with your friends, but there is also a heavy agentic software-engineering task going and and you know you'll run out of the budget in 10 minutes, but the window will reset in an hour.
