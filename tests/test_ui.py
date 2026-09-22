@@ -83,6 +83,17 @@ def test_reset_beyond_a_day_is_not_shown_as_a_clock_time() -> None:
     assert format_reset(NOW + timedelta(days=3, hours=1), NOW) == "+4d"
 
 
+def test_the_reset_column_switches_to_days_where_the_countdown_does() -> None:
+    # Below two days the clock column counts hours, like the countdown; a bare
+    # "HH:MM" is only shown within the next 24 hours, where it is unambiguous.
+    assert format_reset(NOW + timedelta(hours=30), NOW) == "+30h"
+    assert format_reset(NOW + timedelta(hours=47, minutes=1), NOW) == "+48h"
+    assert format_reset(NOW + timedelta(hours=48), NOW) == "+2d"
+    assert format_reset(NOW + timedelta(hours=2), NOW) == (
+        (NOW + timedelta(hours=2)).astimezone().strftime("%H:%M")
+    )
+
+
 def test_a_passed_reset_reads_as_due() -> None:
     assert format_reset(NOW - timedelta(minutes=1), NOW) == "due"
 
@@ -96,7 +107,11 @@ def test_no_reset_renders_as_a_dash() -> None:
     [
         (timedelta(minutes=1), "1h"),
         (timedelta(hours=35), "35h"),
-        (timedelta(hours=36), "2d"),
+        # F4, screenshot 2026-09-18 14:37: 37-47 h read "2d" beside a "34h".
+        (timedelta(hours=36), "36h"),
+        (timedelta(hours=47, minutes=30), "48h"),
+        (timedelta(hours=48), "2d"),
+        (timedelta(hours=49), "3d"),
         (timedelta(days=3), "3d"),
         (timedelta(seconds=-1), "due"),
     ],

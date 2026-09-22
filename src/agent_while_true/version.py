@@ -11,6 +11,6 @@ string is therefore the only edit a release needs.
 
 from __future__ import annotations
 
-__version__ = "0.50.3"
+__version__ = "0.50.4"
 
 __all__ = ["__version__"]

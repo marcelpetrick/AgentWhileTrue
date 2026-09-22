@@ -13,6 +13,18 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.50.4] - 2026-09-22
+
+### Fixed
+
+- Count hours below two days and whole days from there in both reset columns
+  (F4). The countdown switched to days at 36 hours, so weekly resets 37-47
+  hours out read `2d` right beside another session's `34h`; the reset-time
+  column switched to `+Nd` at 24 hours. Both now read hours up to 48 hours and
+  `2d` from exactly two days; the reset-time column shows a clock time only
+  within the next 24 hours and `+Nh` between one and two days, where a bare
+  clock time would read as today.
+
 ## [0.50.3] - 2026-09-22
 
 ### Fixed

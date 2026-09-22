@@ -160,7 +160,7 @@ Red or unknown data does not authorize input; the supervisor fails closed.
   never written to the log or persistent state.
 - **Meters.** Five-hour and weekly used-percentage meters plus time to each
   reset: `[████░] 84% 3h` means 84% used and a reset within three hours.
-  Countdowns below 1.5 days use `h`, longer ones `d`.
+  Countdowns below two days use `h`, from two days `d`.
 - **Resets.** `PROMPT RESET` is parsed from the blocking terminal prompt;
   `QUOTA RESET` is the effective reset reported by the provider quota source.
   A reported reset time does not guarantee available quota.

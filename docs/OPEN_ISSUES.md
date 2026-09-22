@@ -88,7 +88,6 @@ none weakens a safety gate.
 | ID | Sev | Where | Defect | Evidence |
 | --- | --- | --- | --- | --- |
 | F2 | MEDIUM | `terminal/konsole.py:166` | `getAllDisplayedTextList` transfers the whole scrollback per observation; only the last `VISIBLE_LINES` are kept. Use `getDisplayedTextList` or otherwise bound the read. | Code reading; vision §14 and `terminal/base.py:9` forbid retaining scrollback. Magnitude depends on the Konsole history limit. |
-| F4 | LOW | `ui.py:195` | Countdown switches from hours to days at 1.5 days (36 h, `ceil`), so 37–47 h renders as `2d` while 34 h renders as `34h`. Wanted: hours below 48 h, days from 2 d. Align `format_reset` (`+Nd` from 24 h) with the same boundary. | Screenshot 2026-09-18 14:37: weekly resets `2d`, `2d`, `2d`, `7d`, `34h` side by side. |
 | F5 | LOW | `cli.py:295` | `Shift+A` is a two-state toggle over three modes: from ask it escalates to full-auto with the Codex opt-in and can never return to ask. | Code reading; USAGE §3 documents the current behaviour. |
 | F6 | LOW | `state_store.py:153` | Retry episodes are never expired; settled episodes accumulate in `state.json` and are rewritten with `fsync` on every save. | Code reading. |
 | F7 | LOW | `quota.py:360` | Each Codex rollout tail (256 KiB) is parsed at least four times per tick (`_warm_quota_sources` + `observe`, `find_codex_rollout` + `_last_rate_limits`). Cache per `(path, size, mtime_ns)`. | Code reading. |

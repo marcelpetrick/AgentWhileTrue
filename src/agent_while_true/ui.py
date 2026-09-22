@@ -169,6 +169,11 @@ def _wrap(value: object, width: int) -> list[str]:
     return lines
 
 
+#: Both reset columns count hours below two days and whole days from there, so
+#: "47h" and "2d" never appear side by side for nearly the same moment.
+_DAYS_FROM_SECONDS = 48 * 60 * 60
+
+
 def format_reset(reset_at: datetime | None, now: datetime) -> str:
     """Render a reset instant as a local wall-clock time, or a relative hint.
 
@@ -180,8 +185,11 @@ def format_reset(reset_at: datetime | None, now: datetime) -> str:
     seconds = (reset_at - now).total_seconds()
     if seconds < 0:
         return "due"
-    if seconds >= 24 * 60 * 60:
+    if seconds >= _DAYS_FROM_SECONDS:
         return f"+{math.ceil(seconds / (24 * 60 * 60))}d"
+    if seconds >= 24 * 60 * 60:
+        # A clock time a day or more ahead would read as today.
+        return f"+{math.ceil(seconds / (60 * 60))}h"
     return reset_at.astimezone().strftime("%H:%M")
 
 
@@ -192,7 +200,7 @@ def format_reset_in(reset_at: datetime | None, now: datetime) -> str:
     seconds = (reset_at - now).total_seconds()
     if seconds <= 0:
         return "due"
-    if seconds < 1.5 * 24 * 60 * 60:
+    if seconds < _DAYS_FROM_SECONDS:
         return f"{math.ceil(seconds / (60 * 60))}h"
     return f"{math.ceil(seconds / (24 * 60 * 60))}d"
 
