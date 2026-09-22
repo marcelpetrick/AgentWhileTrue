@@ -58,6 +58,12 @@ TIME_JUMP_THRESHOLD_SECONDS = 30.0
 #: How long after sending input to check whether it worked.
 DEFAULT_VERIFY_DELAY_SECONDS = 5.0
 
+#: States in which a provider is holding the session on a usage limit. Seeing
+#: one is what lets a later "usage limit has reset" affordance authorise input.
+_LIMIT_STATES = frozenset(
+    {SessionState.LIMIT_BLOCKED, SessionState.WAITING_FOR_RESET, SessionState.RESET_GRACE_PERIOD}
+)
+
 _NOT_AN_AGENT = Classification(ProcessClass.UNKNOWN, Confidence.NONE, (), blocker="process-gone")
 
 
@@ -133,6 +139,10 @@ class SupervisedSession:
     #: prompt; this counts them per session, so a screen that keeps changing
     #: cannot mint a fresh attempt budget on every tick.
     attempts_since_success: int = 0
+    #: A limit was observed on this process since its last verified resume.
+    #: Held in memory only: after a restart the reset affordance needs a fresh
+    #: sighting, and until then it is refused.
+    limit_seen: bool = False
     quota: QuotaSnapshot = field(
         default_factory=lambda: unknown("unknown", "none", "not-observed-yet")
     )
@@ -603,6 +613,7 @@ class Supervisor:
             marked_unsafe=session.marked_unsafe,
             codex_retry=timed,
             retry_state_valid=self.store.retry_state_valid and (not timed or episode is not None),
+            limit_seen=session.limit_seen,
         )
 
     def _record_state(
@@ -627,6 +638,8 @@ class Supervisor:
             session.state = SessionState.UNSUPPORTED
         elif observation.recognition is not None:
             session.state = observation.recognition.state
+            if observation.identity == session.identity and session.state in _LIMIT_STATES:
+                session.limit_seen = True
             session.reset_at = observation.recognition.reset_at
             session.last_fingerprint = observation.recognition.screen_fingerprint
         session.last_reason = decision.reason
@@ -870,6 +883,9 @@ class Supervisor:
             )
             session.pending_key = ""
             session.attempts_since_success = 0
+            # A resume consumes the limit it answered; an armed wait has not
+            # resumed anything and the limit still stands.
+            session.limit_seen = armed_self_resume
             self.log.info(
                 "resume_verified",
                 provider=session.provider_name,

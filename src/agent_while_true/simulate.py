@@ -278,6 +278,19 @@ def _result(name: str, description: str, expectation: str, world: World, passed:
     )
 
 
+def _ready_world(directory: Path, *, mode: Mode = Mode.AUTO) -> World:
+    """A Claude session seen at its limit, now showing the reset affordance.
+
+    The affordance authorises nothing on a process never seen blocked, so every
+    scenario about what happens *at* the ready prompt starts from the limit.
+    """
+    world = _world(directory, mode=mode)
+    world.step("limit reached, waiting")
+    world.supervisor.sessions[world.terminal.ref(SESSION).key()].next_check_at = None
+    world.screen(READY_SCREEN)
+    return world
+
+
 def scenario_reset_and_resume(directory: Path) -> Result:
     world = _world(directory)
     world.step("limit reached, waiting")
@@ -357,7 +370,7 @@ def scenario_stale_banner(directory: Path) -> Result:
 
 
 def scenario_weekly_limit_still_blocked(directory: Path) -> Result:
-    world = _world(directory, screen=READY_SCREEN)
+    world = _ready_world(directory)
     world.quota["claude"].availability = Availability.EXHAUSTED
     world.quota["claude"].windows = (
         QuotaWindow("session", 4.0, None),
@@ -369,7 +382,8 @@ def scenario_weekly_limit_still_blocked(directory: Path) -> Result:
         "Vision section 25: one window resets while another is still exhausted.",
         "the still-spent weekly limit prevents the resume",
         world,
-        passed=world.terminal.sent == [],
+        passed=world.terminal.sent == []
+        and world.steps[-1].decision_reason.startswith("other-limit-still-exhausted"),
     )
 
 
@@ -435,7 +449,7 @@ def scenario_armed_wait_is_left_alone(directory: Path) -> Result:
 
 
 def scenario_duplicate_prompt(directory: Path) -> Result:
-    world = _world(directory, screen=READY_SCREEN)
+    world = _ready_world(directory)
     world.step("ready prompt seen")
     for index in range(4):
         world.clock.advance(1)
@@ -450,12 +464,12 @@ def scenario_duplicate_prompt(directory: Path) -> Result:
 
 
 def scenario_crash_between_send_and_persist(directory: Path) -> Result:
-    world = _world(directory, screen=READY_SCREEN)
+    world = _ready_world(directory)
     world.step("ready prompt; the action is planned, sent and recorded")
 
     # Simulate a crash and restart: a brand new supervisor over the same state
     # directory and the same unchanged screen.
-    restarted = _world(directory, screen=READY_SCREEN)
+    restarted = _ready_world(directory)
     restarted.processes.agent(AGENT_PID)
     restarted.step("after restart, the same prompt is still on screen")
     combined = World(
@@ -471,7 +485,8 @@ def scenario_crash_between_send_and_persist(directory: Path) -> Result:
         "DANGER 13: the supervisor restarts with the same prompt still displayed.",
         "the persisted record prevents a second keystroke",
         combined,
-        passed=restarted.terminal.sent == [],
+        passed=restarted.terminal.sent == []
+        and restarted.steps[-1].decision_reason == "already-actioned",
     )
 
 
@@ -488,14 +503,14 @@ def scenario_codex_needs_opt_in(directory: Path) -> Result:
 
 
 def scenario_observe_mode(directory: Path) -> Result:
-    world = _world(directory, mode=Mode.OBSERVE, screen=READY_SCREEN)
+    world = _ready_world(directory, mode=Mode.OBSERVE)
     world.step("ready prompt in observe mode")
     return _result(
         "observe-mode",
         "Observe mode runs the whole detection path.",
         "the decision is reached but no input is ever sent",
         world,
-        passed=world.terminal.sent == [] and world.steps[0].decision_reason == "observe-mode",
+        passed=world.terminal.sent == [] and world.steps[-1].decision_reason == "observe-mode",
     )
 
 

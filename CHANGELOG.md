@@ -13,6 +13,28 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.50.1] - 2026-09-22
+
+### Fixed
+
+- Refuse Claude's "usage limit has reset · press enter to continue" affordance
+  on a process the supervisor never saw blocked (F0, layer 2). On 2026-09-18 an
+  unrelated live Claude Code session went `READY_TO_RESUME` with fresh
+  `AVAILABLE` quota and no limit ever observed on it; the gate treated the state
+  alone as provider confirmation, and only a coincidental self-healing veto
+  stopped an Enter. The pattern has been anchored to its rendered line since
+  0.45.9, and the comment beside it already claimed the second half - that the
+  process must have been seen blocked first - but nothing enforced it. A
+  `LIMIT_BLOCKED`, `WAITING_FOR_RESET` or `RESET_GRACE_PERIOD` observation on
+  the same process now has to precede the affordance, a verified resume spends
+  it, and without one the gate refuses with `ready-without-preceding-limit`
+  instead of letting a fresh quota sample authorise the Enter in its place.
+  The sighting is held in memory only, so after a restart the affordance waits
+  for a human; Claude Code resumes itself in that situation anyway.
+- `simulate` scenarios about the ready prompt now reach it from a limit, and
+  `weekly-limit-still-blocked` and `crash-recovery` pass only for their own
+  refusal reasons rather than for any silence.
+
 ## [0.50.0] - 2026-09-20
 
 ### Fixed

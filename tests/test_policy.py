@@ -61,6 +61,7 @@ def make_request(**overrides) -> ResumeRequest:
         "classification": AGENT,
         "recognition": providers.CLAUDE.recognise(screens.CLAUDE_READY_TO_RESUME, now=NOW),
         "quota": QUOTA_AVAILABLE,
+        "limit_seen": True,
     }
     return ResumeRequest(**{**base, **overrides})
 
@@ -112,6 +113,29 @@ def test_low_confidence_classification_is_refused() -> None:
 def test_recognizer_and_process_class_must_agree() -> None:
     codex_recognition = providers.CODEX.recognise(screens.CODEX_USAGE_LIMIT, now=NOW)
     assert evaluate(make_request(recognition=codex_recognition)).reason == "provider-mismatch"
+
+
+def test_a_ready_prompt_without_a_preceding_limit_is_refused() -> None:
+    """F0 layer 2, the 2026-09-18 live false positive.
+
+    An unrelated Claude Code session went READY_TO_RESUME with fresh AVAILABLE
+    quota and no limit ever observed on that process. The affordance only means
+    "the limit you were blocked on has reset"; without the block it authorises
+    nothing, and fresh available quota must not step in for it.
+    """
+    decision = evaluate(make_request(limit_seen=False))
+    assert not decision.allowed
+    assert decision.reason == "ready-without-preceding-limit"
+
+
+def test_the_limit_precondition_binds_only_the_ready_affordance() -> None:
+    # Blocking prompts are themselves the limit; they need no earlier sighting.
+    menu = providers.CLAUDE.recognise(screens.CLAUDE_LIMIT_MENU, now=NOW)
+    config = Config(mode=Mode.AUTO, policy=Policy(allow_claude_auto_wait=True))
+    decision = evaluate(
+        make_request(recognition=menu, config=config, quota=QUOTA_EXHAUSTED, limit_seen=False)
+    )
+    assert decision.reason != "ready-without-preceding-limit"
 
 
 def test_an_active_screen_has_no_blocking_prompt() -> None:

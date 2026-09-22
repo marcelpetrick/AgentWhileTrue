@@ -131,10 +131,22 @@ def test_allow_root_overrides_the_refusal(sandbox: Path, out: io.StringIO, monke
     assert terminal.sent == []
 
 
-def test_run_all_once_resumes_a_ready_session(sandbox: Path, out: io.StringIO, monkeypatch) -> None:
+def test_run_all_once_acts_on_a_blocked_session(
+    sandbox: Path, out: io.StringIO, monkeypatch
+) -> None:
+    terminal = _fake_world(monkeypatch, screen=screens.CLAUDE_LIMIT_MENU_SHORTLY)
+    assert main(["run", "--all", "--once", "--auto"], stream=out) == EXIT_OK
+    assert terminal.sent == [("/Sessions/1", "\x1b[B\r")]
+
+
+def test_run_once_never_presses_a_ready_prompt_it_did_not_see_blocked(
+    sandbox: Path, out: io.StringIO, monkeypatch
+) -> None:
+    # A single scan cannot have seen the limit that the affordance answers.
     terminal = _fake_world(monkeypatch)
     assert main(["run", "--all", "--once", "--auto"], stream=out) == EXIT_OK
-    assert terminal.sent == [("/Sessions/1", "\r")]
+    assert terminal.sent == []
+    assert "ready-without-preceding-limit" in out.getvalue()
 
 
 def test_observe_mode_reports_without_typing(sandbox: Path, out: io.StringIO, monkeypatch) -> None:
@@ -252,7 +264,7 @@ def test_quitting_the_picker_watches_nothing(sandbox: Path, out: io.StringIO, mo
 def test_the_picker_selection_is_what_gets_watched(
     sandbox: Path, out: io.StringIO, monkeypatch
 ) -> None:
-    terminal = _fake_world(monkeypatch)
+    terminal = _fake_world(monkeypatch, screen=screens.CLAUDE_LIMIT_MENU_SHORTLY)
     answers = iter(["", ""])
     assert (
         main(
@@ -262,7 +274,7 @@ def test_the_picker_selection_is_what_gets_watched(
         )
         == EXIT_OK
     )
-    assert terminal.sent == [("/Sessions/1", "\r")]
+    assert terminal.sent == [("/Sessions/1", "\x1b[B\r")]
 
 
 def test_status_without_konsole(sandbox: Path, out: io.StringIO, monkeypatch) -> None:

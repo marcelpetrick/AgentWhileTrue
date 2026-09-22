@@ -75,7 +75,9 @@ behavior and must not be weakened merely to close the test.
 2. **Medium — witness the Claude path if it ever arises.** Keep the service
    under observation; a Claude session that does not self-heal (reset more
    than 24 h out, or backgrounded) is the only case that needs the supervisor.
-3. **Ongoing — work the fix backlog below in impact order**, F0 layer 2 first.
+3. **Ongoing — work the fix backlog below in impact order**, F1 first. F0
+   (a quoted reset affordance authorising an Enter) is closed: the pattern is
+   anchored since 0.45.9 and the gate requires a preceding limit since 0.50.1.
 
 ## Fix backlog (evidence from the 2026-09-18 review and v0.45.6 live run)
 
@@ -84,7 +86,6 @@ none weakens a safety gate.
 
 | ID | Sev | Where | Defect | Evidence |
 | --- | --- | --- | --- | --- |
-| F0 | HIGH (layer 1 fixed in 0.45.7; layer 2 open) | `policy.py:353` | Prose that merely *quotes* the affordance strings is recognised as a live prompt: a Claude Code session whose conversation contained "usage limit has reset … press enter to continue" went `READY_TO_RESUME`, and the gate grants `PROVIDER_CONFIRMED` on that state alone, with fresh `AVAILABLE` quota and no preceding limit state. Only a coincidental `claude/self-healing` veto in the same paragraph stopped an Enter into an unrelated live session. Fix both layers: require a preceding `LIMIT_BLOCKED`/`WAITING_FOR_RESET` observation on the same process before `READY_TO_RESUME` may authorise, and anchor `claude/ready-press-enter` to Claude's rendered affordance line rather than free text. Add the fixture first. | Live 2026-09-18 14:52:57–58: `konsole-102315/Sessions/1` (this reviewer's own Claude Code tab, pid 1841862) `ACTIVE → READY_TO_RESUME`, `resume_refused reason=provider-resumes-itself`, back to `ACTIVE` at 14:53:06. No input was sent. |
 | F1 | MEDIUM | `cli.py:398` | Non-interactive auto mode renders the full dashboard frame on every scan; observe mode prints one line per session. | Service journal: 29 frames/min, ~980 lines/min, 605.8 MB in four days of the 0.44.3 service. |
 | F2 | MEDIUM | `terminal/konsole.py:166` | `getAllDisplayedTextList` transfers the whole scrollback per observation; only the last `VISIBLE_LINES` are kept. Use `getDisplayedTextList` or otherwise bound the read. | Code reading; vision §14 and `terminal/base.py:9` forbid retaining scrollback. Magnitude depends on the Konsole history limit. |
 | F3 | MEDIUM | `fsm.py:621` | `_record_state` maps only four of classify's fourteen blocker strings to `UNSUPPORTED`; every other non-agent classification leaves the previous state on screen. | Live 14:30:14–14:30:16: tab held a shell (`idle-shell` refused) while the row still read `ACTIVE`. Input was correctly refused. |
@@ -101,6 +102,10 @@ These are deliberate limits, not pending implementation bugs:
 - A clock-only prompt first observed after its apparent reset cannot be dated
   retroactively unless persisted first-sighting or corroborating absolute quota
   evidence exists. The supervisor refuses instead of guessing a date.
+- Claude's "usage limit has reset · press enter to continue" authorises input
+  only on a process this supervisor instance saw held at a limit. The sighting
+  is not persisted, so a restart while Claude waits leaves that prompt to a
+  human rather than trusting a screen the supervisor cannot tie to a limit.
 - A persisted `PLANNED` action left across an ambiguous crash window is not
   automatically repeated. It needs human inspection because the terminal API
   cannot prove whether input reached the process.

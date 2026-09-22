@@ -21,17 +21,36 @@ SESSION = "/Sessions/1"
 PID = 15102
 
 
-def _claude_session(tmp_path: Path, *, mode=Mode.AUTO, screen=None, confirm=None, config=None):
+def _claude_session(
+    tmp_path: Path, *, mode=Mode.AUTO, screen=None, confirm=None, config=None, primed=True
+):
+    """Select a Claude session; the default ready screen follows an observed limit.
+
+    ``primed`` shows the session limit for one tick first, the way the prompt
+    arises in practice: the reset affordance authorises nothing on a process
+    the supervisor never saw blocked.
+    """
     kit = harness_module.build(tmp_path, mode=mode, confirm=confirm, config=config)
     info = kit.inspector.add_claude(PID)
+    ready = screen is None
     ref = kit.terminal.add(
         SESSION,
         shell_pid=100,
         foreground_pid=PID,
-        screen=list(screen or screens.CLAUDE_READY_TO_RESUME),
+        screen=list(
+            screens.CLAUDE_SESSION_LIMIT
+            if ready and primed
+            else screen or screens.CLAUDE_READY_TO_RESUME
+        ),
         title="project : claude",
     )
     kit.supervisor.select(ref, info.identity, "claude", "project : claude")
+    if ready and primed:
+        kit.supervisor.tick()
+        assert kit.sent == []
+        session = kit.supervisor.sessions[ref.key()]
+        session.next_check_at = None
+        kit.terminal.set_screen(SESSION, list(screens.CLAUDE_READY_TO_RESUME))
     return kit, ref
 
 
@@ -40,6 +59,40 @@ def test_a_ready_prompt_is_resumed_with_a_single_enter(tmp_path: Path) -> None:
     decisions = kit.supervisor.tick()
     assert decisions[0].allowed
     assert kit.sent == [(SESSION, "\r")]
+
+
+def test_a_ready_prompt_never_preceded_by_a_limit_is_not_pressed(tmp_path: Path) -> None:
+    """F0 layer 2: the 2026-09-18 live false positive, end to end.
+
+    The supervised process shows the reset affordance with fresh AVAILABLE
+    quota, but the supervisor never saw it blocked. Nothing may be typed.
+    """
+    kit, _ = _claude_session(tmp_path, primed=False)
+    kit.quota["claude"].availability = Availability.AVAILABLE
+
+    decisions = kit.supervisor.tick()
+    assert not decisions[0].allowed
+    assert decisions[0].reason == "ready-without-preceding-limit"
+    assert kit.sent == []
+
+
+def test_a_verified_resume_spends_the_limit_sighting(tmp_path: Path) -> None:
+    # After the resume is verified, a later affordance on screen - an agent
+    # quoting it, say - needs a fresh limit before it can authorise anything.
+    kit, _ = _claude_session(tmp_path)
+    kit.supervisor.tick()
+    assert kit.sent == [(SESSION, "\r")]
+
+    kit.terminal.set_screen(SESSION, list(screens.CLAUDE_ACTIVE))
+    kit.clock.advance(10)
+    harness_module.refresh_quota(kit)
+    assert kit.supervisor.tick()[0].reason == "resume-verified"
+
+    kit.terminal.set_screen(SESSION, [*screens.CLAUDE_READY_TO_RESUME, "  later"])
+    kit.clock.advance(10)
+    harness_module.refresh_quota(kit)
+    assert kit.supervisor.tick()[0].reason == "ready-without-preceding-limit"
+    assert len(kit.sent) == 1
 
 
 def test_claude_limit_menu_arms_provider_auto_wait_and_verifies(tmp_path: Path) -> None:
@@ -177,7 +230,8 @@ def test_refusals_count_episodes_not_repeated_polls(tmp_path: Path) -> None:
     for _ in range(3):
         kit.supervisor.tick()
         kit.clock.advance(2)
-    assert (tmp_path / "agent-while-true.log").read_text().count("event=resume_refused") == 1
+    log = (tmp_path / "agent-while-true.log").read_text()
+    assert log.count("event=resume_refused provider=claude reason=observe-mode") == 1
     assert kit.sent == []
 
 
@@ -235,6 +289,7 @@ def test_one_broken_session_does_not_stop_the_others(tmp_path: Path) -> None:
         screen=list(screens.CLAUDE_READY_TO_RESUME),
     )
     kit.supervisor.select(other_ref, other_info.identity, "claude", "other")
+    kit.supervisor.sessions[other_ref.key()].limit_seen = True
     kit.terminal.close(SESSION)
 
     kit.supervisor.tick()

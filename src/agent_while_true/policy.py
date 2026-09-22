@@ -76,6 +76,9 @@ class ResumeRequest:
     #: Set only for a supervisor-bound persistent Codex blocking episode.
     codex_retry: bool = False
     retry_state_valid: bool = True
+    #: This process was observed blocked by a limit since its last verified
+    #: resume. Only the supervisor's own observations can set it.
+    limit_seen: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -165,6 +168,20 @@ def _check_provider_matches(request: ResumeRequest) -> str | None:
 def _check_recognised_prompt(request: ResumeRequest) -> str | None:
     if request.recognition.state not in _ACTIONABLE_STATES:
         return f"no-recognised-blocking-prompt:{request.recognition.state.value}"
+    return None
+
+
+def _check_ready_follows_limit(request: ResumeRequest) -> str | None:
+    """The reset affordance answers a limit; without one it answers nothing.
+
+    "Usage limit has reset - press enter to continue" is authoritative only
+    about a limit this process was actually blocked on. On 2026-09-18 an
+    unrelated live Claude session went READY_TO_RESUME with fresh AVAILABLE
+    quota and no limit ever observed, so this refuses outright rather than
+    letting the quota sample authorise the Enter in the affordance's place.
+    """
+    if request.recognition.state is SessionState.READY_TO_RESUME and not request.limit_seen:
+        return "ready-without-preceding-limit"
     return None
 
 
@@ -300,6 +317,7 @@ _CONDITIONS: tuple[Callable[[ResumeRequest], str | None], ...] = (
     _check_is_agent,
     _check_provider_matches,
     _check_recognised_prompt,
+    _check_ready_follows_limit,
     _check_no_veto,
     _check_policy_allows_resume,
     _check_action_exists,

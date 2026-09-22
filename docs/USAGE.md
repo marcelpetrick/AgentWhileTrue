@@ -308,7 +308,12 @@ summaries count scheduled attempts and exhausted episodes.
 ## 8. Claude specifics
 
 Claude continuation is a bare Enter, and only when Claude explicitly asks for
-it ("usage limit has reset … press enter to continue"). Claude's exact
+it ("usage limit has reset … press enter to continue") on a session the
+supervisor itself saw held at a limit since its last verified resume. The
+affordance answers that limit; on its own it authorises nothing, however
+available the quota looks, so a single `run --once` scan, a restart while
+Claude waits, or an agent merely quoting the line is refused with
+`ready-without-preceding-limit` and left for a human. Claude's exact
 three-choice limit menu may also be armed so Claude itself continues at reset:
 auto mode moves from the visibly selected first item to the exact "wait here,
 then continue automatically" item and confirms it. It never selects "upgrade
