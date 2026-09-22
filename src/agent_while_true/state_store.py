@@ -165,7 +165,8 @@ class StateStore:
                 if episode is None or episode.key in episodes:
                     valid = False
                     break
-                episodes[episode.key] = episode
+                if not _episode_expired(episode, moment):
+                    episodes[episode.key] = episode
         self.episodes = episodes if valid else {}
         self.retry_state_valid = valid
         return self
@@ -279,6 +280,15 @@ class StateStore:
         self.episodes[key] = episode
         self.save()
         return episode
+
+    def prune_episodes(self, *, now: datetime) -> None:
+        """Drop settled episodes past their TTL; a long-running service calls this."""
+        expired = [key for key, item in self.episodes.items() if _episode_expired(item, now)]
+        if not expired:
+            return
+        for key in expired:
+            del self.episodes[key]
+        self.save()
 
     def get_episode(self, key: str) -> RetryEpisode | None:
         return self.episodes.get(key)
@@ -414,6 +424,17 @@ def _expired(record: ActionRecord, now: datetime) -> bool:
     if updated.tzinfo is None:
         updated = updated.replace(tzinfo=UTC)
     return (now - updated).total_seconds() > RECORD_TTL_SECONDS
+
+
+def _episode_expired(episode: RetryEpisode, now: datetime) -> bool:
+    """Only an episode that ended in a verified resume, with nothing pending, ages out.
+
+    An exhausted episode is what stops the same process at the same prompt from
+    minting a fresh retry budget, so it is kept for as long as it exists.
+    """
+    if not episode.completed or episode.pending_key:
+        return False
+    return (now - _timestamp(episode.reset_at)).total_seconds() > RECORD_TTL_SECONDS
 
 
 def _timestamp(value: str) -> datetime:

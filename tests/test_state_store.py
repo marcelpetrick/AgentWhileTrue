@@ -359,3 +359,40 @@ def test_retry_episode_rejects_naive_timestamps_and_non_hash_prompt(tmp_path: Pa
             reset_at="2026-09-10T21:52:00",
             first_seen_at=FIRST_SEEN,
         )
+
+
+def test_settled_episodes_expire_but_exhausted_budgets_do_not(tmp_path: Path) -> None:
+    """F6: settled episodes accumulated in state.json forever."""
+    store = _store(tmp_path)
+    _episode(store, "completed-old")
+    store.update_episode("completed-old", completed=True)
+    _episode(store, "exhausted-old")
+    store.update_episode("exhausted-old", exhausted=True)
+    _episode(store, "open")
+
+    reset = datetime.fromisoformat(RESET)
+    fresh = StateStore(store.path).load(now=reset + timedelta(hours=23))
+    assert set(fresh.episodes) == {"completed-old", "exhausted-old", "open"}
+
+    later = StateStore(store.path).load(now=reset + timedelta(hours=25))
+    # A spent budget keeps the process from minting a new one; only an episode
+    # that ended in a verified resume and has nothing pending may go.
+    assert set(later.episodes) == {"exhausted-old", "open"}
+    assert later.retry_state_valid
+
+
+def test_a_completed_episode_with_a_pending_attempt_is_kept(tmp_path: Path) -> None:
+    store = _store(tmp_path)
+    _episode(store, "odd")
+    store.update_episode("odd", completed=True, pending_key="action")
+    reset = datetime.fromisoformat(RESET)
+    assert "odd" in StateStore(store.path).load(now=reset + timedelta(days=3)).episodes
+
+
+def test_a_long_running_save_prunes_expired_episodes(tmp_path: Path) -> None:
+    store = _store(tmp_path)
+    _episode(store, "completed-old")
+    store.update_episode("completed-old", completed=True)
+    store.prune_episodes(now=datetime.fromisoformat(RESET) + timedelta(hours=25))
+    assert "completed-old" not in store.episodes
+    assert "completed-old" not in store.path.read_text()

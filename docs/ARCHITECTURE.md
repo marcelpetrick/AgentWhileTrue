@@ -203,6 +203,9 @@ asynchronous boundary remains and must not be described as atomic.
 
 Malformed retry state disables timed trials; pending `PLANNED` attempts are not
 replayed after restart. A pending `SENT` can be verified without another send.
+An episode that ended in a verified resume with nothing pending is dropped 24 h
+after its reset, on load and at every rediscovery; an exhausted episode is kept,
+because it is what stops the same process minting a fresh budget.
 The event log records identifiers, pattern IDs, decisions,
 and lifecycle states, but never screen contents, prompts, credentials, or
 environment values.

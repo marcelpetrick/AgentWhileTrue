@@ -88,7 +88,6 @@ none weakens a safety gate.
 | ID | Sev | Where | Defect | Evidence |
 | --- | --- | --- | --- | --- |
 | F2 | MEDIUM | `terminal/konsole.py:166` | `getAllDisplayedTextList` transfers the whole scrollback per observation; only the last `VISIBLE_LINES` are kept. Use `getDisplayedTextList` or otherwise bound the read. | Code reading; vision §14 and `terminal/base.py:9` forbid retaining scrollback. Magnitude depends on the Konsole history limit. |
-| F6 | LOW | `state_store.py:153` | Retry episodes are never expired; settled episodes accumulate in `state.json` and are rewritten with `fsync` on every save. | Code reading. |
 | F7 | LOW | `quota.py:360` | Each Codex rollout tail (256 KiB) is parsed at least four times per tick (`_warm_quota_sources` + `observe`, `find_codex_rollout` + `_last_rate_limits`). Cache per `(path, size, mtime_ns)`. | Code reading. |
 | F8 | LOW | `providers/timeparse.py:69` | `_WEEKDAY_RE` matches the words "sat" and "sun"; fails safe (waits longer). Needs a real fixture before the recognizer changes. | Code reading; no live occurrence. |
 

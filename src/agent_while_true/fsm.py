@@ -983,6 +983,7 @@ class Supervisor:
         except TerminalError:
             self.log.warning("rediscovery_failed", adapter=self.terminal.name)
             return
+        self.store.prune_episodes(now=self.now_fn())
         for key, session in list(self.sessions.items()):
             if key not in live:
                 self.log.info(

@@ -13,6 +13,17 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.50.6] - 2026-09-22
+
+### Fixed
+
+- Expire settled retry episodes instead of keeping them in `state.json` forever
+  (F6). Every save rewrote, with `fsync`, every episode the service had ever
+  created. An episode that ended in a verified resume and has nothing pending is
+  now dropped 24 hours after its reset - on load and at every rediscovery, so a
+  long-running service prunes too. Exhausted episodes are kept: they are what
+  stops the same process at the same prompt from minting a new retry budget.
+
 ## [0.50.5] - 2026-09-22
 
 ### Fixed
