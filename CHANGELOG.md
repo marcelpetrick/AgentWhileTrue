@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.50.11] - 2026-09-24
+
+### Added
+
+- `agent_while_true.whip`: twenty ASCII one-line reminders that ask for results
+  rather than burned tokens (and for no reply), a per-run crack counter with a
+  cooldown after three cracks inside one minute, and a full-screen ASCII bullwhip
+  animation that unrolls, snaps straight and bursts into `CRACK!`. Nothing is
+  wired to a key or a terminal yet.
+
 ## [0.50.10] - 2026-09-24
 
 ### Added
