@@ -32,7 +32,7 @@ def _kit(tmp_path: Path, mode: Mode = Mode.AUTO):
     kit = harness_module.build(tmp_path, mode=mode)
     info = kit.inspector.add_claude(4101)
     ref = kit.terminal.add(
-        "/Sessions/1", shell_pid=100, foreground_pid=4101, screen=list(screens.CLAUDE_ACTIVE)
+        "/Sessions/1", shell_pid=100, foreground_pid=4101, screen=list(screens.CLAUDE_IDLE_COMPOSER)
     )
     kit.supervisor.select(ref, info.identity, "claude", "api : claude")
     return kit
@@ -188,7 +188,7 @@ def test_every_session_hears_a_different_reminder(tmp_path: Path) -> None:
             f"/Sessions/{index}",
             shell_pid=100 + index,
             foreground_pid=info.identity.pid,
-            screen=list(screens.CLAUDE_ACTIVE),
+            screen=list(screens.CLAUDE_IDLE_COMPOSER),
         )
         kit.supervisor.select(ref, info.identity, "claude", f"tab {index}")
     lock = SingleInstanceLock.in_directory(tmp_path / "runtime")

@@ -290,6 +290,47 @@ CODEX_ACTIVE = [
     "› ",
 ]
 
+#: Claude Code's idle composer as read from live 2.x sessions on 2026-09-24: the
+#: cursor row sits between two rules, with the status line underneath. Status
+#: text is illustrative.
+_RULE = "\u2500" * 60
+CLAUDE_IDLE_COMPOSER = [
+    "● Tests pass; the branch is pushed.",
+    "✻ Worked for 33s · done 12:20 PM",
+    _RULE,
+    "❯ ",
+    _RULE,
+    "  Opus 5.5 ctx:33% 5h:58% reset:1h17m",
+    "  ⏵⏵ bypass permissions on · 2 shells",
+]
+
+#: A multi-line draft that starts with Shift+Enter: the cursor row itself is
+#: empty and the text sits on the continuation row inside the frame.
+CLAUDE_DRAFT_AFTER_NEWLINE = [
+    "● Tests pass; the branch is pushed.",
+    _RULE,
+    "❯ ",
+    "  also rename the helper before you",
+    _RULE,
+    "  Opus 5.5 ctx:33% 5h:58% reset:1h17m",
+]
+
+#: Codex's idle composer above its footer, and the same Shift+Enter draft shape.
+CODEX_IDLE_WITH_FOOTER = [
+    "• Ran cargo test",
+    "",
+    "› Ask Codex to do anything",
+    "",
+    "  gpt-5-codex high · ~/code/tide-mapper · 38% used",
+]
+
+CODEX_DRAFT_AFTER_NEWLINE = [
+    "• Ran cargo test",
+    "",
+    "› ",
+    "  rename the helper before you",
+]
+
 #: A person's unsent draft in each composer. Submitting anything here would
 #: send their half-written message, so neither composer counts as empty.
 CLAUDE_DRAFT = [

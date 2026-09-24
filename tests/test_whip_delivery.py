@@ -33,7 +33,7 @@ def _kit(tmp_path: Path, *, mode: Mode = Mode.AUTO, claude=None, codex=None):
         CLAUDE,
         shell_pid=100,
         foreground_pid=4101,
-        screen=list(claude or screens.CLAUDE_ACTIVE),
+        screen=list(claude or screens.CLAUDE_IDLE_COMPOSER),
         title="api : claude",
     )
     codex_ref = kit.terminal.add(
@@ -95,6 +95,11 @@ def test_ask_mode_types_because_the_keypress_is_the_confirmation(tmp_path: Path)
     ("claude_screen", "codex_screen", "reason"),
     [
         (screens.CLAUDE_DRAFT, screens.CODEX_DRAFT, "composer-not-empty"),
+        (
+            screens.CLAUDE_DRAFT_AFTER_NEWLINE,
+            screens.CODEX_DRAFT_AFTER_NEWLINE,
+            "composer-not-empty",
+        ),
         (screens.CLAUDE_SESSION_LIMIT, screens.CODEX_USAGE_LIMIT, "prompt-on-screen"),
         (screens.CLAUDE_LIMIT_MENU, screens.CODEX_OUT_OF_CREDITS, "prompt-on-screen"),
         (screens.CLAUDE_SELF_HEALING, screens.CODEX_APPROACHING, "prompt-on-screen"),
@@ -189,7 +194,7 @@ def test_unselected_konsole_sessions_never_hear_the_whip(tmp_path: Path) -> None
         "/Sessions/3",
         shell_pid=300,
         foreground_pid=stranger.identity.pid,
-        screen=list(screens.CLAUDE_ACTIVE),
+        screen=list(screens.CLAUDE_IDLE_COMPOSER),
     )
 
     assert set(_whip(kit)) == {claude, codex}

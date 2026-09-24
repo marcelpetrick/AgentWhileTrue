@@ -325,6 +325,8 @@ _COMPOSER_GLYPH = "\N{HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT}"
 #: The composer sits at the bottom, under at most a rule and a status line or
 #: two. A cursor glyph further up is a submitted turn, not the input box.
 CLAUDE_COMPOSER_ROWS: Final = 6
+#: The horizontal rule Claude draws above and below its input box.
+_RULE_ROW = re.compile(r"^\s*[\u2500\u2501\u2581\u2594]{8,}\s*$")
 
 
 def _composer_empty(lines: list[str]) -> bool:
@@ -332,12 +334,18 @@ def _composer_empty(lines: list[str]) -> bool:
 
     A draft, a placeholder suggestion and a menu cursor all carry text after
     the glyph and are therefore not empty; so is a screen without the glyph.
+    The row right below the cursor must be the input box's closing rule: a
+    multi-line draft begun with Shift+Enter leaves the cursor row empty and puts
+    its text on continuation rows, which only that rule tells apart from the
+    status line.
     """
     end = len(lines)
     while end and not lines[end - 1].strip():
         end -= 1
-    for line in reversed(lines[max(0, end - CLAUDE_COMPOSER_ROWS) : end]):
-        stripped = line.strip()
+    for index in range(end - 1, max(0, end - CLAUDE_COMPOSER_ROWS) - 1, -1):
+        stripped = lines[index].strip()
         if stripped.startswith(_COMPOSER_GLYPH):
-            return not stripped[len(_COMPOSER_GLYPH) :].strip()
+            if stripped[len(_COMPOSER_GLYPH) :].strip():
+                return False
+            return index + 1 < end and bool(_RULE_ROW.match(lines[index + 1]))
     return False

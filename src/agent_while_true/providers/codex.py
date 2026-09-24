@@ -65,6 +65,12 @@ def _pattern(text: str) -> re.Pattern[str]:
 _BRAILLE_PARTICLES = re.compile(r"[\u2800-\u28ff]")
 
 
+#: What Codex prints under its composer: the model/directory/usage footer with
+#: its middle-dot separators, or the key hints. A draft's continuation row is
+#: none of these, so anything else below an empty composer refuses a whip.
+_CODEX_FOOTER = re.compile(r" \u00b7 |\bcontext left\b|\bfor shortcuts\b")
+
+
 def _without_particles(lines: list[str]) -> list[str]:
     return [_BRAILLE_PARTICLES.sub("", line) for line in lines]
 
@@ -215,6 +221,11 @@ class CodexAdapter(ProviderAdapter):
             else None
         )
         empty = body in {"", "Ask Codex to do anything"}
+        # A multi-line draft begun with Shift+Enter leaves the composer row
+        # empty and continues below it. For typing a fresh message, only the
+        # footer may follow; the resume path keeps its tested ``input_ready``.
+        trailing = [line for line in live[composer + 1 :] if line.strip()] if empty else []
+        composer_empty = empty and all(_CODEX_FOOTER.search(line) for line in trailing)
         banner = next(
             (
                 index
@@ -252,5 +263,5 @@ class CodexAdapter(ProviderAdapter):
             retry_prompt=exact,
             active_evidence=active,
             input_ready=empty,
-            composer_empty=empty,
+            composer_empty=composer_empty,
         )

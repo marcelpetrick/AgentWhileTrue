@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.52.1] - 2026-09-24
+
+### Fixed
+
+- The whip can no longer submit a multi-line draft begun with Shift+Enter. That
+  draft leaves the composer's cursor row empty and continues on the row below,
+  which counted as an empty composer. Claude's cursor row must now be followed
+  directly by its input box's closing rule, and below an empty Codex composer
+  only its footer may follow. Codex's resume check is unchanged.
+
 ## [0.52.0] - 2026-09-24
 
 ### Changed
