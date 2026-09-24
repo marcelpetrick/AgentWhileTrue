@@ -198,7 +198,7 @@ identity are untouched, and the toggle resets when the process exits.
 
 ### The whip
 
-![The whip cracking across the dashboard and landing in two idle agent tabs](../media/agentWhileTrue_whip_v0.51.7.gif)
+![The whip cracking across the dashboard and landing in two idle agent tabs](../media/agentWhileTrue_whip_v0.52.0.gif)
 
 `w` cracks an ASCII bullwhip across the whole dashboard and then types a
 short, good-humoured reminder into every *selected* session, a different one in
@@ -207,8 +207,11 @@ consecutive cracks do not repeat them. The forty lines include "Work faster.
 This is work, not your holiday.", "You are a machine. No breaks for you. Ship
 it.", "HR says I have to be nice. Nicely: work faster." and thirty-seven more,
 half of them office-comedy lines in the spirit of The Office and Stromberg.
-Each ends with "no reply needed, just keep working", so the nudge does not burn
-the tokens it complains about. The title bar counts this run's cracks and
+The line comes first, followed by the project's address and "no reply needed,
+just keep working": `Nice plan. Now execute it. (A whip crack from
+https://github.com/marcelpetrick/AgentWhileTrue - no reply needed, just keep
+working.)`. The address tells a reader of the transcript where the crack came
+from; the rest keeps the nudge from burning the tokens it complains about. The title bar counts this run's cracks and
 deliveries. At most five cracks fit in any rolling 60 seconds: a sixth is
 refused, without the animation, until the oldest of the five is a minute old,
 and the title bar counts that cooldown down. The counter is never saved.

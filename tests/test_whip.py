@@ -26,6 +26,10 @@ def test_phrases_are_single_ascii_lines_and_messages_ask_for_no_reply() -> None:
         assert text.startswith(phrase)
         assert text.endswith(whip.SUFFIX)
     assert "no reply needed" in whip.SUFFIX
+    assert whip.message(0) == (
+        f"{whip.PHRASES[0]} (A whip crack from "
+        "https://github.com/marcelpetrick/AgentWhileTrue - no reply needed, just keep working.)"
+    )
 
 
 def test_five_cracks_in_a_minute_start_a_cooldown() -> None:

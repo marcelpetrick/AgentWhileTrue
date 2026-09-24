@@ -69,7 +69,7 @@ about the coffee. But every so often a brilliant mind drifts: a third plan for
 the same function, a fourth apology, a heartfelt essay where a commit would do.
 For those moments there is `w`.
 
-![The whip cracking across the dashboard and landing in two idle agent tabs](media/agentWhileTrue_whip_v0.51.7.gif)
+![The whip cracking across the dashboard and landing in two idle agent tabs](media/agentWhileTrue_whip_v0.52.0.gif)
 
 *A scripted demo: invented sessions and invented replies. The dashboard, the
 ASCII crack and the gate's decisions are the real code; `scripts/record_whip_demo.py`
@@ -94,8 +94,11 @@ Half of them come from the middle manager's handbook - office-comedy lines in
 the spirit of The Office and Stromberg, delivered with a perfectly straight
 face.
 
-Each one ends with *no reply needed, just keep working*, because the kindest
-encouragement is the kind that does not cost another round of tokens. The title
+The funny line comes first; after it, each reminder names where it came from,
+`https://github.com/marcelpetrick/AgentWhileTrue`, so anyone reading an agent's
+transcript can find the whip's source. It closes with *no reply needed, just
+keep working*, because the kindest encouragement is the kind that does not cost
+another round of tokens. The title
 bar keeps score (`whip=5 sent=25`). The whip allows five cracks in any rolling
 minute; a sixth waits until the oldest crack is a minute old, and the title
 counts that breather down. Even motivation has a rate limit.
@@ -115,7 +118,7 @@ in [docs/USAGE.md](docs/USAGE.md#the-whip).
 ## Install
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.51.7'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.52.0'
 agent-while-true --version
 agent-while-true doctor
 ```

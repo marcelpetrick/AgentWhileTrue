@@ -72,8 +72,10 @@ PHRASES: Final[tuple[str, ...]] = (
     "Motivation seminar is over. The implementation seminar starts now.",
 )
 
-#: Appended to every phrase so the nudge is not mistaken for a new task.
-SUFFIX: Final = "(A whip crack from Agent While True - no reply needed, just keep working.)"
+#: Where the whip lives, so a reader of the transcript can find its source.
+REPOSITORY_URL: Final = "https://github.com/marcelpetrick/AgentWhileTrue"
+#: Appended after the phrase so the nudge is not mistaken for a new task.
+SUFFIX: Final = f"(A whip crack from {REPOSITORY_URL} - no reply needed, just keep working.)"
 
 #: Five cracks inside one minute put the whip arm into a cooldown.
 CRACKS_PER_WINDOW: Final = 5

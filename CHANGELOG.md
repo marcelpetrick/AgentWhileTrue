@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.52.0] - 2026-09-24
+
+### Changed
+
+- Every whip reminder now leads with its funny line and names where it came from,
+  `(A whip crack from https://github.com/marcelpetrick/AgentWhileTrue - no reply
+  needed, just keep working.)`, so a reader of an agent's transcript can find the
+  source. The whip demo is re-recorded with forty lines, a different reminder
+  per tab and the new suffix, and the install command points at this release.
+
 ## [0.51.9] - 2026-09-24
 
 ### Changed
