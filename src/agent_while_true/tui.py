@@ -39,6 +39,7 @@ class DashboardState:
     detail_index: int = 0
     scroll_offset: int = 0
     redact_accounts: bool = False
+    whip_requested: bool = False
 
     @classmethod
     def from_interval(cls, value: float) -> DashboardState:
@@ -98,11 +99,18 @@ class DashboardState:
             self.scroll_offset = 10**9
         elif key == "A":
             self.mode_toggle_requested = True
+        elif lowered == "w":
+            self.whip_requested = True
         return False
 
     def consume_mode_toggle(self) -> bool:
         requested = self.mode_toggle_requested
         self.mode_toggle_requested = False
+        return requested
+
+    def consume_whip(self) -> bool:
+        requested = self.whip_requested
+        self.whip_requested = False
         return requested
 
 

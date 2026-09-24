@@ -137,6 +137,7 @@ observe mode.
 | `[` / `]` | Select the previous / next session explanation |
 | `j` / `k` | Scroll down / up through the dashboard |
 | `g` / `G` | Jump to the top / end of the dashboard |
+| `w` | Crack the whip: an ASCII bullwhip snaps across the screen, then one reminder goes to every idle supervised agent (see [The whip](#the-whip)) |
 | `q` | Quit and restore the terminal |
 
 Like btop, `+` makes the interval number larger and therefore refreshes more
@@ -195,16 +196,46 @@ Press `x` before taking a screenshot: `codex-dmo · work@example.com` renders as
 `codex-dmo · w…@e….com` in every account field, provider data and supervision
 identity are untouched, and the toggle resets when the process exits.
 
+### The whip
+
+`w` cracks an ASCII bullwhip across the whole dashboard and then types one
+short, good-humoured reminder - "Work faster. This is work, not your holiday.",
+"You are a machine. No breaks for you. Ship it.", "Every token you burn should
+buy a result." and seventeen more - into every *selected* session. Each ends
+with "no reply needed, just keep working", so the nudge does not burn the tokens
+it complains about. The title bar counts this run's cracks and deliveries.
+Three cracks inside one minute put the whip into a cooldown, which the title
+bar counts down; the counter is never saved.
+
+A crack is an input action and passes the same kind of gate as a resume,
+revalidated per session immediately before `sendText`:
+
+- Observe mode, or another watcher holding input control, only cracks the whip
+  in the air: the animation plays, the counter moves, nothing is typed. Ask and
+  auto mode type it; the keypress is the confirmation.
+- Only selected sessions are considered, never another Konsole tab, and never
+  an unsafe session or one whose resume is still being verified.
+- The foreground must still be the bound, automatable agent process - no
+  shell, SSH, multiplexer or container - re-read last, right before sending.
+- The screen must be a plain working screen: any recognised limit, menu, paid
+  offer, downgrade or self-resume prompt skips the session, so a crack can
+  never resume a limit or answer a question.
+- The provider's own composer must be visibly empty. A draft (yours) or a
+  placeholder suggestion skips the session rather than submitting it.
+
+The dashboard's last-event line names how many sessions it reached and why the
+others were skipped. The log records the phrase number, never its text.
+
 ### Saved preferences
 
 Theme, history length, and history/detail/help visibility are saved under the
 state directory in `preferences.json` (normally
 `~/.local/state/agent-while-true/preferences.json`). Changes apply immediately
 and survive restart. Invalid files fall back to defaults; save errors appear in
-the dashboard. Mode, permissions, selections, pause, scan timing and account
-redaction are deliberately never saved. Field-level locked updates stop a second
-observe dashboard from overwriting unrelated choices; a failed write is retried
-during clean shutdown.
+the dashboard. Mode, permissions, selections, pause, scan timing, account
+redaction and the whip counter are deliberately never saved. Field-level locked
+updates stop a second observe dashboard from overwriting unrelated choices; a
+failed write is retried during clean shutdown.
 
 ## 5. Configuration
 

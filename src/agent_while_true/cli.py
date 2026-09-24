@@ -18,7 +18,9 @@ can send input, so a read-only watcher can always be started alongside.
 from __future__ import annotations
 
 import argparse
+import collections
 import contextlib
+import math
 import os
 import shutil
 import signal
@@ -30,6 +32,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from agent_while_true import doctor as doctor_module
+from agent_while_true import whip
 from agent_while_true.config import (
     Config,
     ConfigError,
@@ -517,6 +520,43 @@ def _toggle_runtime_mode(
     return updated, "full auto enabled; policy and revalidation still apply"
 
 
+def _crack_whip(
+    supervisor: Supervisor,
+    lock: SingleInstanceLock,
+    counter: whip.WhipCounter,
+    stream,
+    *,
+    sleep: Callable[[float], None] = time.sleep,
+) -> str:
+    """Crack the whip once: animate, then offer one reminder to every session.
+
+    The animation is presentation only. Whether the reminder is typed anywhere
+    is decided afterwards, per session, by the supervisor's revalidating gate,
+    so the observation it acts on is never older than the animation.
+    """
+    phrase = counter.crack(time.monotonic())
+    if phrase is None:
+        remaining = math.ceil(counter.cooldown_remaining(time.monotonic()))
+        return f"whip cooling down for {remaining}s: three cracks a minute is the limit"
+    size = shutil.get_terminal_size((168, 24))
+    whip.animate(stream, size.columns, max(1, size.lines - 1), clear=CLEAR_SCREEN, sleep=sleep)
+    if not lock.held:
+        # Observe mode, or another watcher holds input control: this one types nothing.
+        supervisor.log.info("whip_cracked", phrase=phrase, delivered=0, reason="observe-mode")
+        return "whip cracked in the air: observe mode sends nothing (Shift+A arms input)"
+    results = supervisor.whip(whip.message(phrase), phrase=phrase)
+    delivered = sum(1 for reason in results.values() if reason == "delivered")
+    counter.record_delivery(delivered)
+    supervisor.log.info("whip_cracked", phrase=phrase, delivered=delivered, sessions=len(results))
+    skipped = collections.Counter(reason for reason in results.values() if reason != "delivered")
+    summary = f'whip cracked: "{whip.PHRASES[phrase]}" reached {delivered}/{len(results)}'
+    if skipped:
+        summary += "; skipped " + ", ".join(
+            f"{count}x {reason}" for reason, count in sorted(skipped.items())
+        )
+    return summary
+
+
 def _loop(
     supervisor: Supervisor,
     config: Config,
@@ -553,6 +593,8 @@ def _loop(
     #: The configuration Shift+A left for full auto, and returns to.
     before_auto: Config | None = None
     metrics = ObservationMetrics(supervisor.log)
+    #: Cracks and deliveries of this run only; deliberately never persisted.
+    whip_counter = whip.WhipCounter()
     health = HealthMonitor(interval=config.service_status_interval)
     # command_run() has just completed initial discovery and selection.
     next_rediscovery = time.monotonic() + REDISCOVERY_INTERVAL_SECONDS
@@ -610,6 +652,7 @@ def _loop(
                     detail_index=dashboard.detail_index,
                     service_health=health.snapshot(),
                     redact_accounts=dashboard.redact_accounts,
+                    whip_badge=whip_counter.badge(time.monotonic()) if interactive else "",
                 )
                 if interactive:
                     height = max(1, size.lines - 1)
@@ -675,6 +718,12 @@ def _loop(
                         ""
                         if saved
                         else "Display preferences could not be saved; current choices remain active"
+                    )
+                if dashboard.consume_whip():
+                    last_event = _crack_whip(supervisor, lock, whip_counter, stream)
+                    next_scan = 0.0
+                    event_history = read_history(
+                        config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
                     )
                 if dashboard.consume_mode_toggle():
                     previous_config = config

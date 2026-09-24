@@ -483,6 +483,7 @@ def render_status(
     detail_index: int = 0,
     service_health: dict[str, ProviderHealth] | None = None,
     redact_accounts: bool = False,
+    whip_badge: str = "",
 ) -> str:
     """Render the running watcher's status table."""
     listed = list(sessions)
@@ -496,7 +497,13 @@ def render_status(
         else config.mode.value
     )
     lines = [
-        _rule(title + pause_badge, panel_width, color=color, theme=theme),
+        # The title rule is the one line no scroll position hides.
+        _rule(
+            title + pause_badge + (f" — {whip_badge}" if whip_badge else ""),
+            panel_width,
+            color=color,
+            theme=theme,
+        ),
         _panel_line(
             f"mode={mode_label}   watching {len(listed)} session(s)   theme={theme}   "
             f"accounts={'redacted' if redact_accounts else 'visible'}   "
@@ -510,7 +517,7 @@ def render_status(
     for part in _wrap(
         f"{now.astimezone().strftime('%Y-%m-%d %H:%M:%S')}  "
         "+ slower  - faster  A mode  e events  l history  r rescan  "
-        "p pause  t theme  x redact  d details",
+        "p pause  t theme  x redact  d details  w whip",
         max(1, panel_width - 4),
     ):
         lines.append(_panel_line(part, panel_width, "surface", color=color, theme=theme))
@@ -674,6 +681,8 @@ def render_status(
                         "e       show/hide persisted action history",
                         "l       cycle history length: 5, 10, 20, 50",
                         "d       show/hide resume explanation; [ / ] previous/next session",
+                        "w       crack the whip: one reminder to every idle, empty agent "
+                        "composer; three cracks a minute, then a cooldown",
                         "j / k   scroll down/up; g / G jump to top/end",
                         "h / ?   close this help",
                         "q       quit cleanly",

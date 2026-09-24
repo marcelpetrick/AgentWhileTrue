@@ -83,7 +83,8 @@ Ask and auto mode need Konsole's input D-Bus API enabled once
 (`EnableSecuritySensitiveDBusAPI`) and Konsole restarted — see
 [docs/USAGE.md §1](docs/USAGE.md#1-enable-konsole-input-once). In the running
 dashboard, `Shift+A` switches between observe and full-auto, `d` explains the
-selected session, `h` lists every key.
+selected session, `w` cracks the whip (one reminder to every idle agent, through
+the same revalidation), `h` lists every key.
 
 | Mode | Command | Sends input? |
 | --- | --- | --- |

@@ -13,6 +13,19 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.51.0] - 2026-09-24
+
+### Added
+
+- The whip: press `w` in the dashboard and an ASCII bullwhip unrolls across the
+  whole screen, snaps straight and bursts into `CRACK!`; then one good-humoured
+  reminder ("Work faster. This is work, not your holiday.", "You are a machine.
+  No breaks for you. Ship it.", ...) goes to every selected session that passes
+  the revalidating gate, asking for results rather than burned tokens and for no
+  reply. The title bar counts this run's cracks and deliveries and counts down
+  the cooldown that follows three cracks inside one minute. Observe mode only
+  cracks it in the air. The last-event line names why sessions were skipped.
+
 ## [0.50.12] - 2026-09-24
 
 ### Added

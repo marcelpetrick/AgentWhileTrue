@@ -102,7 +102,7 @@ of the persisted action lifecycle; reports explicitly describe partial coverage.
 flowchart LR
     command["cli.py<br/>Command dispatch and runtime mode toggle"]
     picker["picker.py<br/>Discovery and explicit selection"]
-    tui["tui.py + ui.py<br/>Input handling and rendering"]
+    tui["tui.py + ui.py + whip.py<br/>Input handling, rendering, whip animation"]
     fsm["fsm.py<br/>Supervisor and session state"]
     classify["proc.py + classify.py<br/>Process identity and safety classification"]
     terminal["terminal/konsole.py<br/>Bounded reads and sendText"]
@@ -253,5 +253,8 @@ ambiguous process ancestry are non-automatable.
   bounded, conditional reads of public status endpoints.
 - Persist the action intent before sending so crashes cannot silently duplicate
   an action.
+- Route every operator-initiated input, such as the dashboard's whip crack,
+  through the supervisor's revalidation; it types only into a plain working
+  screen whose own composer is visibly empty, and is never persisted or retried.
 - Preserve a narrow adapter boundary for future terminals or providers without
   weakening the current Konsole-specific gate.
