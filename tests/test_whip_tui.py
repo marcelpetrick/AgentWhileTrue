@@ -55,10 +55,8 @@ def test_w_requests_exactly_one_crack(key: str) -> None:
 
 def test_dashboard_shows_the_counter_the_key_and_its_help() -> None:
     now = datetime(2026, 9, 24, 12, tzinfo=UTC)
-    text = render_status(
-        [], now=now, config=Config(), show_help=True, whip_badge="whip=2 crack(s)/1 delivered"
-    )
-    assert "whip=2 crack(s)/1 delivered" in text
+    text = render_status([], now=now, config=Config(), show_help=True, whip_badge="whip=2 sent=1")
+    assert "whip=2 sent=1" in text
     assert "w whip" in text
     assert "crack the whip" in text
     assert "whip=" not in render_status([], now=now, config=Config())
@@ -144,8 +142,8 @@ def test_pressing_w_in_the_dashboard_cracks_and_counts(
 
     output = stream.getvalue()
     assert "[###]" in output
-    assert "whip=0 crack(s)/0 delivered" in output
-    assert "whip=1 crack(s)/0 delivered" in output
+    assert "whip=0 sent=0" in output
+    assert "whip=1 sent=0" in output
     assert "whip cracked in the air" in output
     assert kit.sent == []
 
@@ -169,3 +167,13 @@ def test_a_paused_dashboard_neither_reads_nor_types(tmp_path: Path) -> None:
     assert kit.sent == []
     assert reads == []
     assert counter.cracks == 1
+
+
+def test_the_whip_badge_survives_a_narrow_paused_dashboard() -> None:
+    now = datetime(2026, 9, 24, 12, tzinfo=UTC)
+    badge = "whip=3 sent=2 cooldown 37s"
+    text = render_status([], now=now, config=Config(), paused=True, width=80, whip_badge=badge)
+    title = text.splitlines()[0]
+    assert badge in title
+    assert "PAUSED" in title
+    assert title.endswith("┐")

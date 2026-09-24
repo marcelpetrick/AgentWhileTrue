@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.51.4] - 2026-09-24
+
+### Fixed
+
+- The whip counter stays readable on a narrow dashboard. The badge is compact
+  (`whip=3 sent=2 cooldown 37s`), and while paused the title shortens its own
+  pause hint so the counter and cooldown are not truncated at 80 columns; the
+  mode line still says how to resume.
+
 ## [0.51.3] - 2026-09-24
 
 ### Fixed

@@ -491,6 +491,9 @@ def render_status(
     panel_width = max(1, width)
     interval = refresh_interval if refresh_interval is not None else config.scan_interval
     pause_badge = " — PAUSED: press p to resume" if paused else ""
+    if paused and whip_badge:
+        # Both badges do not fit a narrow title; the mode line still says how to resume.
+        pause_badge = " — PAUSED"
     mode_label = (
         "full-auto"
         if config.mode is Mode.AUTO and config.policy.allow_codex_auto_resume

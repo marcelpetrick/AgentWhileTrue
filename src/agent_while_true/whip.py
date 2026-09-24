@@ -111,10 +111,10 @@ class WhipCounter:
 
     def badge(self, now: float) -> str:
         """The dashboard's one-line counter."""
-        text = f"whip={self.cracks} crack(s)/{self.delivered} delivered"
+        text = f"whip={self.cracks} sent={self.delivered}"
         remaining = self.cooldown_remaining(now)
         if remaining > 0:
-            text += f" (cooldown {math.ceil(remaining)}s)"
+            text += f" cooldown {math.ceil(remaining)}s"
         return text
 
 

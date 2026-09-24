@@ -65,11 +65,11 @@ def test_the_same_phrase_is_never_picked_twice_in_a_row() -> None:
 
 def test_badge_counts_cracks_and_deliveries() -> None:
     counter = whip.WhipCounter(rng=random.Random(4))
-    assert counter.badge(0.0) == "whip=0 crack(s)/0 delivered"
+    assert counter.badge(0.0) == "whip=0 sent=0"
     counter.crack(0.0)
     counter.record_delivery(2)
     counter.record_delivery(-5)
-    assert counter.badge(1.0) == "whip=1 crack(s)/2 delivered"
+    assert counter.badge(1.0) == "whip=1 sent=2"
 
 
 @pytest.mark.parametrize(("width", "height"), [(168, 40), (80, 24), (40, 10), (1, 1)])
