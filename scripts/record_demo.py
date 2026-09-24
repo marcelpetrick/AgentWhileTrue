@@ -159,7 +159,9 @@ def _fonts() -> tuple[ImageFont.FreeTypeFont, ImageFont.FreeTypeFont]:
     raise SystemExit("no monospace font found; install DejaVu Sans Mono or Noto Sans Mono")
 
 
-def draw_frame(frame: str, path: Path, size: tuple[int, int] | None = None) -> tuple[int, int]:
+def draw_frame(
+    frame: str, path: Path, size: tuple[int, int] | None = None, caption: str = CAPTION
+) -> tuple[int, int]:
     """Rasterise one rendered frame, captioned, to a PNG."""
     regular, bold_font = _fonts()
     cell_width = round(regular.getlength("M"))
@@ -190,7 +192,7 @@ def draw_frame(frame: str, path: Path, size: tuple[int, int] | None = None) -> t
                 )
     canvas.text(
         (margin, height - caption_height + 12),
-        CAPTION,
+        caption,
         font=regular,
         fill=(150, 150, 180),
     )

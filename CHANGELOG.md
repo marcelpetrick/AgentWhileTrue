@@ -13,6 +13,17 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.51.5] - 2026-09-24
+
+### Added
+
+- `scripts/record_whip_demo.py` records the whip as an animated GIF: the real
+  dashboard and the real ASCII crack on top, and below it three supervised
+  Konsole tabs where the reminder lands in two idle composers while the tab with
+  a half-typed draft is skipped. Sessions and replies are invented and every
+  frame says so. `media/agentWhileTrue_whip_v0.51.5.gif` is the first recording;
+  `record_demo.py`'s frame renderer now takes a caption.
+
 ## [0.51.4] - 2026-09-24
 
 ### Fixed
