@@ -119,3 +119,14 @@ project follows semantic versioning; while the major version is `0`, the minor
 version bumps for features and the patch version for fixes. Intermediate
 versioned commits are normal development versions — a tag is cut only for a
 fully verified release, and the README install command is pointed at that tag.
+
+Every versioned commit bumps `__version__` and opens the matching newest
+`CHANGELOG.md` section. `scripts/bump_version.py` makes both edits together,
+reading the section body from standard input:
+
+```bash
+printf -- '- Describe the change.\n' | scripts/bump_version.py 0.50.10 Fixed
+```
+
+It refuses a version that is not newer, an unknown Keep a Changelog category
+and an empty body, and writes nothing when it refuses.

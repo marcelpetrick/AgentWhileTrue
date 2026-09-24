@@ -13,6 +13,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.50.9] - 2026-09-24
+
+### Added
+
+- `scripts/bump_version.py`: bump `__version__` and open the matching newest
+  changelog section in one step, refusing a version that is not newer.
+
 ## [0.50.8] - 2026-09-22
 
 ### Changed
