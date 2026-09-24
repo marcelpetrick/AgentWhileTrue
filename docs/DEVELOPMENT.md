@@ -96,7 +96,14 @@ real project names, accounts or usage:
 ```bash
 python3 scripts/record_demo.py media/agentWhileTrue_demo_vX.Y.Z.gif       # limit -> reset -> resume
 python3 scripts/record_whip_demo.py media/agentWhileTrue_whip_vX.Y.Z.gif  # the whip
+python3 scripts/record_whip_demo.py --linkedin media/agentWhileTrue_whip_linkedin_vX.Y.Z.gif
 ```
+
+`--linkedin` renders the whip at twice the resolution (about 2900x1460, close
+to LinkedIn's 1.91:1 landscape) with two taller agent tabs and the repository
+URL in the caption. LinkedIn only animates a GIF in a post when it is under
+5 MB and under 400 frames and is uploaded through the photo button; the
+recording is about 0.6 MB, 16 frames and a 13-second loop.
 
 Both feed invented sessions to the real renderer (and the real whip frames)
 and caption every frame accordingly. They need Pillow and a DejaVu or Noto

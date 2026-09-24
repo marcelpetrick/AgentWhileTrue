@@ -16,6 +16,12 @@ agents' replies are invented, and every frame's caption says so.
 Usage::
 
     python3 scripts/record_whip_demo.py media/agentWhileTrue_whip.gif
+    python3 scripts/record_whip_demo.py --linkedin media/agentWhileTrue_whip_linkedin.gif
+
+``--linkedin`` renders at twice the resolution with two taller agent tabs and
+the repository URL in the caption, and stays inside LinkedIn's limits for an
+animated GIF in a post: under 5 MB and under 400 frames (uploaded through the
+photo button; larger files are frozen on their first frame).
 """
 
 from __future__ import annotations
@@ -24,12 +30,13 @@ import re
 import sys
 import tempfile
 import textwrap
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from record_demo import COLUMNS, THEME, _assemble, _quota, _session, draw_frame
+from record_demo import COLUMNS, FONT_SIZE, THEME, _assemble, _quota, _session, draw_frame
 
 from agent_while_true import whip
 from agent_while_true.config import Config, Mode, Policy
@@ -67,8 +74,35 @@ _ART = "\x1b[1;38;5;208;48;5;17m"
 CLAUDE_CURSOR = "\N{HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT}"
 CODEX_CURSOR = "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}"
 
-PANE_WIDTH = (COLUMNS - 4) // 3
-PANE_ROWS = 11
+
+@dataclass(frozen=True, slots=True)
+class Layout:
+    """How the Konsole tabs under the dashboard are laid out, and how large."""
+
+    pane_width: int
+    pane_rows: int
+    draft_tab: bool
+    font_size: int
+    caption: str
+
+
+README = Layout(
+    pane_width=(COLUMNS - 4) // 3,
+    pane_rows=11,
+    draft_tab=True,
+    font_size=FONT_SIZE,
+    caption=CAPTION,
+)
+LINKEDIN = Layout(
+    pane_width=(COLUMNS - 2) // 2,
+    pane_rows=13,
+    draft_tab=False,
+    font_size=FONT_SIZE * 2,
+    caption=(
+        "Agent While True - press w: one crack, a different pep talk in every agent tab. "
+        "github.com/marcelpetrick/AgentWhileTrue  (scripted demo, invented sessions)"
+    ),
+)
 _ANSI = re.compile(r"\x1b\[[0-9;]*m")
 
 
@@ -76,20 +110,23 @@ def _visible(text: str) -> int:
     return len(_ANSI.sub("", text))
 
 
-def pane(title: str, rows: list[tuple[str, str]], *, flash: bool = False) -> list[str]:
+def pane(
+    title: str, rows: list[tuple[str, str]], layout: Layout, *, flash: bool = False
+) -> list[str]:
     """One framed terminal tab: a title bar and ``(style, text)`` rows."""
-    inner = PANE_WIDTH - 4
-    bar = f" {title}{'  >> WHIP! <<' if flash else ''} "[: PANE_WIDTH - 2]
-    lines = [(_FLASH if flash else _PANE_TITLE) + bar.ljust(PANE_WIDTH) + _RESET]
+    width, height = layout.pane_width, layout.pane_rows
+    inner = width - 4
+    bar = f" {title}{'  >> WHIP! <<' if flash else ''} "[: width - 2]
+    lines = [(_FLASH if flash else _PANE_TITLE) + bar.ljust(width) + _RESET]
     body: list[tuple[str, str]] = []
     for style, text in rows:
         wrapped = textwrap.wrap(text, inner, subsequent_indent="  ") or [""]
         body.extend((style, part) for part in wrapped)
-    body = body[-(PANE_ROWS - 2) :]
-    body += [(_PANE, "")] * (PANE_ROWS - 2 - len(body))
+    body = body[-(height - 2) :]
+    body += [(_PANE, "")] * (height - 2 - len(body))
     for style, text in body:
         lines.append(f"{_PANE_BORDER}│ {style}{text.ljust(inner)}{_PANE_BORDER} │{_RESET}")
-    lines.append(_PANE_BORDER + "└" + "─" * (PANE_WIDTH - 2) + "┘" + _RESET)
+    lines.append(_PANE_BORDER + "└" + "─" * (width - 2) + "┘" + _RESET)
     return lines
 
 
@@ -98,11 +135,13 @@ def side_by_side(panes: list[list[str]]) -> list[str]:
     return [gap.join(row) for row in zip(*panes, strict=True)]
 
 
-def tabs(stage: str, *, flash: bool = False) -> list[str]:
-    """The three Konsole tabs at one moment of the story."""
+def tabs(stage: str, layout: Layout, *, flash: bool = False) -> list[str]:
+    """The Konsole tabs at one moment of the story."""
     phrases = LATER if stage == "later" else FIRST
     claude_text, codex_text = (whip.message(phrase) for phrase in phrases)
     claude_work = [
+        (_PANE, "● Read(src/harbour/dock.py)"),
+        (_PANE_DIM, "  └ Read 212 lines"),
         (_PANE, "● Update(src/harbour/dock.py)"),
         (_PANE_DIM, "  └ Updated with 4 additions and 1 removal"),
         (_PANE, "● Bash(pytest -q tests/test_dock.py)"),
@@ -110,6 +149,9 @@ def tabs(stage: str, *, flash: bool = False) -> list[str]:
         (_CLAUDE, "✻ Pondering the meaning of harbours… (esc to interrupt)"),
     ]
     codex_work = [
+        (_PANE, "• Explored src/tides/"),
+        (_PANE_DIM, "  └ Read mapper.rs, tides.rs, lib.rs"),
+        (_PANE, "• Edited src/tides/mapper.rs (+38 -11)"),
         (_PANE, "• Ran cargo test --workspace"),
         (_PANE_DIM, "  └ 142 passed; 0 failed"),
         (_PANE, "• Explored src/tides/mapper.rs"),
@@ -125,7 +167,7 @@ def tabs(stage: str, *, flash: bool = False) -> list[str]:
     claude_foot = (_PANE_DIM, "  Opus 5 ctx:31% 5h:44% reset:3h40m")
     # Claude frames its input box with a rule above and below; the whip's gate
     # only trusts an empty cursor row that sits directly on the closing rule.
-    claude_rule = (_PANE_BORDER, "\u2500" * (PANE_WIDTH - 4))
+    claude_rule = (_PANE_BORDER, "\u2500" * (layout.pane_width - 4))
     codex_foot = (_PANE_DIM, "  gpt-5-codex high · ~/code/tide-mapper · 38% used")
     draft_prompt = (_PANE, f"{CLAUDE_CURSOR} also rename the helper before you")
     draft_note: list[tuple[str, str]] = []
@@ -136,12 +178,12 @@ def tabs(stage: str, *, flash: bool = False) -> list[str]:
         draft_note = [(_SKIP, "  (whip skipped: your draft stays yours)")]
     elif stage == "answered":
         claude_work = [
-            *claude_work[2:4],
+            *claude_work[:-1],
             (_WHIP_TEXT, f"{CLAUDE_CURSOR} {claude_text}"),
             (_CLAUDE, "● On it. Shipping the dock refactor, no essay."),
         ]
         codex_work = [
-            *codex_work[:2],
+            *codex_work[:-2],
             (_WHIP_TEXT, f"{CODEX_CURSOR} {codex_text}"),
             (_CODEX, "• Understood. Finishing the mapper; tests next."),
         ]
@@ -158,24 +200,29 @@ def tabs(stage: str, *, flash: bool = False) -> list[str]:
             (_CODEX, "• Pushing the branch."),
         ]
 
-    return side_by_side(
-        [
-            pane(
-                "pts/9 · claude · ~/code/glass-harbour",
-                [*claude_work, claude_rule, claude_prompt, claude_rule, claude_foot],
-                flash=flash,
-            ),
-            pane(
-                "pts/5 · codex · ~/code/tide-mapper",
-                [*codex_work, (_PANE, ""), codex_prompt, codex_foot],
-                flash=flash,
-            ),
+    panes = [
+        pane(
+            "pts/9 · claude · ~/code/glass-harbour",
+            [*claude_work, claude_rule, claude_prompt, claude_rule, claude_foot],
+            layout,
+            flash=flash,
+        ),
+        pane(
+            "pts/5 · codex · ~/code/tide-mapper",
+            [*codex_work, (_PANE, ""), codex_prompt, codex_foot],
+            layout,
+            flash=flash,
+        ),
+    ]
+    if layout.draft_tab:
+        panes.append(
             pane(
                 "pts/11 · claude · ~/code/paper-lantern",
                 [*draft, claude_rule, draft_prompt, claude_rule, *draft_note, claude_foot],
-            ),
-        ]
-    )
+                layout,
+            )
+        )
+    return side_by_side(panes)
 
 
 def cast(now: datetime) -> list[SupervisedSession]:
@@ -252,7 +299,7 @@ def is_burst(frame: str) -> bool:
     return "____" in frame or "CRACK" in frame
 
 
-def storyboard(start: datetime) -> list[tuple[list[str], int]]:
+def storyboard(start: datetime, layout: Layout = README) -> list[tuple[list[str], int]]:
     """``(screen lines, milliseconds)`` for every frame of the GIF."""
     label = _LABEL + "  other Konsole tabs, supervised by the watcher above".ljust(COLUMNS) + _RESET
     steps: list[tuple[list[str], list[str], int]] = []
@@ -266,13 +313,15 @@ def storyboard(start: datetime) -> list[tuple[list[str], int]]:
     )
     hint = "six agents working - press w to crack the whip"
     idle = dashboard(start, "whip=0 sent=0", hint, before)
-    steps.append((idle, tabs("working"), 2600))
+    steps.append((idle, tabs("working", layout), 2600))
 
     height = len(idle)
     crack_frames = whip.frames(COLUMNS, height)
     for index, frame in enumerate(crack_frames):
         duration = 90 if index < len(crack_frames) - 3 else 260
-        steps.append((paint_crack(frame, height), tabs("working", flash=is_burst(frame)), duration))
+        steps.append(
+            (paint_crack(frame, height), tabs("working", layout, flash=is_burst(frame)), duration)
+        )
 
     moment = start + timedelta(seconds=2)
     reached = (
@@ -280,8 +329,8 @@ def storyboard(start: datetime) -> list[tuple[list[str], int]]:
         f'e.g. "{whip.PHRASES[codex_first]}"; skipped 1x composer-not-empty'
     )
     after = dashboard(moment, "whip=1 sent=5", reached, delivered)
-    steps.append((after, tabs("typed"), 2200))
-    steps.append((after, tabs("answered"), 3200))
+    steps.append((after, tabs("typed", layout), 2200))
+    steps.append((after, tabs("answered", layout), 3200))
 
     later = start + timedelta(seconds=39)
     cooling = dashboard(
@@ -295,7 +344,7 @@ def storyboard(start: datetime) -> list[tuple[list[str], int]]:
             "whip_cracked delivered=5 sessions=6",
         ),
     )
-    steps.append((cooling, tabs("later"), 3600))
+    steps.append((cooling, tabs("later", layout), 3600))
 
     tallest = max(len(top) for top, _, _ in steps)
     screens = []
@@ -306,19 +355,28 @@ def storyboard(start: datetime) -> list[tuple[list[str], int]]:
 
 
 def main(argv: list[str]) -> int:
-    destination = Path(argv[1]) if len(argv) > 1 else Path("media/agentWhileTrue_whip.gif")
+    arguments = argv[1:]
+    layout = LINKEDIN if "--linkedin" in arguments else README
+    paths_given = [argument for argument in arguments if argument != "--linkedin"]
+    destination = Path(paths_given[0]) if paths_given else Path("media/agentWhileTrue_whip.gif")
     start = datetime(2026, 9, 24, 15, 30, tzinfo=UTC)
     with tempfile.TemporaryDirectory() as workspace:
         paths, durations = [], []
         size: tuple[int, int] | None = None
-        for index, (lines, duration) in enumerate(storyboard(start)):
+        for index, (lines, duration) in enumerate(storyboard(start, layout)):
             path = Path(workspace) / f"frame_{index:03d}.png"
-            size = draw_frame("\n".join(lines), path, size, caption=CAPTION)
+            size = draw_frame(
+                "\n".join(lines), path, size, caption=layout.caption, font_size=layout.font_size
+            )
             paths.append(path)
             durations.append(duration)
         destination.parent.mkdir(parents=True, exist_ok=True)
         _assemble(paths, durations, destination)
-    print(f"{destination} ({destination.stat().st_size / 1024:.0f} KiB, {len(paths)} frames)")
+    width, height = size or (0, 0)
+    print(
+        f"{destination} ({destination.stat().st_size / 1024:.0f} KiB, {len(paths)} frames, "
+        f"{width}x{height}, {sum(durations) / 1000:.1f} s)"
+    )
     return 0
 
 

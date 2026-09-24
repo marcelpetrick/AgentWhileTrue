@@ -148,29 +148,37 @@ def parse_ansi(frame: str, default_bg: tuple[int, int, int]) -> list[list[Cell]]
     return rows
 
 
-def _fonts() -> tuple[ImageFont.FreeTypeFont, ImageFont.FreeTypeFont]:
+def _fonts(size: int = FONT_SIZE) -> tuple[ImageFont.FreeTypeFont, ImageFont.FreeTypeFont]:
     for regular, bold in FONT_CANDIDATES:
         if Path(regular).exists():
             bold_path = bold if Path(bold).exists() else regular
             return (
-                ImageFont.truetype(regular, FONT_SIZE),
-                ImageFont.truetype(bold_path, FONT_SIZE),
+                ImageFont.truetype(regular, size),
+                ImageFont.truetype(bold_path, size),
             )
     raise SystemExit("no monospace font found; install DejaVu Sans Mono or Noto Sans Mono")
 
 
 def draw_frame(
-    frame: str, path: Path, size: tuple[int, int] | None = None, caption: str = CAPTION
+    frame: str,
+    path: Path,
+    size: tuple[int, int] | None = None,
+    caption: str = CAPTION,
+    font_size: int = FONT_SIZE,
 ) -> tuple[int, int]:
-    """Rasterise one rendered frame, captioned, to a PNG."""
-    regular, bold_font = _fonts()
+    """Rasterise one rendered frame, captioned, to a PNG.
+
+    ``font_size`` scales the whole picture: cells, margins and the caption.
+    """
+    regular, bold_font = _fonts(font_size)
+    scale = font_size / FONT_SIZE
     cell_width = round(regular.getlength("M"))
-    cell_height = FONT_SIZE + 5
+    cell_height = round((FONT_SIZE + 5) * scale)
     background = (10, 10, 30)
     grid = parse_ansi(frame, background)
 
-    margin = 12
-    caption_height = cell_height + 22
+    margin = round(12 * scale)
+    caption_height = cell_height + round(22 * scale)
     width = size[0] if size else margin * 2 + cell_width * COLUMNS
     height = size[1] if size else margin * 2 + cell_height * len(grid) + caption_height
 
@@ -185,13 +193,13 @@ def draw_frame(
             )
             if cell.char != " ":
                 canvas.text(
-                    (left, top + 2),
+                    (left, top + round(2 * scale)),
                     cell.char,
                     font=bold_font if cell.bold else regular,
                     fill=cell.foreground,
                 )
     canvas.text(
-        (margin, height - caption_height + 12),
+        (margin, height - caption_height + round(12 * scale)),
         caption,
         font=regular,
         fill=(150, 150, 180),

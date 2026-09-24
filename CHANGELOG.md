@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.52.5] - 2026-09-24
+
+### Added
+
+- `scripts/record_whip_demo.py --linkedin` records the whip for a LinkedIn post:
+  twice the resolution, two taller agent tabs, and the repository URL in the
+  caption, inside LinkedIn's limits for an animated GIF (under 5 MB and 400
+  frames). `media/agentWhileTrue_whip_linkedin_v0.52.5.gif` is the first
+  recording. The shared frame renderer takes a font size.
+
 ## [0.52.4] - 2026-09-24
 
 ### Changed
