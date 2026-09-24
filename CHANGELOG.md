@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.52.2] - 2026-09-24
+
+### Fixed
+
+- A paused dashboard keeps "PAUSED: press p to resume" next to the whip counter
+  whenever the title has room. It was shortened to "PAUSED" at every width, since
+  the interactive dashboard always shows the whip badge; now it is shortened
+  only when both do not fit. The install command points at this release.
+
 ## [0.52.1] - 2026-09-24
 
 ### Fixed

@@ -202,3 +202,13 @@ def test_every_session_hears_a_different_reminder(tmp_path: Path) -> None:
     assert "reached 4/4 with 4 different reminders" in note
     assert len({text for _, text in kit.sent}) == 4
     assert counter.delivered == 4
+
+
+def test_a_wide_paused_dashboard_keeps_its_resume_hint_next_to_the_whip() -> None:
+    now = datetime(2026, 9, 24, 12, tzinfo=UTC)
+    badge = "whip=3 sent=2 cooldown 37s"
+    title = render_status(
+        [], now=now, config=Config(), paused=True, width=168, whip_badge=badge
+    ).splitlines()[0]
+    assert "PAUSED: press p to resume" in title
+    assert badge in title

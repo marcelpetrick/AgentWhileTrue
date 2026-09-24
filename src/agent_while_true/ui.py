@@ -491,8 +491,11 @@ def render_status(
     panel_width = max(1, width)
     interval = refresh_interval if refresh_interval is not None else config.scan_interval
     pause_badge = " — PAUSED: press p to resume" if paused else ""
-    if paused and whip_badge:
-        # Both badges do not fit a narrow title; the mode line still says how to resume.
+    whip_suffix = f" — {whip_badge}" if whip_badge else ""
+    # "┌─ " before the title and at least " ─┐" after it.
+    if paused and _cell_width(title + pause_badge + whip_suffix) + 6 > panel_width:
+        # Too narrow for both: keep the whip counter whole and the word PAUSED;
+        # the help lists p for resuming.
         pause_badge = " — PAUSED"
     mode_label = (
         "full-auto"
@@ -502,7 +505,7 @@ def render_status(
     lines = [
         # The title rule is the one line no scroll position hides.
         _rule(
-            title + pause_badge + (f" — {whip_badge}" if whip_badge else ""),
+            title + pause_badge + whip_suffix,
             panel_width,
             color=color,
             theme=theme,
