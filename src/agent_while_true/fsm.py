@@ -44,7 +44,13 @@ from agent_while_true.policy import Decision, ResumeRequest, evaluate
 from agent_while_true.proc import ProcessGoneError, ProcessIdentity, ProcessInfo
 from agent_while_true.proc import identify as proc_identify
 from agent_while_true.proc import inspect as proc_inspect
-from agent_while_true.providers.base import PromptKind, ProviderAdapter, Recognition
+from agent_while_true.providers.base import (
+    ActionKind,
+    PromptKind,
+    ProviderAdapter,
+    Recognition,
+    ResumeAction,
+)
 from agent_while_true.providers.timeparse import parse_reset
 from agent_while_true.quota import QuotaSnapshot, QuotaSource, unknown
 from agent_while_true.state_store import StateStore
@@ -830,19 +836,85 @@ class Supervisor:
             return final
         if final.idempotency_key != proposal.idempotency_key or final.action != proposal.action:
             return Decision(False, "prompt-changed")
+        drift = self._live_process_drift(session)
+        if drift:
+            return Decision(False, drift)
+        return final
+
+    def _live_process_drift(self, session: SupervisedSession) -> str:
+        """Re-read the foreground process last; name any drift, or return ''."""
         try:
             live = self.inspector.inspect(self.terminal.foreground_pid(session.ref))
         except (TerminalError, OSError):
             live = None
         if live is None or live.identity != session.identity:
-            return Decision(False, "process-identity-changed")
+            return "process-identity-changed"
         classification = classify(live)
         if (
             not classification.automatable
             or classification.process_class.value.lower() != session.provider_name
         ):
-            return Decision(False, "process-classification-changed")
-        return final
+            return "process-classification-changed"
+        return ""
+
+    # -- the whip ----------------------------------------------------------
+
+    def whip(self, text: str, *, phrase: int) -> dict[str, str]:
+        """Type one reminder into every supervised session that can take it.
+
+        A whip crack is one operator keypress and one attempt per session:
+        nothing is persisted, planned or retried, and a refusal is final. Each
+        session is still revalidated from scratch, and only a plain working
+        screen with the provider's own composer visibly empty qualifies, so the
+        reminder can never finish a draft, answer a menu or resume a limit. The
+        foreground process is re-read last, directly before ``sendText``.
+
+        Returns ``"delivered"`` or the refusal reason for every session key.
+        """
+        results: dict[str, str] = {}
+        for key, session in list(self.sessions.items()):
+            reason = self._whip_refusal(session, text)
+            if not reason:
+                try:
+                    self.terminal.send_text(session.ref, whip_keystrokes(text))
+                    reason = "delivered"
+                except TerminalError as exc:
+                    reason = f"send-failed:{type(exc).__name__}"
+            results[key] = reason
+            # The phrase index, never its text: prompt text is not logged.
+            self.log.info(
+                "whip_delivered" if reason == "delivered" else "whip_skipped",
+                provider=session.provider_name,
+                session=key,
+                process=session.describe_process(),
+                phrase=phrase,
+                reason=reason,
+            )
+        return results
+
+    def _whip_refusal(self, session: SupervisedSession, text: str) -> str:
+        if not self.config.mode.may_send_input:
+            return "observe-mode"
+        if not text or not text.isascii() or not text.isprintable():
+            return "unsafe-text"
+        if session.marked_unsafe:
+            return "session-unsafe"
+        if session.verify_after is not None or session.pending_key:
+            return "action-in-flight"
+        observation = self.observe(session.ref)
+        if observation.identity is None or observation.identity != session.identity:
+            return "process-identity-changed"
+        # Automatable already excludes SSH, multiplexers, containers and any
+        # conflicting signal; an automatable agent always has a recognition.
+        classification = observation.classification
+        recognition = observation.recognition
+        if not classification.automatable or recognition is None:
+            return f"not-automatable:{classification.blocker or 'unknown'}"
+        if recognition.matches or recognition.state is not SessionState.ACTIVE:
+            return "prompt-on-screen"
+        if not recognition.composer_empty:
+            return "composer-not-empty"
+        return self._live_process_drift(session)
 
     # -- verification ------------------------------------------------------
 
@@ -1005,6 +1077,11 @@ class Supervisor:
             session=key,
             reason=reason,
         )
+
+
+def whip_keystrokes(text: str) -> str:
+    """A reminder as one bracketed paste plus Enter, like typed continuation."""
+    return ResumeAction(kind=ActionKind.TEXT_THEN_ENTER, text=text).keystrokes()
 
 
 def observe_only(config: Config) -> bool:

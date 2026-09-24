@@ -13,6 +13,20 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.50.12] - 2026-09-24
+
+### Added
+
+- `Supervisor.whip()`: type one reminder into every *selected* session that can
+  take it, as one bracketed paste plus Enter. Each session is revalidated from
+  scratch: input control (never in observe mode), not unsafe, no resume in
+  flight, the bound identity, an automatable classification, a plain working
+  screen with no recognised prompt at all, and the provider's composer visibly
+  empty - so a reminder can never finish a draft, answer a menu or resume a
+  limit. The foreground process is re-read last, directly before `sendText`,
+  with the same check the resume path uses. Nothing is persisted or retried;
+  logs carry the phrase index, never its text.
+
 ## [0.50.11] - 2026-09-24
 
 ### Added
