@@ -52,7 +52,7 @@ from agent_while_true.providers.base import (
     ResumeAction,
 )
 from agent_while_true.providers.timeparse import parse_reset
-from agent_while_true.quota import QuotaSnapshot, QuotaSource, unknown
+from agent_while_true.quota import Availability, QuotaSnapshot, QuotaSource, unknown
 from agent_while_true.state_store import StateStore
 from agent_while_true.states import ActionState, SessionState
 from agent_while_true.terminal.base import SessionRef, TerminalAdapter, TerminalError
@@ -917,6 +917,10 @@ class Supervisor:
             return "prompt-on-screen"
         if not recognition.composer_empty:
             return "composer-not-empty"
+        # A limit banner that scrolled away does not mean usage came back; a
+        # turn submitted into spent quota only earns a fresh limit prompt.
+        if observation.quota.availability is Availability.EXHAUSTED:
+            return "quota-exhausted"
         return self._live_process_drift(session)
 
     # -- verification ------------------------------------------------------

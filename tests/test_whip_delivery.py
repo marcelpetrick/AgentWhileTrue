@@ -14,6 +14,7 @@ import pytest
 from agent_while_true.config import Mode
 from agent_while_true.fsm import whip_keystrokes
 from agent_while_true.providers.base import BRACKETED_PASTE_END, BRACKETED_PASTE_START
+from agent_while_true.quota import Availability
 from agent_while_true.states import ActionState
 from agent_while_true.whip import message
 from tests import harness as harness_module
@@ -212,3 +213,24 @@ def test_a_resume_awaiting_verification_blocks_the_whip(tmp_path: Path) -> None:
     kit.supervisor.sessions[claude].verify_after = kit.clock.wall
 
     assert kit.supervisor.whip(TEXT, phrase=0)[claude] == "action-in-flight"
+
+
+def test_an_exhausted_quota_is_not_whipped_into_a_fresh_limit(tmp_path: Path) -> None:
+    """A limit banner scrolled out of view does not make the quota available.
+
+    Submitting a turn there could only come back as a new limit prompt, which
+    burns exactly what the whip complains about.
+    """
+    kit, claude, codex = _kit(tmp_path)
+    kit.quota["claude"].availability = Availability.EXHAUSTED
+
+    assert kit.supervisor.whip(TEXT, phrase=0) == {claude: "quota-exhausted", codex: "delivered"}
+    assert [session for session, _ in kit.sent] == [CODEX]
+
+
+def test_unknown_quota_does_not_block_a_reminder(tmp_path: Path) -> None:
+    """Unknown quota authorises no resume, but a reminder is not a resume."""
+    kit, claude, _ = _kit(tmp_path)
+    kit.quota["claude"].availability = Availability.UNKNOWN
+
+    assert kit.supervisor.whip(TEXT, phrase=0)[claude] == "delivered"

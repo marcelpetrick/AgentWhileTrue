@@ -220,6 +220,10 @@ revalidated per session immediately before `sendText`:
 - The screen must be a plain working screen: any recognised limit, menu, paid
   offer, downgrade or self-resume prompt skips the session, so a crack can
   never resume a limit or answer a question.
+- Quota the provider reports as exhausted skips the session even when its limit
+  banner has scrolled away: a turn submitted there only earns a new limit
+  prompt. Unknown quota does not block a reminder, because a reminder is not a
+  resume.
 - The provider's own composer must be visibly empty. A draft (yours) or a
   placeholder suggestion skips the session rather than submitting it.
 

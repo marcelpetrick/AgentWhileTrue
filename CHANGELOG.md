@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.51.2] - 2026-09-24
+
+### Fixed
+
+- The whip skips a session whose fresh quota reads EXHAUSTED, even when its limit
+  banner has scrolled out of the live window. Submitting a turn there could only
+  earn a new limit prompt. Unknown quota still allows a reminder, which is not a
+  resume.
+
 ## [0.51.1] - 2026-09-24
 
 ### Fixed
