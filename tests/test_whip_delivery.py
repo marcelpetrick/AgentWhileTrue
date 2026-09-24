@@ -14,6 +14,7 @@ import pytest
 from agent_while_true.config import Mode
 from agent_while_true.fsm import whip_keystrokes
 from agent_while_true.providers.base import BRACKETED_PASTE_END, BRACKETED_PASTE_START
+from agent_while_true.states import ActionState
 from agent_while_true.whip import message
 from tests import harness as harness_module
 from tests import screens
@@ -138,7 +139,8 @@ def test_a_process_swapped_after_the_screen_read_is_caught_last(tmp_path: Path) 
 def test_unsafe_sessions_and_pending_resumes_are_left_alone(tmp_path: Path) -> None:
     kit, claude, codex = _kit(tmp_path)
     kit.supervisor.mark_unsafe(claude, "operator")
-    kit.supervisor.sessions[codex].pending_key = "resume-in-flight"
+    kit.supervisor.store.plan("resume-1", provider="codex", session=codex, process="p")
+    kit.supervisor.sessions[codex].pending_key = "resume-1"
 
     assert kit.supervisor.whip(TEXT, phrase=6) == {
         claude: "session-unsafe",
@@ -180,3 +182,33 @@ def test_unselected_konsole_sessions_never_hear_the_whip(tmp_path: Path) -> None
 
     assert set(kit.supervisor.whip(TEXT, phrase=9)) == {claude, codex}
     assert "/Sessions/3" not in {session for session, _ in kit.sent}
+
+
+@pytest.mark.parametrize("state", [ActionState.PLANNED, ActionState.SENT])
+def test_an_unsettled_persisted_resume_blocks_the_whip(tmp_path: Path, state: ActionState) -> None:
+    kit, claude, _ = _kit(tmp_path)
+    session = kit.supervisor.sessions[claude]
+    kit.supervisor.store.plan("resume-1", provider="claude", session=claude, process="p")
+    kit.supervisor.store.mark("resume-1", state)
+    session.pending_key = "resume-1"
+
+    assert kit.supervisor.whip(TEXT, phrase=0)[claude] == "action-in-flight"
+
+
+@pytest.mark.parametrize("state", [ActionState.FAILED, ActionState.VERIFIED])
+def test_a_settled_resume_leaves_no_permanent_whip_veto(tmp_path: Path, state: ActionState) -> None:
+    """``pending_key`` survives a failed attempt; only an unsettled record blocks."""
+    kit, claude, _ = _kit(tmp_path)
+    session = kit.supervisor.sessions[claude]
+    kit.supervisor.store.plan("resume-1", provider="claude", session=claude, process="p")
+    kit.supervisor.store.mark("resume-1", state, result="still-blocked")
+    session.pending_key = "resume-1"
+
+    assert kit.supervisor.whip(TEXT, phrase=0)[claude] == "delivered"
+
+
+def test_a_resume_awaiting_verification_blocks_the_whip(tmp_path: Path) -> None:
+    kit, claude, _ = _kit(tmp_path)
+    kit.supervisor.sessions[claude].verify_after = kit.clock.wall
+
+    assert kit.supervisor.whip(TEXT, phrase=0)[claude] == "action-in-flight"

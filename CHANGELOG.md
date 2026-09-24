@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.51.1] - 2026-09-24
+
+### Fixed
+
+- The whip no longer refuses a session as `action-in-flight` forever after one
+  unsuccessful resume. The in-memory pending key outlives a failed or cancelled
+  attempt; only a pending verification or an unsettled (PLANNED/SENT) persisted
+  record now blocks a crack.
+
 ## [0.51.0] - 2026-09-24
 
 ### Added

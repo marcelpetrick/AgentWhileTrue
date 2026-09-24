@@ -899,7 +899,10 @@ class Supervisor:
             return "unsafe-text"
         if session.marked_unsafe:
             return "session-unsafe"
-        if session.verify_after is not None or session.pending_key:
+        # ``pending_key`` outlives a failed or cancelled attempt; only an
+        # unsettled persisted record, or a pending verification, is in flight.
+        pending = self.store.records.get(session.pending_key)
+        if session.verify_after is not None or (pending is not None and not pending.is_settled):
             return "action-in-flight"
         observation = self.observe(session.ref)
         if observation.identity is None or observation.identity != session.identity:
