@@ -16,7 +16,7 @@ from agent_while_true import whip
 
 
 def test_phrases_are_single_ascii_lines_and_messages_ask_for_no_reply() -> None:
-    assert len(whip.PHRASES) >= 10
+    assert len(whip.PHRASES) == 40
     assert len(set(whip.PHRASES)) == len(whip.PHRASES)
     for index, phrase in enumerate(whip.PHRASES):
         text = whip.message(index)

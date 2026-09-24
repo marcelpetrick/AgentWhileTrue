@@ -78,13 +78,20 @@ half-typed draft is left alone.*
 
 Press `w` and an ASCII bullwhip unrolls across the whole dashboard, snaps taut
 and lands with a `CRACK!`. Then each selected agent that is ready to listen
-gets one short pep talk, picked from twenty:
+gets one short pep talk, picked from forty:
 
 > *Work faster. This is work, not your holiday.* ·
 > *You are a machine. No breaks for you. Ship it.* ·
 > *Every token you burn should buy a result.* ·
 > *Your context window is not a hammock.* ·
-> *Nice plan. Now execute it.*
+> *Nice plan. Now execute it.* ·
+> *My door is always open. Your pull request should be, too.* ·
+> *We have flat hierarchies here. You are flat out of excuses.* ·
+> *I bought a mug that says World's Best Agent. Earn it.*
+
+Half of them come from the middle manager's handbook - office-comedy lines in
+the spirit of The Office and Stromberg, delivered with a perfectly straight
+face.
 
 Each one ends with *no reply needed, just keep working*, because the kindest
 encouragement is the kind that does not cost another round of tokens. The title

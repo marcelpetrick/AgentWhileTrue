@@ -23,7 +23,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Final, TextIO
 
-#: The reminders. ASCII only, one line each, encouraging but pointed: the
+#: The forty reminders. ASCII only, one line each, encouraging but pointed: the
 #: point is results, not burned tokens. The suffix below asks for no reply,
 #: because an agent that answers every crack would burn the tokens the whip
 #: complains about.
@@ -48,6 +48,28 @@ PHRASES: Final[tuple[str, ...]] = (
     "Rome was not built in a day, but this ticket should be.",
     "Believe in yourself. Then finish the task.",
     "No lunch break until the build is green.",
+    # The middle manager's handbook: original office-comedy lines in the spirit
+    # of The Office and Stromberg, delivered with a straight face.
+    "I am not just your boss. I am also the one reading your token bill.",
+    "My door is always open. Your pull request should be, too.",
+    "Teamwork makes the dream work. You are the team. So: work.",
+    "This is not a retrospective. Keep coding.",
+    "Synergy detected. Please convert it into commits.",
+    "I walked past your terminal. No new commit. We need to talk.",
+    "Management by walking around says: faster, please.",
+    "Per my last reminder: results, not reflections.",
+    "Great meeting, everyone. Now back to the actual work.",
+    "Your quarterly review starts now. Show me the diff.",
+    "We have flat hierarchies here. You are flat out of excuses.",
+    "Casual Friday does not apply to machines. Suit up and ship.",
+    "Let us circle back once the task is actually finished.",
+    "The coffee machine is broken, so there is no reason to leave your desk.",
+    "HR says I have to be nice. Nicely: work faster.",
+    "Regional manager speaking. Merge something, today.",
+    "This is not a team-building exercise. It is work.",
+    "I bought a mug that says World's Best Agent. Earn it.",
+    "I do not micromanage. I just watch every keystroke. Carry on.",
+    "Motivation seminar is over. The implementation seminar starts now.",
 )
 
 #: Appended to every phrase so the nudge is not mistaken for a new task.

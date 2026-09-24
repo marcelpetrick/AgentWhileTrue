@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.51.8] - 2026-09-24
+
+### Added
+
+- Twenty more whip reminders, bringing the total to forty: original office-comedy
+  lines in the spirit of The Office and Stromberg ("We have flat hierarchies
+  here. You are flat out of excuses.", "HR says I have to be nice. Nicely: work
+  faster.", ...), next to the twenty existing ones.
+
 ## [0.51.7] - 2026-09-24
 
 ### Changed
