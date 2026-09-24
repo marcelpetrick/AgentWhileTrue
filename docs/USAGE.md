@@ -198,6 +198,8 @@ identity are untouched, and the toggle resets when the process exits.
 
 ### The whip
 
+![The whip cracking across the dashboard and landing in two idle agent tabs](../media/agentWhileTrue_whip_v0.51.5.gif)
+
 `w` cracks an ASCII bullwhip across the whole dashboard and then types one
 short, good-humoured reminder - "Work faster. This is work, not your holiday.",
 "You are a machine. No breaks for you. Ship it.", "Every token you burn should

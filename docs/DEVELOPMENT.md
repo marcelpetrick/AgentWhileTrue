@@ -88,6 +88,21 @@ Deterministic operation-count tests guard performance without machine-speed
 thresholds; measured timings and workloads are in
 [PERFORMANCE.md](PERFORMANCE.md).
 
+## Recording the demos
+
+The README animations are recorded, not screen-captured, so they never publish
+real project names, accounts or usage:
+
+```bash
+python3 scripts/record_demo.py media/agentWhileTrue_demo_vX.Y.Z.gif       # limit -> reset -> resume
+python3 scripts/record_whip_demo.py media/agentWhileTrue_whip_vX.Y.Z.gif  # the whip
+```
+
+Both feed invented sessions to the real renderer (and the real whip frames)
+and caption every frame accordingly. They need Pillow and a DejaVu or Noto
+monospace font; with `ffmpeg` on `PATH` the GIF is built through a generated
+palette at about half the size. Add a matching `.license` file for REUSE.
+
 ## Licensing and SBOMs
 
 All tracked files carry SPDX metadata through native comments or `.license`

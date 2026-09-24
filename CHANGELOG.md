@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.51.6] - 2026-09-24
+
+### Changed
+
+- The README introduces the whip with its own section and animation, the USAGE
+  whip section shows it too, DEVELOPMENT explains how both demo GIFs are
+  recorded, and the install command points at this release.
+
 ## [0.51.5] - 2026-09-24
 
 ### Added

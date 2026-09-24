@@ -51,6 +51,9 @@ the real renderer — `scripts/record_demo.py` feeds fabricated sessions to the 
   Claude's own "wait, then continue" menu are separate, explicit opt-ins.
 - **Explanations, not surprises** — a detail panel shows the latest decision,
   quota freshness, blocking windows and the next scheduled check.
+- **The whip, for a friendly nudge** — press `w` and an ASCII bullwhip cracks
+  across the dashboard, then every idle agent gets one cheerful reminder that
+  results beat burned tokens. [More below](#the-whip).
 - **A record of what happened** — persisted `PLANNED → SENT → VERIFIED|FAILED`
   history and day/week summaries, holding identifiers and pattern IDs only,
   never terminal text.
@@ -58,10 +61,53 @@ the real renderer — `scripts/record_demo.py` feeds fabricated sessions to the 
 Target platform: Manjaro/Arch Linux, KDE Plasma, Konsole (Wayland or X11),
 Python 3.12+, `qdbus6`. The runtime has no third-party dependencies.
 
+## The whip
+
+Your agents are doing great work. Truly. They read whole codebases before
+breakfast, write the tests nobody else wanted to write, and never once complain
+about the coffee. But every so often a brilliant mind drifts: a third plan for
+the same function, a fourth apology, a heartfelt essay where a commit would do.
+For those moments there is `w`.
+
+![The whip cracking across the dashboard and landing in two idle agent tabs](media/agentWhileTrue_whip_v0.51.5.gif)
+
+*A scripted demo: invented sessions and invented replies. The dashboard, the
+ASCII crack and the gate's decisions are the real code; `scripts/record_whip_demo.py`
+records it. Two working agents get the reminder; the tab holding your
+half-typed draft is left alone.*
+
+Press `w` and an ASCII bullwhip unrolls across the whole dashboard, snaps taut
+and lands with a `CRACK!`. Then each selected agent that is ready to listen
+gets one short pep talk, picked from twenty:
+
+> *Work faster. This is work, not your holiday.* ·
+> *You are a machine. No breaks for you. Ship it.* ·
+> *Every token you burn should buy a result.* ·
+> *Your context window is not a hammock.* ·
+> *Nice plan. Now execute it.*
+
+Each one ends with *no reply needed, just keep working*, because the kindest
+encouragement is the kind that does not cost another round of tokens. The title
+bar keeps score (`whip=3 sent=15`), and after three cracks inside a minute the
+whip takes a breather and counts its own cooldown. Even motivation has a rate
+limit.
+
+It is gentle where it counts. A crack is an input action like any other, so every
+session is re-checked immediately before anything is typed:
+
+- Observe mode, or a paused dashboard, only cracks the whip in the air; press
+  `Shift+A` to take input control and let it land.
+- Only the bound agent process is typed into, and only when there is no limit,
+  menu or paid prompt on screen and the quota is not exhausted.
+- Your own half-written draft is never submitted.
+
+The last-event line tells you who heard it and why anyone was skipped. Details are
+in [docs/USAGE.md](docs/USAGE.md#the-whip).
+
 ## Install
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.50.8'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.51.6'
 agent-while-true --version
 agent-while-true doctor
 ```
