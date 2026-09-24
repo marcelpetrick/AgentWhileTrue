@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.51.3] - 2026-09-24
+
+### Fixed
+
+- A paused dashboard only cracks the whip in the air. Pause promises no terminal
+  or quota polling, and a crack used to read every selected session and could
+  type into sessions the operator had deliberately stopped supervising.
+
 ## [0.51.2] - 2026-09-24
 
 ### Fixed

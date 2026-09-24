@@ -210,9 +210,10 @@ bar counts down; the counter is never saved.
 A crack is an input action and passes the same kind of gate as a resume,
 revalidated per session immediately before `sendText`:
 
-- Observe mode, or another watcher holding input control, only cracks the whip
-  in the air: the animation plays, the counter moves, nothing is typed. Ask and
-  auto mode type it; the keypress is the confirmation.
+- Observe mode, a paused dashboard, or another watcher holding input control
+  only cracks the whip in the air: the animation plays, the counter moves,
+  nothing is read or typed. Ask and auto mode type it; the keypress is the
+  confirmation.
 - Only selected sessions are considered, never another Konsole tab, and never
   an unsafe session or one whose resume is still being verified.
 - The foreground must still be the bound, automatable agent process - no

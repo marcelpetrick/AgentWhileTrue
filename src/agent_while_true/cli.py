@@ -526,6 +526,7 @@ def _crack_whip(
     counter: whip.WhipCounter,
     stream,
     *,
+    paused: bool = False,
     sleep: Callable[[float], None] = time.sleep,
 ) -> str:
     """Crack the whip once: animate, then offer one reminder to every session.
@@ -540,6 +541,10 @@ def _crack_whip(
         return f"whip cooling down for {remaining}s: three cracks a minute is the limit"
     size = shutil.get_terminal_size((168, 24))
     whip.animate(stream, size.columns, max(1, size.lines - 1), clear=CLEAR_SCREEN, sleep=sleep)
+    if paused:
+        # Pause promises no terminal or quota polling, so nothing is read or typed.
+        supervisor.log.info("whip_cracked", phrase=phrase, delivered=0, reason="paused")
+        return "whip cracked in the air: the dashboard is paused (p resumes)"
     if not lock.held:
         # Observe mode, or another watcher holds input control: this one types nothing.
         supervisor.log.info("whip_cracked", phrase=phrase, delivered=0, reason="observe-mode")
@@ -720,7 +725,9 @@ def _loop(
                         else "Display preferences could not be saved; current choices remain active"
                     )
                 if dashboard.consume_whip():
-                    last_event = _crack_whip(supervisor, lock, whip_counter, stream)
+                    last_event = _crack_whip(
+                        supervisor, lock, whip_counter, stream, paused=dashboard.paused
+                    )
                     next_scan = 0.0
                     event_history = read_history(
                         config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES

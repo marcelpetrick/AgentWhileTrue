@@ -148,3 +148,24 @@ def test_pressing_w_in_the_dashboard_cracks_and_counts(
     assert "whip=1 crack(s)/0 delivered" in output
     assert "whip cracked in the air" in output
     assert kit.sent == []
+
+
+def test_a_paused_dashboard_neither_reads_nor_types(tmp_path: Path) -> None:
+    """Pause means no terminal or quota polling; the whip cracks in the air."""
+    kit = _kit(tmp_path)
+    lock = SingleInstanceLock.in_directory(tmp_path / "runtime")
+    lock.acquire()
+    reads: list[str] = []
+    kit.terminal.after_read = reads.append
+    counter = whip.WhipCounter()
+    try:
+        note = cli._crack_whip(
+            kit.supervisor, lock, counter, io.StringIO(), paused=True, sleep=lambda _: None
+        )
+    finally:
+        lock.release()
+
+    assert "paused" in note
+    assert kit.sent == []
+    assert reads == []
+    assert counter.cracks == 1
