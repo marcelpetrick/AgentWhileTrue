@@ -110,11 +110,11 @@ def test_without_input_control_the_whip_only_cracks_in_the_air(tmp_path: Path) -
     assert counter.delivered == 0
 
 
-def test_the_fourth_crack_in_a_minute_is_refused_without_animation(tmp_path: Path) -> None:
+def test_the_sixth_crack_in_a_minute_is_refused_without_animation(tmp_path: Path) -> None:
     kit = _kit(tmp_path, mode=Mode.OBSERVE)
     lock = SingleInstanceLock.in_directory(tmp_path / "runtime")
     counter = whip.WhipCounter()
-    for _ in range(3):
+    for _ in range(whip.CRACKS_PER_WINDOW):
         cli._crack_whip(kit.supervisor, lock, counter, io.StringIO(), sleep=lambda _: None)
     stream = io.StringIO()
 
@@ -122,7 +122,8 @@ def test_the_fourth_crack_in_a_minute_is_refused_without_animation(tmp_path: Pat
 
     assert note.startswith("whip cooling down for ")
     assert stream.getvalue() == ""
-    assert counter.cracks == 3
+    assert counter.cracks == whip.CRACKS_PER_WINDOW
+    assert "5 cracks a minute" in note
 
 
 def test_pressing_w_in_the_dashboard_cracks_and_counts(

@@ -69,7 +69,7 @@ about the coffee. But every so often a brilliant mind drifts: a third plan for
 the same function, a fourth apology, a heartfelt essay where a commit would do.
 For those moments there is `w`.
 
-![The whip cracking across the dashboard and landing in two idle agent tabs](media/agentWhileTrue_whip_v0.51.5.gif)
+![The whip cracking across the dashboard and landing in two idle agent tabs](media/agentWhileTrue_whip_v0.51.7.gif)
 
 *A scripted demo: invented sessions and invented replies. The dashboard, the
 ASCII crack and the gate's decisions are the real code; `scripts/record_whip_demo.py`
@@ -88,9 +88,9 @@ gets one short pep talk, picked from twenty:
 
 Each one ends with *no reply needed, just keep working*, because the kindest
 encouragement is the kind that does not cost another round of tokens. The title
-bar keeps score (`whip=3 sent=15`), and after three cracks inside a minute the
-whip takes a breather and counts its own cooldown. Even motivation has a rate
-limit.
+bar keeps score (`whip=5 sent=25`). The whip allows five cracks in any rolling
+minute; a sixth waits until the oldest crack is a minute old, and the title
+counts that breather down. Even motivation has a rate limit.
 
 It is gentle where it counts. A crack is an input action like any other, so every
 session is re-checked immediately before anything is typed:
@@ -107,7 +107,7 @@ in [docs/USAGE.md](docs/USAGE.md#the-whip).
 ## Install
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.51.6'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.51.7'
 agent-while-true --version
 agent-while-true doctor
 ```

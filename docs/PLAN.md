@@ -52,7 +52,7 @@ The requested implementation is complete:
   screenshot-safe sharing without altering provider or supervision data.
 - A `w` whip hotkey cracks an ASCII bullwhip over the dashboard and types one
   reminder into each selected session whose fresh observation shows a plain
-  working screen and an empty provider composer; three cracks a minute, then a
+  working screen and an empty provider composer; five cracks a minute, then a
   cooldown, and never any input in observe mode.
 - Measured performance, coverage, licensing and dual-format SBOM gates are
   recorded in [history/maturityPlan.md](history/maturityPlan.md). The observed

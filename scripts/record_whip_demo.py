@@ -279,13 +279,13 @@ def storyboard(start: datetime) -> list[tuple[list[str], int]]:
     later = start + timedelta(seconds=39)
     cooling = dashboard(
         later,
-        "whip=3 sent=15 cooldown 21s",
-        "whip cooling down for 21s: three cracks a minute is the limit",
+        "whip=5 sent=25 cooldown 21s",
+        f"whip cooling down for 21s: {whip.CRACKS_PER_WINDOW} cracks a minute is the limit",
         (
-            "whip_cracked phrase=1 delivered=5 sessions=6",
             "whip_cracked phrase=14 delivered=5 sessions=6",
+            "whip_cracked phrase=6 delivered=5 sessions=6",
+            "whip_cracked phrase=18 delivered=5 sessions=6",
             "whip_cracked phrase=10 delivered=5 sessions=6",
-            "whip_skipped claude pts/11 phrase=10 reason=composer-not-empty",
         ),
     )
     steps.append((cooling, tabs("later", FIRST), 3600))

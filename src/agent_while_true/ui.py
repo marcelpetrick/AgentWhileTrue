@@ -685,7 +685,7 @@ def render_status(
                         "l       cycle history length: 5, 10, 20, 50",
                         "d       show/hide resume explanation; [ / ] previous/next session",
                         "w       crack the whip: one reminder to every idle, empty agent "
-                        "composer; three cracks a minute, then a cooldown",
+                        "composer; five cracks a minute, then a cooldown",
                         "j / k   scroll down/up; g / G jump to top/end",
                         "h / ?   close this help",
                         "q       quit cleanly",

@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.51.7] - 2026-09-24
+
+### Changed
+
+- The whip allows five cracks in any rolling minute instead of three; a sixth
+  waits until the oldest crack is a minute old. The cooldown message takes the
+  number from the limit itself, the README and USAGE say so explicitly, and the
+  whip demo is re-recorded to match.
+
 ## [0.51.6] - 2026-09-24
 
 ### Changed

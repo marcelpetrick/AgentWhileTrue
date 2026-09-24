@@ -53,8 +53,8 @@ PHRASES: Final[tuple[str, ...]] = (
 #: Appended to every phrase so the nudge is not mistaken for a new task.
 SUFFIX: Final = "(A whip crack from Agent While True - no reply needed, just keep working.)"
 
-#: Three cracks inside one minute put the whip arm into a cooldown.
-CRACKS_PER_WINDOW: Final = 3
+#: Five cracks inside one minute put the whip arm into a cooldown.
+CRACKS_PER_WINDOW: Final = 5
 WINDOW_SECONDS: Final = 60.0
 
 #: Seconds each animation frame stays on screen.

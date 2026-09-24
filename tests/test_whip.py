@@ -29,23 +29,24 @@ def test_phrases_are_single_ascii_lines_and_messages_ask_for_no_reply() -> None:
     assert "no reply needed" in whip.SUFFIX
 
 
-def test_three_cracks_in_a_minute_start_a_cooldown() -> None:
+def test_five_cracks_in_a_minute_start_a_cooldown() -> None:
     counter = whip.WhipCounter(rng=random.Random(1))
-    assert counter.crack(100.0) is not None
-    assert counter.crack(110.0) is not None
-    assert counter.cooldown_remaining(110.0) == 0.0
-    assert counter.crack(120.0) is not None
+    assert whip.CRACKS_PER_WINDOW == 5
+    for second in (100.0, 110.0, 120.0, 130.0):
+        assert counter.crack(second) is not None
+        assert counter.cooldown_remaining(second) == 0.0
+    assert counter.crack(140.0) is not None
 
-    assert counter.cooldown_remaining(120.0) == pytest.approx(40.0)
+    assert counter.cooldown_remaining(140.0) == pytest.approx(20.0)
     assert counter.crack(159.0) is None
-    assert counter.cracks == 3
+    assert counter.cracks == 5
     assert "cooldown 1s" in counter.badge(159.5)
 
     # The oldest crack leaves the window at 160s; the next one is allowed.
     assert counter.cooldown_remaining(160.0) == 0.0
     assert counter.crack(160.0) is not None
-    assert counter.cracks == 4
-    # 110, 120 and 160 are now inside one minute again.
+    assert counter.cracks == 6
+    # 110 through 160 are now five cracks inside one minute again.
     assert counter.cooldown_remaining(160.0) == pytest.approx(10.0)
 
 

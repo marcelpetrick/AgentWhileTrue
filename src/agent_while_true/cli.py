@@ -538,7 +538,10 @@ def _crack_whip(
     phrase = counter.crack(time.monotonic())
     if phrase is None:
         remaining = math.ceil(counter.cooldown_remaining(time.monotonic()))
-        return f"whip cooling down for {remaining}s: three cracks a minute is the limit"
+        return (
+            f"whip cooling down for {remaining}s: "
+            f"{whip.CRACKS_PER_WINDOW} cracks a minute is the limit"
+        )
     size = shutil.get_terminal_size((168, 24))
     whip.animate(stream, size.columns, max(1, size.lines - 1), clear=CLEAR_SCREEN, sleep=sleep)
     if paused:
