@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.52.6] - 2026-09-24
+
+### Fixed
+
+- Keys pressed while the dashboard redraws, or while the whip animation plays,
+  are no longer lost. Each wait for a key switched the terminal to cbreak mode
+  with the default TCSAFLUSH, which discarded pending input; it now uses
+  TCSANOW. A real pseudo-terminal test pins it.
+
 ## [0.52.5] - 2026-09-24
 
 ### Added

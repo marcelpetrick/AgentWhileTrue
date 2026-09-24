@@ -4,6 +4,8 @@
 
 """Tests for interactive dashboard state without touching a real terminal."""
 
+import os
+
 import pytest
 
 from agent_while_true import tui
@@ -15,7 +17,7 @@ def test_terminal_keys_restores_mode(monkeypatch, ready):
     restored = []
     monkeypatch.setattr(tui.sys.stdin, "fileno", lambda: 42)
     monkeypatch.setattr(tui.termios, "tcgetattr", lambda fd: ["original"])
-    monkeypatch.setattr(tui.tty, "setcbreak", lambda fd: None)
+    monkeypatch.setattr(tui.tty, "setcbreak", lambda fd, when=None: None)
     monkeypatch.setattr(tui.select, "select", lambda *args: ([42] if ready else [], [], []))
     monkeypatch.setattr(tui.os, "read", lambda *args: b"d")
     monkeypatch.setattr(tui.termios, "tcsetattr", lambda *args: restored.append(args))
@@ -28,7 +30,7 @@ def test_terminal_keys_restores_mode_on_read_error(monkeypatch):
     restored = []
     monkeypatch.setattr(tui.sys.stdin, "fileno", lambda: 42)
     monkeypatch.setattr(tui.termios, "tcgetattr", lambda fd: ["original"])
-    monkeypatch.setattr(tui.tty, "setcbreak", lambda fd: None)
+    monkeypatch.setattr(tui.tty, "setcbreak", lambda fd, when=None: None)
     monkeypatch.setattr(tui.select, "select", lambda *args: ([42], [], []))
     monkeypatch.setattr(tui.termios, "tcsetattr", lambda *args: restored.append(args))
 
@@ -39,6 +41,26 @@ def test_terminal_keys_restores_mode_on_read_error(monkeypatch):
     with pytest.raises(OSError, match="terminal closed"):
         tui.TerminalKeys(True).read(0.5)
     assert restored == [(42, tui.termios.TCSADRAIN, ["original"])]
+
+
+def test_a_key_pressed_before_the_wait_is_not_discarded(monkeypatch) -> None:
+    """A key typed while the dashboard redraws must still arrive.
+
+    ``tty.setcbreak`` defaults to TCSAFLUSH, which throws away pending input
+    each time the dashboard starts waiting for a key; keys typed during a
+    redraw or the whip animation were silently lost.
+    """
+    import io
+    import pty
+
+    controller, terminal = pty.openpty()
+    try:
+        os.write(controller, b"t")
+        monkeypatch.setattr(tui.sys, "stdin", io.TextIOWrapper(io.FileIO(terminal, closefd=False)))
+        assert tui.TerminalKeys(True).read(0.5) == "t"
+    finally:
+        os.close(controller)
+        os.close(terminal)
 
 
 def test_refresh_keys_follow_btop_interval_direction() -> None:

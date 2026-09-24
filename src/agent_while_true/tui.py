@@ -126,7 +126,9 @@ class TerminalKeys:
         descriptor = sys.stdin.fileno()
         previous = termios.tcgetattr(descriptor)
         try:
-            tty.setcbreak(descriptor)
+            # TCSANOW, not the default TCSAFLUSH: flushing would discard every
+            # key typed while the dashboard was redrawing or animating.
+            tty.setcbreak(descriptor, termios.TCSANOW)
             ready, _, _ = select.select([descriptor], [], [], timeout)
             if not ready:
                 return ""
