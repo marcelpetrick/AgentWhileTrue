@@ -75,8 +75,8 @@ def test_an_armed_crack_animates_then_delivers(tmp_path: Path) -> None:
 
     assert "[###]" in stream.getvalue()
     assert "CRACK" in stream.getvalue() or "____" in stream.getvalue()
-    assert note.startswith('whip cracked: "')
-    assert note.endswith("reached 1/1")
+    assert note.startswith('whip cracked: reached 1/1 with 1 different reminder, e.g. "')
+    assert note.endswith('"')
     assert len(kit.sent) == 1
     assert counter.cracks == 1
     assert counter.delivered == 1
@@ -178,3 +178,27 @@ def test_the_whip_badge_survives_a_narrow_paused_dashboard() -> None:
     assert badge in title
     assert "PAUSED" in title
     assert title.endswith("┐")
+
+
+def test_every_session_hears_a_different_reminder(tmp_path: Path) -> None:
+    kit = harness_module.build(tmp_path, mode=Mode.AUTO)
+    for index in range(4):
+        info = kit.inspector.add_claude(5000 + index, start_time=10 + index, tty=f"pts/{index}")
+        ref = kit.terminal.add(
+            f"/Sessions/{index}",
+            shell_pid=100 + index,
+            foreground_pid=info.identity.pid,
+            screen=list(screens.CLAUDE_ACTIVE),
+        )
+        kit.supervisor.select(ref, info.identity, "claude", f"tab {index}")
+    lock = SingleInstanceLock.in_directory(tmp_path / "runtime")
+    lock.acquire()
+    counter = whip.WhipCounter(rng=random.Random(8))
+    try:
+        note = cli._crack_whip(kit.supervisor, lock, counter, io.StringIO(), sleep=lambda _: None)
+    finally:
+        lock.release()
+
+    assert "reached 4/4 with 4 different reminders" in note
+    assert len({text for _, text in kit.sent}) == 4
+    assert counter.delivered == 4

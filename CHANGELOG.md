@@ -13,6 +13,17 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.51.9] - 2026-09-24
+
+### Changed
+
+- Every session a whip crack reaches now gets a different reminder, and phrases
+  delivered recently wait at the back of the queue (the most recent twenty), so
+  consecutive cracks stay fresh. A skipped session spends no phrase. The
+  last-event line reports how many different reminders went out with one
+  example; logs record each delivered phrase index per session. The whip demo
+  recorder shows a different line in each tab.
+
 ## [0.51.8] - 2026-09-24
 
 ### Added

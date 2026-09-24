@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import collections
 import contextlib
+import itertools
 import math
 import os
 import shutil
@@ -535,8 +536,8 @@ def _crack_whip(
     is decided afterwards, per session, by the supervisor's revalidating gate,
     so the observation it acts on is never older than the animation.
     """
-    phrase = counter.crack(time.monotonic())
-    if phrase is None:
+    order = counter.crack(time.monotonic())
+    if order is None:
         remaining = math.ceil(counter.cooldown_remaining(time.monotonic()))
         return (
             f"whip cooling down for {remaining}s: "
@@ -546,18 +547,26 @@ def _crack_whip(
     whip.animate(stream, size.columns, max(1, size.lines - 1), clear=CLEAR_SCREEN, sleep=sleep)
     if paused:
         # Pause promises no terminal or quota polling, so nothing is read or typed.
-        supervisor.log.info("whip_cracked", phrase=phrase, delivered=0, reason="paused")
+        supervisor.log.info("whip_cracked", delivered=0, reason="paused")
         return "whip cracked in the air: the dashboard is paused (p resumes)"
     if not lock.held:
         # Observe mode, or another watcher holds input control: this one types nothing.
-        supervisor.log.info("whip_cracked", phrase=phrase, delivered=0, reason="observe-mode")
+        supervisor.log.info("whip_cracked", delivered=0, reason="observe-mode")
         return "whip cracked in the air: observe mode sends nothing (Shift+A arms input)"
-    results = supervisor.whip(whip.message(phrase), phrase=phrase)
-    delivered = sum(1 for reason in results.values() if reason == "delivered")
-    counter.record_delivery(delivered)
-    supervisor.log.info("whip_cracked", phrase=phrase, delivered=delivered, sessions=len(results))
-    skipped = collections.Counter(reason for reason in results.values() if reason != "delivered")
-    summary = f'whip cracked: "{whip.PHRASES[phrase]}" reached {delivered}/{len(results)}'
+    outcomes = supervisor.whip((phrase, whip.message(phrase)) for phrase in itertools.cycle(order))
+    used = [outcome.phrase for outcome in outcomes.values() if outcome.phrase is not None]
+    counter.record_delivery(used)
+    supervisor.log.info("whip_cracked", delivered=len(used), sessions=len(outcomes))
+    summary = f"whip cracked: reached {len(used)}/{len(outcomes)}"
+    if used:
+        different = len(set(used))
+        summary += (
+            f" with {different} different reminder{'s' if different != 1 else ''}, "
+            f'e.g. "{whip.PHRASES[used[0]]}"'
+        )
+    skipped = collections.Counter(
+        outcome.reason for outcome in outcomes.values() if not outcome.delivered
+    )
     if skipped:
         summary += "; skipped " + ", ".join(
             f"{count}x {reason}" for reason, count in sorted(skipped.items())

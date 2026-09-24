@@ -88,9 +88,14 @@ def message(index: int) -> str:
     return f"{PHRASES[index]} {SUFFIX}"
 
 
+#: How many recently delivered phrases wait at the back of the queue. Half the
+#: list leaves twenty fresh ones, more than a crack usually reaches.
+RECENT_PHRASES: Final = len(PHRASES) // 2
+
+
 @dataclass(slots=True)
 class WhipCounter:
-    """Counts cracks in this run and enforces the cooldown.
+    """Counts cracks in this run, enforces the cooldown and keeps phrases fresh.
 
     Times are monotonic seconds. The cooldown is a sliding window: once
     :data:`CRACKS_PER_WINDOW` cracks fall within :data:`WINDOW_SECONDS`, the
@@ -101,7 +106,8 @@ class WhipCounter:
     cracks: int = 0
     delivered: int = 0
     _recent: deque[float] = field(default_factory=deque)
-    _last_phrase: int = -1
+    #: Delivered phrase indices, least recently used first.
+    _used: deque[int] = field(default_factory=deque)
 
     def _expire(self, now: float) -> None:
         while self._recent and now - self._recent[0] >= WINDOW_SECONDS:
@@ -114,22 +120,31 @@ class WhipCounter:
             return 0.0
         return max(0.0, self._recent[0] + WINDOW_SECONDS - now)
 
-    def crack(self, now: float) -> int | None:
-        """Record one crack and pick its phrase, or return None while cooling down.
+    def crack(self, now: float) -> list[int] | None:
+        """Record one crack and return its phrase order, or None while cooling down.
 
-        The same phrase is never picked twice in a row.
+        The order holds every phrase exactly once, so each session a crack
+        reaches gets a different one. Phrases not delivered lately come first,
+        shuffled; the recently delivered ones follow, least recent first.
         """
         if self.cooldown_remaining(now) > 0:
             return None
-        choices = [index for index in range(len(PHRASES)) if index != self._last_phrase]
-        phrase = self.rng.choice(choices)
-        self._last_phrase = phrase
+        recent = list(self._used)
+        fresh = [index for index in range(len(PHRASES)) if index not in recent]
+        self.rng.shuffle(fresh)
         self._recent.append(now)
         self.cracks += 1
-        return phrase
+        return fresh + recent
 
-    def record_delivery(self, count: int) -> None:
-        self.delivered += max(0, count)
+    def record_delivery(self, phrases: list[int]) -> None:
+        """Count the delivered phrases and move them to the back of the queue."""
+        self.delivered += len(phrases)
+        for phrase in phrases:
+            if phrase in self._used:
+                self._used.remove(phrase)
+            self._used.append(phrase)
+        while len(self._used) > RECENT_PHRASES:
+            self._used.popleft()
 
     def badge(self, now: float) -> str:
         """The dashboard's one-line counter."""

@@ -43,8 +43,10 @@ CAPTION = (
     f"scripted demo of the agent-while-true {__version__} whip - invented sessions and "
     "replies; the dashboard, the crack and the gate's decisions are the real code"
 )
-#: The phrase the storyboard cracks first, and the one the second crack picks.
-FIRST, SECOND = 1, 10
+#: The phrases each crack types into the two receiving tabs: every session a
+#: crack reaches gets its own reminder, so the Claude and Codex tabs differ.
+FIRST = (1, 30)
+LATER = (10, 34)
 
 _RESET = "\x1b[0m"
 _PANE = "\x1b[38;5;252;48;5;234m"
@@ -96,9 +98,10 @@ def side_by_side(panes: list[list[str]]) -> list[str]:
     return [gap.join(row) for row in zip(*panes, strict=True)]
 
 
-def tabs(stage: str, phrase: int, *, flash: bool = False) -> list[str]:
+def tabs(stage: str, *, flash: bool = False) -> list[str]:
     """The three Konsole tabs at one moment of the story."""
-    text = whip.message(phrase)
+    phrases = LATER if stage == "later" else FIRST
+    claude_text, codex_text = (whip.message(phrase) for phrase in phrases)
     claude_work = [
         (_PANE, "● Update(src/harbour/dock.py)"),
         (_PANE_DIM, "  └ Updated with 4 additions and 1 removal"),
@@ -125,30 +128,30 @@ def tabs(stage: str, phrase: int, *, flash: bool = False) -> list[str]:
     draft_note: list[tuple[str, str]] = []
 
     if stage == "typed":
-        claude_prompt = (_WHIP_TEXT, f"{CLAUDE_CURSOR} {text}")
-        codex_prompt = (_WHIP_TEXT, f"{CODEX_CURSOR} {text}")
+        claude_prompt = (_WHIP_TEXT, f"{CLAUDE_CURSOR} {claude_text}")
+        codex_prompt = (_WHIP_TEXT, f"{CODEX_CURSOR} {codex_text}")
         draft_note = [(_SKIP, "  (whip skipped: your draft stays yours)")]
     elif stage == "answered":
         claude_work = [
             *claude_work[2:4],
-            (_WHIP_TEXT, f"{CLAUDE_CURSOR} {text}"),
+            (_WHIP_TEXT, f"{CLAUDE_CURSOR} {claude_text}"),
             (_CLAUDE, "● On it. Shipping the dock refactor, no essay."),
         ]
         codex_work = [
             *codex_work[:2],
-            (_WHIP_TEXT, f"{CODEX_CURSOR} {text}"),
+            (_WHIP_TEXT, f"{CODEX_CURSOR} {codex_text}"),
             (_CODEX, "• Understood. Finishing the mapper; tests next."),
         ]
         draft_note = [(_SKIP, "  (whip skipped: your draft stays yours)")]
     elif stage == "later":
         claude_work = [
             (_OK, "● Dock refactor done: 4 files, 23 tests green."),
-            (_WHIP_TEXT, f"{CLAUDE_CURSOR} {whip.message(SECOND)}"),
+            (_WHIP_TEXT, f"{CLAUDE_CURSOR} {claude_text}"),
             (_CLAUDE, "● Committing now."),
         ]
         codex_work = [
             (_OK, "• Mapper finished; cargo test 148 passed."),
-            (_WHIP_TEXT, f"{CODEX_CURSOR} {whip.message(SECOND)}"),
+            (_WHIP_TEXT, f"{CODEX_CURSOR} {codex_text}"),
             (_CODEX, "• Pushing the branch."),
         ]
 
@@ -251,30 +254,31 @@ def storyboard(start: datetime) -> list[tuple[list[str], int]]:
     label = _LABEL + "  other Konsole tabs, supervised by the watcher above".ljust(COLUMNS) + _RESET
     steps: list[tuple[list[str], list[str], int]] = []
     before = ("resume_verified codex pts/5 result=resumed",)
-    first = whip.PHRASES[FIRST]
+    claude_first, codex_first = FIRST
     delivered = (
-        "whip_delivered codex pts/5 phrase=1",
-        "whip_delivered claude pts/9 phrase=1",
-        "whip_skipped claude pts/11 phrase=1 reason=composer-not-empty",
-        "whip_cracked phrase=1 delivered=5 sessions=6",
+        f"whip_delivered codex pts/5 phrase={codex_first}",
+        f"whip_delivered claude pts/9 phrase={claude_first}",
+        "whip_skipped claude pts/11 phrase=- reason=composer-not-empty",
+        "whip_cracked delivered=5 sessions=6",
     )
     hint = "six agents working - press w to crack the whip"
     idle = dashboard(start, "whip=0 sent=0", hint, before)
-    steps.append((idle, tabs("working", FIRST), 2600))
+    steps.append((idle, tabs("working"), 2600))
 
     height = len(idle)
     crack_frames = whip.frames(COLUMNS, height)
     for index, frame in enumerate(crack_frames):
         duration = 90 if index < len(crack_frames) - 3 else 260
-        steps.append(
-            (paint_crack(frame, height), tabs("working", FIRST, flash=is_burst(frame)), duration)
-        )
+        steps.append((paint_crack(frame, height), tabs("working", flash=is_burst(frame)), duration))
 
     moment = start + timedelta(seconds=2)
-    reached = f'whip cracked: "{first}" reached 5/6; skipped 1x composer-not-empty'
+    reached = (
+        "whip cracked: reached 5/6 with 5 different reminders, "
+        f'e.g. "{whip.PHRASES[codex_first]}"; skipped 1x composer-not-empty'
+    )
     after = dashboard(moment, "whip=1 sent=5", reached, delivered)
-    steps.append((after, tabs("typed", FIRST), 2200))
-    steps.append((after, tabs("answered", FIRST), 3200))
+    steps.append((after, tabs("typed"), 2200))
+    steps.append((after, tabs("answered"), 3200))
 
     later = start + timedelta(seconds=39)
     cooling = dashboard(
@@ -282,13 +286,13 @@ def storyboard(start: datetime) -> list[tuple[list[str], int]]:
         "whip=5 sent=25 cooldown 21s",
         f"whip cooling down for 21s: {whip.CRACKS_PER_WINDOW} cracks a minute is the limit",
         (
-            "whip_cracked phrase=14 delivered=5 sessions=6",
-            "whip_cracked phrase=6 delivered=5 sessions=6",
-            "whip_cracked phrase=18 delivered=5 sessions=6",
-            "whip_cracked phrase=10 delivered=5 sessions=6",
+            "whip_cracked delivered=5 sessions=6",
+            f"whip_delivered claude pts/9 phrase={LATER[0]}",
+            f"whip_delivered codex pts/5 phrase={LATER[1]}",
+            "whip_cracked delivered=5 sessions=6",
         ),
     )
-    steps.append((cooling, tabs("later", FIRST), 3600))
+    steps.append((cooling, tabs("later"), 3600))
 
     tallest = max(len(top) for top, _, _ in steps)
     screens = []

@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
@@ -859,44 +859,59 @@ class Supervisor:
 
     # -- the whip ----------------------------------------------------------
 
-    def whip(self, text: str, *, phrase: int) -> dict[str, str]:
+    def whip(self, messages: Iterator[tuple[int, str]]) -> dict[str, WhipOutcome]:
         """Type one reminder into every supervised session that can take it.
 
         A whip crack is one operator keypress and one attempt per session:
         nothing is persisted, planned or retried, and a refusal is final. Each
         session is still revalidated from scratch, and only a plain working
         screen with the provider's own composer visibly empty qualifies, so the
-        reminder can never finish a draft, answer a menu or resume a limit. The
-        foreground process is re-read last, directly before ``sendText``.
+        reminder can never finish a draft, answer a menu or resume a limit.
+        Every session that qualifies takes the next ``(phrase, text)`` message,
+        so one crack types a different reminder into each session it reaches.
+        The foreground process is re-read last, directly before ``sendText``.
 
-        Returns ``"delivered"`` or the refusal reason for every session key.
+        Returns the outcome for every session key.
         """
-        results: dict[str, str] = {}
+        results: dict[str, WhipOutcome] = {}
         for key, session in list(self.sessions.items()):
-            reason = self._whip_refusal(session, text)
+            reason = self._whip_refusal(session)
+            phrase: int | None = None
             if not reason:
-                try:
-                    self.terminal.send_text(session.ref, whip_keystrokes(text))
-                    reason = "delivered"
-                except TerminalError as exc:
-                    reason = f"send-failed:{type(exc).__name__}"
-            results[key] = reason
+                picked = next(messages, None)
+                if picked is None:
+                    reason = "no-message-left"
+                else:
+                    phrase, text = picked
+                    reason = self._whip_send(session, text)
+            results[key] = WhipOutcome(reason, phrase if reason == "delivered" else None)
             # The phrase index, never its text: prompt text is not logged.
             self.log.info(
                 "whip_delivered" if reason == "delivered" else "whip_skipped",
                 provider=session.provider_name,
                 session=key,
                 process=session.describe_process(),
-                phrase=phrase,
+                phrase="-" if phrase is None else phrase,
                 reason=reason,
             )
         return results
 
-    def _whip_refusal(self, session: SupervisedSession, text: str) -> str:
-        if not self.config.mode.may_send_input:
-            return "observe-mode"
+    def _whip_send(self, session: SupervisedSession, text: str) -> str:
         if not text or not text.isascii() or not text.isprintable():
             return "unsafe-text"
+        drift = self._live_process_drift(session)
+        if drift:
+            return drift
+        try:
+            self.terminal.send_text(session.ref, whip_keystrokes(text))
+        except TerminalError as exc:
+            return f"send-failed:{type(exc).__name__}"
+        return "delivered"
+
+    def _whip_refusal(self, session: SupervisedSession) -> str:
+        """Everything but the final process re-read, which ``_whip_send`` does last."""
+        if not self.config.mode.may_send_input:
+            return "observe-mode"
         if session.marked_unsafe:
             return "session-unsafe"
         # ``pending_key`` outlives a failed or cancelled attempt; only an
@@ -921,7 +936,7 @@ class Supervisor:
         # turn submitted into spent quota only earns a fresh limit prompt.
         if observation.quota.availability is Availability.EXHAUSTED:
             return "quota-exhausted"
-        return self._live_process_drift(session)
+        return ""
 
     # -- verification ------------------------------------------------------
 
@@ -1084,6 +1099,19 @@ class Supervisor:
             session=key,
             reason=reason,
         )
+
+
+@dataclass(frozen=True, slots=True)
+class WhipOutcome:
+    """What one whip crack did in one session."""
+
+    reason: str
+    #: The phrase typed there; ``None`` unless it was delivered.
+    phrase: int | None = None
+
+    @property
+    def delivered(self) -> bool:
+        return self.reason == "delivered"
 
 
 def whip_keystrokes(text: str) -> str:

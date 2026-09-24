@@ -50,8 +50,8 @@ The requested implementation is complete:
   feature plan and validation notes are in [history/nextFeatures.md](history/nextFeatures.md).
 - A non-persistent `x` hotkey masks account e-mails in every dashboard view for
   screenshot-safe sharing without altering provider or supervision data.
-- A `w` whip hotkey cracks an ASCII bullwhip over the dashboard and types one
-  reminder into each selected session whose fresh observation shows a plain
+- A `w` whip hotkey cracks an ASCII bullwhip over the dashboard and types a
+  different reminder into each selected session whose fresh observation shows a plain
   working screen and an empty provider composer; five cracks a minute, then a
   cooldown, and never any input in observe mode.
 - Measured performance, coverage, licensing and dual-format SBOM gates are
