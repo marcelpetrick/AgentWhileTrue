@@ -22,6 +22,7 @@ moved to the background, will *not* resume on its own.
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from datetime import datetime
 from typing import Final
 
@@ -315,4 +316,28 @@ class ClaudeAdapter(ProviderAdapter):
             else line
             for index, line in enumerate(live)
         ]
-        return super().recognise(scoped, now=now, live_lines=live_lines)
+        result = super().recognise(scoped, now=now, live_lines=live_lines)
+        return replace(result, composer_empty=_composer_empty(lines))
+
+
+#: Claude draws its composer cursor with this glyph; the menu cursor uses it too.
+_COMPOSER_GLYPH = "\N{HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT}"
+#: The composer sits at the bottom, under at most a rule and a status line or
+#: two. A cursor glyph further up is a submitted turn, not the input box.
+CLAUDE_COMPOSER_ROWS: Final = 6
+
+
+def _composer_empty(lines: list[str]) -> bool:
+    """True only when the newest cursor row near the bottom is an empty composer.
+
+    A draft, a placeholder suggestion and a menu cursor all carry text after
+    the glyph and are therefore not empty; so is a screen without the glyph.
+    """
+    end = len(lines)
+    while end and not lines[end - 1].strip():
+        end -= 1
+    for line in reversed(lines[max(0, end - CLAUDE_COMPOSER_ROWS) : end]):
+        stripped = line.strip()
+        if stripped.startswith(_COMPOSER_GLYPH):
+            return not stripped[len(_COMPOSER_GLYPH) :].strip()
+    return False

@@ -166,6 +166,10 @@ class Recognition:
     retry_prompt: bool = False
     active_evidence: bool = False
     input_ready: bool = True
+    #: The provider's own composer is on screen and visibly empty. Anything
+    #: typed and submitted there lands as a fresh message rather than finishing
+    #: a draft or answering a menu. Unknown layouts leave it False.
+    composer_empty: bool = False
 
     @property
     def matched_ids(self) -> tuple[str, ...]:

@@ -247,4 +247,10 @@ class CodexAdapter(ProviderAdapter):
             result = super().recognise(live[active_rows[-1] :], now=now, live_lines=live_lines)
             exact = False
             active = True
-        return replace(result, retry_prompt=exact, active_evidence=active, input_ready=empty)
+        return replace(
+            result,
+            retry_prompt=exact,
+            active_evidence=active,
+            input_ready=empty,
+            composer_empty=empty,
+        )

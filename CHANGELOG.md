@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.50.10] - 2026-09-24
+
+### Added
+
+- Recognizers report whether the provider's own composer is on screen and visibly
+  empty (`Recognition.composer_empty`): Codex's `›` row with no text or its
+  placeholder, and Claude's bottom `❯` row with nothing after it. A draft, a
+  placeholder suggestion, a menu cursor or a missing composer is not empty.
+  Nothing acts on it yet; unknown layouts leave it false.
+
 ## [0.50.9] - 2026-09-24
 
 ### Added

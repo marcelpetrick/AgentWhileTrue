@@ -290,6 +290,21 @@ CODEX_ACTIVE = [
     "› ",
 ]
 
+#: A person's unsent draft in each composer. Submitting anything here would
+#: send their half-written message, so neither composer counts as empty.
+CLAUDE_DRAFT = [
+    "● Reading src/agent_while_true/policy.py",
+    "",
+    "❯ also check the lock handling and",
+    "  Opus 5 ctx:28% 5h:19% reset:4h51m",
+]
+
+CODEX_DRAFT = [
+    "• Ran cargo test",
+    "",
+    "› rename the helper before you",
+]
+
 
 #: A limit banner that has scrolled far up the screen. It must not be able to
 #: trigger anything (vision DANGER 3).
