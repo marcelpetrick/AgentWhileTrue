@@ -179,6 +179,39 @@ anchors are bound to the selected process and reset hint; a later reset creates
 a separate episode. All open same-profile rollouts are considered for quota,
 using newest valid windowed evidence rather than file-descriptor order.
 
+## Operator whip
+
+The dashboard's `w` key is the one input path an operator starts by hand. It
+is deliberately outside the resume lifecycle: a crack is a single attempt per
+session and is never planned, persisted or retried, so a restart cannot repeat
+it. It still passes its own revalidating gate in `Supervisor.whip`:
+
+```mermaid
+flowchart LR
+    key["w pressed"] --> rate{"under 5 cracks in the last 60 s?"}
+    rate -->|no| cool["cooldown; nothing drawn or read"]
+    rate -->|yes| anim["ASCII crack animation"]
+    anim --> armed{"unpaused and holding the input lock?"}
+    armed -->|no| air["cracked in the air; nothing read or typed"]
+    armed -->|yes| each["for each selected session"]
+    each --> gate{"fresh observation: not unsafe, nothing in flight,<br/>same identity, automatable, ACTIVE with no prompt matched,<br/>composer visibly empty, quota not EXHAUSTED"}
+    gate -->|no| skip["skipped, reason logged"]
+    gate -->|yes| phrase["next phrase from this crack's order"]
+    phrase --> reread{"foreground process re-read unchanged?"}
+    reread -->|no| skip
+    reread -->|yes| send["sendText: bracketed paste + Enter"]
+```
+
+"Composer visibly empty" is provider-specific: Codex's composer row holds
+nothing but its placeholder and only its footer follows; Claude's empty cursor
+row must sit directly on its input box's closing rule, so a multi-line draft
+begun with Shift+Enter is skipped too. Quota is used the other way round from a
+resume: exhausted quota blocks a crack, while unknown quota does not, because a
+reminder asks for no usage that is not already being spent. Each crack offers
+all forty phrases in an order that puts recently delivered ones last, so every
+session reached gets a different line. The log records the phrase index, never
+its text.
+
 ## Persisted action lifecycle
 
 ```mermaid
@@ -238,9 +271,9 @@ may coexist. The holder also serves a control socket beside the lock, so a
 watcher started later can ask for the lock instead of being locked out for the
 lifetime of a service: the holder releases before it answers and re-arms when
 the successor exits, which keeps the single-writer guarantee that the lock, not
-the protocol, enforces. D-Bus access, state files, and the service all remain within the
-desktop user account; root execution, SSH, containers, tmux/screen, and
-ambiguous process ancestry are non-automatable.
+the protocol, enforces. D-Bus access, state files, and the service all remain
+within the desktop user account; root execution, SSH, containers, tmux/screen,
+and ambiguous process ancestry are non-automatable.
 
 ## Architectural decisions
 

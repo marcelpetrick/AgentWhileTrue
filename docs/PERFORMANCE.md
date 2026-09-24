@@ -121,8 +121,9 @@ The revised behavior meets the intended balance on this machine:
 Workload scales mainly with the number of selected sessions because the Konsole
 adapter intentionally uses scoped D-Bus calls for each live identity and screen.
 Users supervising unusually many sessions can increase the selected-session
-interval with `+` or `--scan-interval`; the one-second provider-health floor is
-independent of that setting.
+interval with `+` or `--scan-interval`; the provider-health cadence
+(`SERVICE_STATUS_INTERVAL`, five minutes by default) is independent of that
+setting.
 
 Re-run this profile after changes to terminal discovery, quota polling, status
 transport, dashboard cadence, or process inspection. Compare like-for-like

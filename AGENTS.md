@@ -52,6 +52,11 @@ when recognizer behavior changes.
   waiting back to Claude; it never claims usage returned. Every variation,
   including a menu with no banner, fails closed.
 - Codex resume types into its composer and therefore remains opt-in.
+- The dashboard whip (`w`) is the only operator-initiated free-text input. It
+  never types in observe mode, while paused or without input control; only
+  into a selected, revalidated session with a plain working screen, a visibly
+  empty provider composer and quota that is not exhausted; it is never
+  persisted or retried, and it is limited to five cracks per rolling minute.
 - Never log terminal contents, environment values, credentials, or prompt text.
 - Preserve the persisted action lifecycle and single-instance lock.
 - Treat SSH, containers, tmux/screen, conflicting classification signals, and
@@ -85,7 +90,7 @@ Before every commit:
 ```bash
 ruff check .
 ruff format --check .
-shellcheck --severity=style scripts/*.sh
+shellcheck --severity=style *.sh scripts/*.sh
 python3 -m pytest -q
 git --no-pager diff --check
 ```

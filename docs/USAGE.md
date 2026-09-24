@@ -211,10 +211,11 @@ The line comes first, followed by the project's address and "no reply needed,
 just keep working": `Nice plan. Now execute it. (A whip crack from
 https://github.com/marcelpetrick/AgentWhileTrue - no reply needed, just keep
 working.)`. The address tells a reader of the transcript where the crack came
-from; the rest keeps the nudge from burning the tokens it complains about. The title bar counts this run's cracks and
-deliveries. At most five cracks fit in any rolling 60 seconds: a sixth is
-refused, without the animation, until the oldest of the five is a minute old,
-and the title bar counts that cooldown down. The counter is never saved.
+from; the rest keeps the nudge from burning the tokens it complains about. The
+title bar counts this run's cracks and deliveries. At most five cracks fit in
+any rolling 60 seconds: a sixth is refused, without the animation, until the
+oldest of the five is a minute old, and the title bar counts that cooldown down.
+The counter is never saved.
 
 A crack is an input action and passes the same kind of gate as a resume,
 revalidated per session immediately before `sendText`:
@@ -235,7 +236,9 @@ revalidated per session immediately before `sendText`:
   prompt. Unknown quota does not block a reminder, because a reminder is not a
   resume.
 - The provider's own composer must be visibly empty. A draft (yours) or a
-  placeholder suggestion skips the session rather than submitting it.
+  placeholder suggestion skips the session rather than submitting it. For
+  Claude, the empty cursor row must sit directly on the input box's closing
+  rule, so a multi-line draft begun with Shift+Enter is skipped as well.
 
 The dashboard's last-event line names how many sessions it reached and why the
 others were skipped. The log records the phrase number, never its text.

@@ -50,7 +50,7 @@ Actions runs on Python 3.12, 3.13 and 3.14. It checks, in order:
 ### Coverage
 
 The floor is 98% of statements and branches combined, measured over
-`src/agent_while_true` by `scripts/quality.sh`; 0.50.8 measured 98.7%. It is a
+`src/agent_while_true` by `scripts/quality.sh`; 0.52.3 measured 98.8%. It is a
 floor for behaviour, not for lines:
 
 - Cover a branch with a test that states what the branch is for - a refusal, a
@@ -70,7 +70,7 @@ Run `.venv/bin/python -m pytest --cov=agent_while_true
 The faster inner loop is the required pre-commit set from AGENTS.md:
 
 ```bash
-ruff check . && ruff format --check . && shellcheck --severity=style scripts/*.sh
+ruff check . && ruff format --check . && shellcheck --severity=style *.sh scripts/*.sh
 python3 -m pytest -q
 git --no-pager diff --check
 ```

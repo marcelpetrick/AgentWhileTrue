@@ -39,8 +39,6 @@ the first limit warning through the reset to a verified resume. The frames come 
 the real renderer — `scripts/record_demo.py` feeds fabricated sessions to the same
 `render_status` the tool uses — so the layout is genuine and the data is fiction.*
 
-![Agent While True auto-mode dashboard](media/agentWhileTrue_v0.33.0.png)
-
 ## What it does
 
 - **One view across your agents** — selected Codex and Claude sessions, their
@@ -98,16 +96,17 @@ The funny line comes first; after it, each reminder names where it came from,
 `https://github.com/marcelpetrick/AgentWhileTrue`, so anyone reading an agent's
 transcript can find the whip's source. It closes with *no reply needed, just
 keep working*, because the kindest encouragement is the kind that does not cost
-another round of tokens. The title
-bar keeps score (`whip=5 sent=25`). The whip allows five cracks in any rolling
-minute; a sixth waits until the oldest crack is a minute old, and the title
-counts that breather down. Even motivation has a rate limit.
+another round of tokens. The title bar keeps score (`whip=5 sent=25`). The
+whip allows five cracks in any rolling minute; a sixth waits until the oldest
+crack is a minute old, and the title counts that breather down. Even
+motivation has a rate limit.
 
 It is gentle where it counts. A crack is an input action like any other, so every
 session is re-checked immediately before anything is typed:
 
-- Observe mode, or a paused dashboard, only cracks the whip in the air; press
-  `Shift+A` to take input control and let it land.
+- Observe mode, a paused dashboard, or another watcher holding input control
+  only cracks the whip in the air; press `p` to resume or `Shift+A` to take
+  input control and let it land.
 - Only the bound agent process is typed into, and only when there is no limit,
   menu or paid prompt on screen and the quota is not exhausted.
 - Your own half-written draft is never submitted.
@@ -139,9 +138,9 @@ agent-while-true run --observe --all # watch everything; never type
 Ask and auto mode need Konsole's input D-Bus API enabled once
 (`EnableSecuritySensitiveDBusAPI`) and Konsole restarted — see
 [docs/USAGE.md §1](docs/USAGE.md#1-enable-konsole-input-once). In the running
-dashboard, `Shift+A` switches between observe and full-auto, `d` explains the
-selected session, `w` cracks the whip (one reminder to every idle agent, through
-the same revalidation), `h` lists every key.
+dashboard, `Shift+A` switches to full-auto and back to observe or ask, `d`
+explains the selected session, `w` cracks the whip (a reminder to every idle
+agent, through the same revalidation), and `h` lists every key.
 
 | Mode | Command | Sends input? |
 | --- | --- | --- |

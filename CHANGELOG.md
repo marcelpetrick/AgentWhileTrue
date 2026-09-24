@@ -13,6 +13,20 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.52.4] - 2026-09-24
+
+### Changed
+
+- Documentation review. ARCHITECTURE gains an "Operator whip" section with its
+  gate as a flowchart. AGENTS records the whip as a safety invariant. README
+  drops the v0.33.0 screenshot (the file stays in `media/`) and says how a crack
+  that only cracked in the air can land (`p` to resume or `Shift+A`). USAGE adds
+  the Claude closing-rule condition. PLAN records the witnessed Codex acceptance,
+  the full whip gate and the local lock-handover socket. PERFORMANCE states the
+  five-minute health cadence. The pre-commit ShellCheck command also covers the
+  root scripts, as the gate does. Stale figures, the Shift+A wording and long
+  lines are fixed.
+
 ## [0.52.3] - 2026-09-24
 
 ### Changed
