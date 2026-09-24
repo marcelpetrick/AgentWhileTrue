@@ -78,6 +78,18 @@ git --no-pager diff --check
 `--no-pager` matters in a script: Git pages `diff` output, and a `LESS` value
 without `-F` then holds an automated run open on an empty diff.
 
+End-to-end tests (`-m e2e`, part of the normal suite) start the real CLI on a
+pseudo-terminal and drive it with key presses: a dashboard cracks the whip in
+every theme and checks each crack is painted in that theme's colours, and bare
+ASCII in the plain theme, with `--no-color` and with `NO_COLOR`. They run
+without Konsole (no `qdbus` on `PATH`), in observe mode, with isolated state
+directories and the status poll pointed at a closed local proxy, so nothing is
+typed anywhere and nothing reaches the network:
+
+```bash
+python3 -m pytest -q -m e2e
+```
+
 The opt-in live adapter test needs a running KDE Konsole and only reads:
 
 ```bash

@@ -141,6 +141,10 @@ def parse_ansi(frame: str, default_bg: tuple[int, int, int]) -> list[list[Cell]]
                     foreground = _BASE16[code - 30]
                 elif 40 <= code <= 47:
                     background = _BASE16[code - 40]
+                elif 90 <= code <= 97:
+                    foreground = _BASE16[code - 90 + 8]
+                elif 100 <= code <= 107:
+                    background = _BASE16[code - 100 + 8]
                 index += 1
         for char in line[position:]:
             row.append(Cell(char, foreground, background, bold))

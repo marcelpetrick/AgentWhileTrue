@@ -67,15 +67,16 @@ about the coffee. But every so often a brilliant mind drifts: a third plan for
 the same function, a fourth apology, a heartfelt essay where a commit would do.
 For those moments there is `w`.
 
-![The whip cracking across the dashboard and landing in two idle agent tabs](media/agentWhileTrue_whip_v0.52.3.gif)
+![The whip cracking across the dashboard and landing in two idle agent tabs](media/agentWhileTrue_whip_v0.53.0.gif)
 
 *A scripted demo: invented sessions and invented replies. The dashboard, the
 ASCII crack and the gate's decisions are the real code; `scripts/record_whip_demo.py`
 records it. Two working agents get the reminder; the tab holding your
 half-typed draft is left alone.*
 
-Press `w` and an ASCII bullwhip unrolls across the whole dashboard, snaps taut
-and lands with a `CRACK!`. Then each selected agent that is ready to listen
+Press `w` and an ASCII bullwhip unrolls across the whole dashboard, in the
+colours of whichever theme you picked with `t`, snaps taut and lands with a
+`CRACK!`. Then each selected agent that is ready to listen
 gets its own short pep talk, picked from forty. No two tabs hear the same line
 in one crack, and recently used lines wait their turn, so it stays fresh:
 
@@ -117,7 +118,7 @@ in [docs/USAGE.md](docs/USAGE.md#the-whip).
 ## Install
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.52.2'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.53.0'
 agent-while-true --version
 agent-while-true doctor
 ```

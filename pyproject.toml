@@ -58,7 +58,10 @@ testpaths = ["tests"]
 # src-layout: import the package under test without needing an editable install.
 pythonpath = ["src"]
 addopts = "-ra --strict-markers --strict-config"
-markers = ["konsole: requires a live KDE Konsole D-Bus session"]
+markers = [
+    "konsole: requires a live KDE Konsole D-Bus session",
+    "e2e: drives the real CLI on a pseudo-terminal (no Konsole, no input sent)",
+]
 
 [tool.coverage.run]
 branch = true

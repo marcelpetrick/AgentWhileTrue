@@ -159,7 +159,8 @@ class WhipCounter:
 
 # -- animation --------------------------------------------------------------
 
-_HANDLE: Final = "[###]"
+#: The grip, pommel first: long enough to read as a bullwhip's handle.
+HANDLE: Final = "o[=#=#=#=#=#=]"
 _CRACK_ART: Final = (
     r"  ____ ____      _    ____ _  __ _ ",
     r" / ___|  _ \    / \  / ___| |/ /| |",
@@ -170,27 +171,32 @@ _CRACK_ART: Final = (
 _BURST: Final = (r"\ | /", r"- * -", r"/ | \ ")
 _LASH_FRAMES: Final = 9
 
+#: What each drawn cell belongs to, so a theme can colour the parts apart.
+PARTS: Final = ("blank", "handle", "lash", "burst", "art")
 
-def _blank(width: int, height: int) -> list[list[str]]:
-    return [[" "] * width for _ in range(height)]
+_Grid = list[list[tuple[str, str]]]
 
 
-def _put(grid: list[list[str]], row: int, column: int, text: str) -> None:
+def _blank(width: int, height: int) -> _Grid:
+    return [[(" ", "blank")] * width for _ in range(height)]
+
+
+def _put(grid: _Grid, row: int, column: int, text: str, part: str) -> None:
     if not 0 <= row < len(grid):
         return
     for offset, char in enumerate(text):
         if 0 <= column + offset < len(grid[row]):
-            grid[row][column + offset] = char
+            grid[row][column + offset] = (char, "blank" if char == " " else part)
 
 
-def _lash(grid: list[list[str]], progress: float, handle_row: int) -> tuple[int, int]:
+def _lash(grid: _Grid, progress: float, handle_row: int) -> tuple[int, int]:
     """Draw the lash for ``progress`` in [0, 1]; return the tip position.
 
     The lash unrolls from the handle as a travelling wave whose amplitude dies
     away, so the last frames are a taut straight line: the snap.
     """
     width = len(grid[0])
-    start = len(_HANDLE)
+    start = len(HANDLE)
     reach = max(1, width - start - 4)
     length = max(1, round(reach * progress**0.8))
     amplitude = max(1, handle_row - 1) * (1 - progress) ** 1.2
@@ -205,11 +211,39 @@ def _lash(grid: list[list[str]], progress: float, handle_row: int) -> tuple[int,
         here, there = round(rows[step]), round(rows[step + 1])
         slope = rows[step + 1] - rows[step]
         char = "-" if abs(slope) < 0.35 else ("/" if slope < 0 else "\\")
-        _put(grid, here, start + step, char)
+        _put(grid, here, start + step, char, "lash")
         for row in range(min(here, there) + 1, max(here, there)):
-            _put(grid, row, start + step, "|")
+            _put(grid, row, start + step, "|", "lash")
     tip_row = max(0, min(len(grid) - 1, round(rows[length])))
     return tip_row, start + length
+
+
+def _scenes(width: int, height: int) -> list[_Grid]:
+    """Every frame of one crack as a grid of ``(char, part)`` cells."""
+    width = max(len(HANDLE) + 8, width)
+    height = max(5, height)
+    handle_row = max(2, (height * 2) // 3)
+    scenes: list[_Grid] = []
+    tip = (handle_row, width - 4)
+    for frame in range(_LASH_FRAMES):
+        grid = _blank(width, height)
+        _put(grid, handle_row, 0, HANDLE, "handle")
+        tip = _lash(grid, frame / (_LASH_FRAMES - 1), handle_row)
+        scenes.append(grid)
+    for shake in (0, 1, 0):
+        grid = _blank(width, height)
+        _put(grid, handle_row, 0, HANDLE, "handle")
+        _lash(grid, 1.0, handle_row)
+        tip_row, tip_column = tip
+        for offset, part in enumerate(_BURST):
+            _put(grid, tip_row - 1 + offset, tip_column - 2 + shake, part, "burst")
+        art = _CRACK_ART if width >= len(_CRACK_ART[0]) + 2 and height >= 8 else ("CRACK!",)
+        top = max(0, min(handle_row - len(art) - 2, height // 6))
+        left = max(0, (width - len(art[0])) // 2) + shake
+        for offset, line in enumerate(art):
+            _put(grid, top + offset, left, line, "art")
+        scenes.append(grid)
+    return scenes
 
 
 def frames(width: int, height: int) -> list[str]:
@@ -218,34 +252,30 @@ def frames(width: int, height: int) -> list[str]:
     Pure ASCII, one string per frame, each exactly ``height`` lines of at most
     ``width`` columns, so a frame replaces the whole dashboard.
     """
-    width = max(12, width)
-    height = max(5, height)
-    handle_row = max(2, (height * 2) // 3)
-    rendered: list[str] = []
-    tip = (handle_row, width - 4)
-    for frame in range(_LASH_FRAMES):
-        grid = _blank(width, height)
-        _put(grid, handle_row, 0, _HANDLE)
-        tip = _lash(grid, frame / (_LASH_FRAMES - 1), handle_row)
-        rendered.append(_join(grid))
-    for shake in (0, 1, 0):
-        grid = _blank(width, height)
-        _put(grid, handle_row, 0, _HANDLE)
-        _lash(grid, 1.0, handle_row)
-        tip_row, tip_column = tip
-        for offset, part in enumerate(_BURST):
-            _put(grid, tip_row - 1 + offset, tip_column - 2 + shake, part)
-        art = _CRACK_ART if width >= len(_CRACK_ART[0]) + 2 and height >= 8 else ("CRACK!",)
-        top = max(0, min(handle_row - len(art) - 2, height // 6))
-        left = max(0, (width - len(art[0])) // 2) + shake
-        for offset, line in enumerate(art):
-            _put(grid, top + offset, left, line)
-        rendered.append(_join(grid))
-    return rendered
+    return [
+        "\n".join("".join(char for char, _ in row).rstrip() for row in scene)
+        for scene in _scenes(width, height)
+    ]
 
 
-def _join(grid: list[list[str]]) -> str:
-    return "\n".join("".join(row).rstrip() for row in grid)
+def frame_segments(width: int, height: int) -> list[list[list[tuple[str, str]]]]:
+    """The same frames as rows of ``(text, part)`` runs, for theme colouring.
+
+    Every row covers the full width, so a painted frame fills the screen.
+    """
+    painted = []
+    for scene in _scenes(width, height):
+        rows = []
+        for row in scene:
+            runs: list[tuple[str, str]] = []
+            for char, part in row:
+                if runs and runs[-1][1] == part:
+                    runs[-1] = (runs[-1][0] + char, part)
+                else:
+                    runs.append((char, part))
+            rows.append(runs)
+        painted.append(rows)
+    return painted
 
 
 def animate(
@@ -254,10 +284,20 @@ def animate(
     height: int,
     *,
     clear: str,
+    paint: Callable[[list[list[tuple[str, str]]]], str] | None = None,
     sleep: Callable[[float], None] = time.sleep,
 ) -> None:
-    """Play one crack over the whole terminal; the caller redraws afterwards."""
-    for frame in frames(width, height):
-        stream.write(clear + frame)
+    """Play one crack over the whole terminal; the caller redraws afterwards.
+
+    ``paint`` turns one frame's ``(text, part)`` rows into the text to write,
+    which is how the dashboard's theme colours the crack. Without it the plain
+    ASCII frames are written.
+    """
+    if paint is None:
+        screens = frames(width, height)
+    else:
+        screens = [paint(rows) for rows in frame_segments(width, height)]
+    for screen in screens:
+        stream.write(clear + screen)
         stream.flush()
         sleep(FRAME_SECONDS)

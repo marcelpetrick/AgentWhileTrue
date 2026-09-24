@@ -198,9 +198,12 @@ identity are untouched, and the toggle resets when the process exits.
 
 ### The whip
 
-![The whip cracking across the dashboard and landing in two idle agent tabs](../media/agentWhileTrue_whip_v0.52.3.gif)
+![The whip cracking across the dashboard and landing in two idle agent tabs](../media/agentWhileTrue_whip_v0.53.0.gif)
 
-`w` cracks an ASCII bullwhip across the whole dashboard and then types a
+`w` cracks an ASCII bullwhip across the whole dashboard, painted in the
+current theme (the grip, lash, spark and `CRACK!` each take one of the theme's
+colours on its background; the plain theme, `--no-color` and `NO_COLOR` keep
+it bare ASCII), and then types a
 short, good-humoured reminder into every *selected* session, a different one in
 each session. Lines delivered recently wait at the back of the queue, so
 consecutive cracks do not repeat them. The forty lines include "Work faster.

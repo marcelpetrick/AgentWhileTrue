@@ -13,6 +13,23 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.53.0] - 2026-09-24
+
+### Added
+
+- The whip animation is painted in the dashboard's theme. Grip, lash, spark and
+  `CRACK!` each take one of the theme's colours on its background, and the
+  whole screen keeps the theme's surface; CGA uses its cyan and magenta
+  without coloured blocks. The plain theme, `--no-color` and `NO_COLOR` keep the
+  crack bare ASCII, exactly like the dashboard.
+- The whip has a proper grip: `o[=#=#=#=#=#=]` instead of `[###]`.
+- End-to-end tests start the real CLI on a pseudo-terminal, without Konsole and
+  offline, crack the whip in every theme and check its colours, and check the
+  plain and colourless cases. Both demo recorders now draw the crack with the
+  dashboard's own painter and render bright ANSI colours correctly. The README
+  and LinkedIn GIFs are re-recorded, and the install command points at this
+  release.
+
 ## [0.52.6] - 2026-09-24
 
 ### Fixed

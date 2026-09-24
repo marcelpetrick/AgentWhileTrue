@@ -68,6 +68,7 @@ from agent_while_true.ui import (
     HIDE_CURSOR,
     SHOW_CURSOR,
     clamp_scroll_offset,
+    paint_whip_frame,
     render_line,
     render_quota,
     render_status,
@@ -528,6 +529,8 @@ def _crack_whip(
     stream,
     *,
     paused: bool = False,
+    color: bool = False,
+    theme: str = "plain",
     sleep: Callable[[float], None] = time.sleep,
 ) -> str:
     """Crack the whip once: animate, then offer one reminder to every session.
@@ -544,7 +547,16 @@ def _crack_whip(
             f"{whip.CRACKS_PER_WINDOW} cracks a minute is the limit"
         )
     size = shutil.get_terminal_size((168, 24))
-    whip.animate(stream, size.columns, max(1, size.lines - 1), clear=CLEAR_SCREEN, sleep=sleep)
+    # The crack is painted in the dashboard's own theme, or left plain ASCII
+    # exactly where the dashboard is (plain theme, --no-color, NO_COLOR).
+    whip.animate(
+        stream,
+        size.columns,
+        max(1, size.lines - 1),
+        clear=CLEAR_SCREEN,
+        paint=lambda rows: paint_whip_frame(rows, color=color, theme=theme),
+        sleep=sleep,
+    )
     if paused:
         # Pause promises no terminal or quota polling, so nothing is read or typed.
         supervisor.log.info("whip_cracked", delivered=0, reason="paused")
@@ -738,7 +750,13 @@ def _loop(
                     )
                 if dashboard.consume_whip():
                     last_event = _crack_whip(
-                        supervisor, lock, whip_counter, stream, paused=dashboard.paused
+                        supervisor,
+                        lock,
+                        whip_counter,
+                        stream,
+                        paused=dashboard.paused,
+                        color=color,
+                        theme=dashboard.theme,
                     )
                     next_scan = 0.0
                     event_history = read_history(

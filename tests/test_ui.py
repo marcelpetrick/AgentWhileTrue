@@ -438,3 +438,43 @@ def test_end_jump_can_scroll_back_and_resize_clamps_offset() -> None:
     assert state.scroll_offset == 79
     state.scroll_offset = clamp_scroll_offset(10, 20, state.scroll_offset)
     assert state.scroll_offset == 0
+
+
+@pytest.mark.parametrize("theme", ["dark", "vivid", "cga", "amber"])
+def test_the_whip_is_painted_in_every_coloured_theme(theme: str) -> None:
+    from agent_while_true import whip
+    from agent_while_true.ui import _PALETTES, paint_whip_frame, whip_role
+
+    palette = _PALETTES[theme]
+    last = whip.frame_segments(80, 24)[-1]
+    painted = paint_whip_frame(last, color=True, theme=theme)
+
+    assert palette[whip_role(theme, "handle")] + whip.HANDLE in painted
+    assert palette[whip_role(theme, "art")] + "____" in painted
+    spark = palette[whip_role(theme, "burst")]
+    assert spark + "*" in painted or spark + "\\" in painted
+    # Every row starts in the theme and fills the screen.
+    rows = painted.split("\n")
+    assert len(rows) == 24
+    assert all(row.startswith("\x1b[") for row in rows)
+    assert all(len(re.sub(r"\x1b\[[0-9;]*m", "", row)) == 80 for row in rows)
+
+
+@pytest.mark.parametrize(("theme", "color"), [("plain", True), ("dark", False)])
+def test_an_uncoloured_whip_is_the_bare_ascii(theme: str, color: bool) -> None:
+    from agent_while_true import whip
+    from agent_while_true.ui import paint_whip_frame
+
+    for rows, plain in zip(whip.frame_segments(80, 24), whip.frames(80, 24), strict=True):
+        assert paint_whip_frame(rows, color=color, theme=theme) == plain
+
+
+def test_every_whip_part_keeps_its_theme_background() -> None:
+    """No part paints a coloured block onto the whip's screen."""
+    from agent_while_true import whip
+    from agent_while_true.ui import _PALETTES, whip_role
+
+    for theme, palette in _PALETTES.items():
+        background = re.search(r"48;5;\d+|4\dm", palette["surface"]).group(0)
+        for part in whip.PARTS:
+            assert background in palette[whip_role(theme, part)], (theme, part)

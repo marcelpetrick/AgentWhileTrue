@@ -43,7 +43,7 @@ from agent_while_true.config import Config, Mode, Policy
 from agent_while_true.fsm import SupervisedSession
 from agent_while_true.service_health import HealthState, ProviderHealth
 from agent_while_true.states import SessionState
-from agent_while_true.ui import _PALETTES, render_status
+from agent_while_true.ui import _PALETTES, paint_whip_frame, render_status
 from agent_while_true.version import __version__
 
 CAPTION = (
@@ -67,8 +67,6 @@ _OK = "\x1b[1;38;5;48;48;5;234m"
 _SKIP = "\x1b[1;38;5;214;48;5;234m"
 _LABEL = "\x1b[38;5;153;48;5;17m"
 _FLASH = "\x1b[1;38;5;16;48;5;214m"
-_LASH = "\x1b[1;38;5;231;48;5;17m"
-_ART = "\x1b[1;38;5;208;48;5;17m"
 
 #: The two composers' cursor glyphs, spelled out so they cannot be misread.
 CLAUDE_CURSOR = "\N{HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT}"
@@ -284,19 +282,9 @@ def dashboard(now: datetime, badge: str, last_event: str, events: tuple[str, ...
     ).splitlines()
 
 
-def paint_crack(frame: str, height: int) -> list[str]:
-    """Colour one ASCII whip frame onto the dashboard's own surface."""
-    handle_row = max(2, (height * 2) // 3)
-    burst = is_burst(frame)
-    painted = []
-    for row, line in enumerate(frame.split("\n")):
-        style = _ART if burst and row < handle_row - 1 else _LASH
-        painted.append(style + line.ljust(COLUMNS) + _RESET)
-    return painted
-
-
-def is_burst(frame: str) -> bool:
-    return "____" in frame or "CRACK" in frame
+def is_burst(rows: list[list[tuple[str, str]]]) -> bool:
+    """Whether a crack frame is one of the snap frames carrying the CRACK art."""
+    return any(part == "art" for row in rows for _, part in row)
 
 
 def storyboard(start: datetime, layout: Layout = README) -> list[tuple[list[str], int]]:
@@ -316,12 +304,13 @@ def storyboard(start: datetime, layout: Layout = README) -> list[tuple[list[str]
     steps.append((idle, tabs("working", layout), 2600))
 
     height = len(idle)
-    crack_frames = whip.frames(COLUMNS, height)
-    for index, frame in enumerate(crack_frames):
+    # The dashboard's own painter, so the recording shows the crack exactly as
+    # the running tool draws it in this theme.
+    crack_frames = whip.frame_segments(COLUMNS, height)
+    for index, rows in enumerate(crack_frames):
         duration = 90 if index < len(crack_frames) - 3 else 260
-        steps.append(
-            (paint_crack(frame, height), tabs("working", layout, flash=is_burst(frame)), duration)
-        )
+        painted = paint_whip_frame(rows, color=True, theme=THEME).split("\n")
+        steps.append((painted, tabs("working", layout, flash=is_burst(rows)), duration))
 
     moment = start + timedelta(seconds=2)
     reached = (

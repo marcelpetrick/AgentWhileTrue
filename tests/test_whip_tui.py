@@ -73,7 +73,7 @@ def test_an_armed_crack_animates_then_delivers(tmp_path: Path) -> None:
     finally:
         lock.release()
 
-    assert "[###]" in stream.getvalue()
+    assert whip.HANDLE in stream.getvalue()
     assert "CRACK" in stream.getvalue() or "____" in stream.getvalue()
     assert note.startswith('whip cracked: reached 1/1 with 1 different reminder, e.g. "')
     assert note.endswith('"')
@@ -142,7 +142,7 @@ def test_pressing_w_in_the_dashboard_cracks_and_counts(
     assert cli._loop(kit.supervisor, kit.supervisor.config, args, stream, lock) == cli.EXIT_OK
 
     output = stream.getvalue()
-    assert "[###]" in output
+    assert whip.HANDLE in output
     assert "whip=0 sent=0" in output
     assert "whip=1 sent=0" in output
     assert "whip cracked in the air" in output

@@ -117,13 +117,13 @@ def test_badge_counts_cracks_and_deliveries() -> None:
 def test_frames_are_ascii_and_fill_the_screen(width: int, height: int) -> None:
     rendered = whip.frames(width, height)
     assert len(rendered) >= 10
-    columns, rows = max(12, width), max(5, height)
+    columns, rows = max(len(whip.HANDLE) + 8, width), max(5, height)
     for frame in rendered:
         assert frame.isascii()
         lines = frame.split("\n")
         assert len(lines) == rows
         assert all(len(line) <= columns for line in lines)
-    assert "[###]" in rendered[0]
+    assert whip.HANDLE in rendered[0]
     assert "*" in rendered[-1]
     assert rendered[0] != rendered[len(rendered) // 2]
 
@@ -146,9 +146,48 @@ def test_animate_draws_every_frame_over_a_cleared_screen() -> None:
 
 
 def test_drawing_off_the_screen_is_clipped_rather_than_wrapped() -> None:
-    grid = [[" "] * 4 for _ in range(2)]
-    whip._put(grid, -1, 0, "xx")
-    whip._put(grid, 2, 0, "xx")
-    whip._put(grid, 0, 3, "abc")
-    whip._put(grid, 1, -1, "abc")
-    assert grid == [[" ", " ", " ", "a"], ["b", "c", " ", " "]]
+    grid = whip._blank(4, 2)
+    whip._put(grid, -1, 0, "xx", "lash")
+    whip._put(grid, 2, 0, "xx", "lash")
+    whip._put(grid, 0, 3, "abc", "lash")
+    whip._put(grid, 1, -1, "a c", "art")
+    assert ["".join(char for char, _ in row) for row in grid] == ["   a", " c  "]
+    # A drawn space stays background, so it is never painted as a part.
+    assert grid[1][0] == (" ", "blank")
+    assert grid[1][1] == ("c", "art")
+
+
+def test_the_handle_is_a_proper_bullwhip_grip() -> None:
+    assert whip.HANDLE.isascii()
+    assert len(whip.HANDLE) >= 12
+
+
+@pytest.mark.parametrize(("width", "height"), [(120, 30), (40, 10)])
+def test_segments_are_the_frames_split_into_coloured_parts(width: int, height: int) -> None:
+    plain = whip.frames(width, height)
+    segmented = whip.frame_segments(width, height)
+    assert len(segmented) == len(plain)
+    columns = max(len(whip.HANDLE) + 8, width)
+    for rows, frame in zip(segmented, plain, strict=True):
+        assert all(sum(len(text) for text, _ in row) == columns for row in rows)
+        assert "\n".join("".join(text for text, _ in row).rstrip() for row in rows) == frame
+        assert {part for row in rows for _, part in row} <= set(whip.PARTS)
+    handle_runs = [text for text, part in segmented[0][max(2, height * 2 // 3)] if part == "handle"]
+    assert handle_runs == [whip.HANDLE]
+    last_parts = {part for row in segmented[-1] for _, part in row}
+    assert {"handle", "lash", "burst", "art"} <= last_parts
+    assert "art" not in {part for row in segmented[0] for _, part in row}
+
+
+def test_animate_paints_each_frame_when_given_a_painter() -> None:
+    stream = io.StringIO()
+    painted: list[int] = []
+
+    def paint(rows) -> str:
+        painted.append(len(rows))
+        return "<frame>"
+
+    whip.animate(stream, 60, 20, clear="<CLS>", paint=paint, sleep=lambda _: None)
+    count = len(whip.frames(60, 20))
+    assert stream.getvalue() == "<CLS><frame>" * count
+    assert painted == [20] * count

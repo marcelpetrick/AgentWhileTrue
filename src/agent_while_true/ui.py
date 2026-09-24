@@ -219,6 +219,40 @@ def _paint(text: str, role: str, *, color: bool, theme: str) -> str:
     return f"{palette[role]}{text}{_RESET}"
 
 
+#: Which palette role colours each part of the whip animation, so a crack
+#: repaints the whole screen in the dashboard's own colours.
+_WHIP_ROLES = {
+    "blank": "surface",
+    "handle": "warning",
+    "lash": "text",
+    "burst": "danger",
+    "art": "accent",
+}
+#: CGA's warning and danger roles carry blue and magenta backgrounds, which
+#: would paint the grip and the spark as blocks; its bright cyan keeps both on
+#: the black screen, next to the magenta CRACK.
+_WHIP_THEME_ROLES = {"cga": {"handle": "structure", "burst": "healthy"}}
+
+
+def whip_role(theme: str, part: str) -> str:
+    """The palette role that colours ``part`` of the whip in ``theme``."""
+    return _WHIP_THEME_ROLES.get(theme, {}).get(part) or _WHIP_ROLES.get(part, "text")
+
+
+def paint_whip_frame(rows: Sequence[Sequence[tuple[str, str]]], *, color: bool, theme: str) -> str:
+    """Colour one whip frame's ``(text, part)`` rows with the dashboard theme.
+
+    The plain theme and colourless output return the bare ASCII, trailing
+    blanks trimmed, exactly as the uncoloured frames.
+    """
+    if not color or theme == "plain":
+        return "\n".join("".join(text for text, _ in row).rstrip() for row in rows)
+    return "\n".join(
+        "".join(_paint(text, whip_role(theme, part), color=True, theme=theme) for text, part in row)
+        for row in rows
+    )
+
+
 def _panel_line(text: str, width: int, role: str, *, color: bool, theme: str) -> str:
     """Pad and frame one line so the theme covers the complete panel."""
     if width < 5:
