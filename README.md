@@ -69,7 +69,7 @@ about the coffee. But every so often a brilliant mind drifts: a third plan for
 the same function, a fourth apology, a heartfelt essay where a commit would do.
 For those moments there is `w`.
 
-![The whip cracking across the dashboard and landing in two idle agent tabs](media/agentWhileTrue_whip_v0.52.0.gif)
+![The whip cracking across the dashboard and landing in two idle agent tabs](media/agentWhileTrue_whip_v0.52.3.gif)
 
 *A scripted demo: invented sessions and invented replies. The dashboard, the
 ASCII crack and the gate's decisions are the real code; `scripts/record_whip_demo.py`

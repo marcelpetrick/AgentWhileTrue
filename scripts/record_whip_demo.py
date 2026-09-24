@@ -123,6 +123,9 @@ def tabs(stage: str, *, flash: bool = False) -> list[str]:
     claude_prompt = (_CLAUDE, f"{CLAUDE_CURSOR} ")
     codex_prompt = (_CODEX, f"{CODEX_CURSOR} Ask Codex to do anything")
     claude_foot = (_PANE_DIM, "  Opus 5 ctx:31% 5h:44% reset:3h40m")
+    # Claude frames its input box with a rule above and below; the whip's gate
+    # only trusts an empty cursor row that sits directly on the closing rule.
+    claude_rule = (_PANE_BORDER, "\u2500" * (PANE_WIDTH - 4))
     codex_foot = (_PANE_DIM, "  gpt-5-codex high · ~/code/tide-mapper · 38% used")
     draft_prompt = (_PANE, f"{CLAUDE_CURSOR} also rename the helper before you")
     draft_note: list[tuple[str, str]] = []
@@ -159,7 +162,7 @@ def tabs(stage: str, *, flash: bool = False) -> list[str]:
         [
             pane(
                 "pts/9 · claude · ~/code/glass-harbour",
-                [*claude_work, (_PANE, ""), claude_prompt, claude_foot],
+                [*claude_work, claude_rule, claude_prompt, claude_rule, claude_foot],
                 flash=flash,
             ),
             pane(
@@ -169,7 +172,7 @@ def tabs(stage: str, *, flash: bool = False) -> list[str]:
             ),
             pane(
                 "pts/11 · claude · ~/code/paper-lantern",
-                [*draft, draft_prompt, *draft_note, claude_foot],
+                [*draft, claude_rule, draft_prompt, claude_rule, *draft_note, claude_foot],
             ),
         ]
     )

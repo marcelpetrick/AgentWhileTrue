@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.52.3] - 2026-09-24
+
+### Changed
+
+- The whip demo is re-recorded: its Claude tabs now draw the input box between
+  its two rules, as live Claude Code 2.x does and as the whip's gate has required
+  since 0.52.1, and the frames carry the current version.
+
 ## [0.52.2] - 2026-09-24
 
 ### Fixed

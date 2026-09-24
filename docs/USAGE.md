@@ -198,7 +198,7 @@ identity are untouched, and the toggle resets when the process exits.
 
 ### The whip
 
-![The whip cracking across the dashboard and landing in two idle agent tabs](../media/agentWhileTrue_whip_v0.52.0.gif)
+![The whip cracking across the dashboard and landing in two idle agent tabs](../media/agentWhileTrue_whip_v0.52.3.gif)
 
 `w` cracks an ASCII bullwhip across the whole dashboard and then types a
 short, good-humoured reminder into every *selected* session, a different one in
