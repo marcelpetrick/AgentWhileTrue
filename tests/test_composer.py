@@ -56,6 +56,8 @@ def test_empty_composer_is_recognised(provider: str, lines: list[str]) -> None:
         ("claude", []),
         ("codex", screens.CODEX_DRAFT),
         ("codex", screens.CODEX_DRAFT_AFTER_NEWLINE),
+        ("codex", screens.CODEX_DRAFT_AFTER_NEWLINE_WITH_DOT),
+        ("codex", [f"{CODEX_CURSOR} ", "  apples · pears"]),
         ("codex", [f"{CODEX_CURSOR} ", "  first line of a draft", "  gpt-5 high · ~/x · 1% used"]),
         ("codex", ["• Ran cargo test"]),
     ],

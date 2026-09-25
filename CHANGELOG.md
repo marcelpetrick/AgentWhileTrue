@@ -13,6 +13,17 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.53.1] - 2026-09-25
+
+### Fixed
+
+- The whip no longer types into a Codex draft begun with Shift+Enter whose
+  continuation row contains a middle dot. Any line with ` · ` passed as the
+  Codex footer, so such a draft read as an empty composer and a crack would
+  have submitted it. A line below the composer now counts as footer only when it
+  carries the usage figure (`38% used`, `NN% context left`) or ends in the
+  `? for shortcuts` hint; anything else refuses the whip.
+
 ## [0.53.0] - 2026-09-24
 
 ### Added

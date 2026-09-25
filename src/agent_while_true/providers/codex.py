@@ -65,10 +65,11 @@ def _pattern(text: str) -> re.Pattern[str]:
 _BRAILLE_PARTICLES = re.compile(r"[\u2800-\u28ff]")
 
 
-#: What Codex prints under its composer: the model/directory/usage footer with
-#: its middle-dot separators, or the key hints. A draft's continuation row is
-#: none of these, so anything else below an empty composer refuses a whip.
-_CODEX_FOOTER = re.compile(r" \u00b7 |\bcontext left\b|\bfor shortcuts\b")
+#: What Codex prints under its composer: the model/directory footer with its
+#: usage figure, or the key hints. A middle dot alone is not enough - a draft's
+#: continuation row can contain one - so anything else below an empty composer
+#: refuses a whip.
+_CODEX_FOOTER = re.compile(r"\b\d{1,3}% (?:used|context left)\b|\? for shortcuts\s*$")
 
 
 def _without_particles(lines: list[str]) -> list[str]:

@@ -331,6 +331,17 @@ CODEX_DRAFT_AFTER_NEWLINE = [
     "  rename the helper before you",
 ]
 
+#: The same Shift+Enter draft whose continuation row happens to contain a
+#: middle dot, like the footer's separators. The dot alone is not a footer.
+CODEX_DRAFT_AFTER_NEWLINE_WITH_DOT = [
+    "• Ran cargo test",
+    "",
+    "› ",
+    "  keep the API · but rename the helper",
+    "",
+    "  gpt-5-codex high · ~/code/tide-mapper · 38% used",
+]
+
 #: A person's unsent draft in each composer. Submitting anything here would
 #: send their half-written message, so neither composer counts as empty.
 CLAUDE_DRAFT = [
