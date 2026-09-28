@@ -14,6 +14,7 @@ import pytest
 from agent_while_true.config import Mode
 from agent_while_true.fsm import APPROVE_KEYSTROKES
 from agent_while_true.states import SessionState
+from agent_while_true.terminal.base import TerminalUnavailableError
 from tests import harness as harness_module
 from tests import screens
 
@@ -202,3 +203,26 @@ def test_an_approved_session_moves_on_to_working(tmp_path: Path) -> None:
     session = kit.supervisor.sessions[key]
     assert session.state is SessionState.ACTIVE
     assert session.approved_fingerprint == ""
+
+
+def test_a_failed_read_does_not_rearm_an_answered_box(tmp_path: Path) -> None:
+    """Only a successful read without the prompt may clear the answered box.
+
+    A D-Bus hiccup reads as an empty screen. Treating that as "the prompt is
+    gone" re-armed the guard, and the next scan sent a second Enter onto the
+    same, unchanged box.
+    """
+    kit, key = _kit(tmp_path, screens.CLAUDE_APPROVAL_YES_NO)
+    assert _scan(kit) == {key: "approved"}
+    read = kit.terminal.read_visible_text
+
+    def hiccup(*args, **kwargs):
+        raise TerminalUnavailableError("read failed")
+
+    kit.terminal.read_visible_text = hiccup
+    kit.supervisor.tick()
+    kit.terminal.read_visible_text = read
+
+    assert _scan(kit) == {}
+    assert kit.sent == [(CLAUDE, "\r")]
+    assert kit.supervisor.sessions[key].approved_fingerprint

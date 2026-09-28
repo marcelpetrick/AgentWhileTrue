@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.56.2] - 2026-09-28
+
+### Fixed
+
+- Auto-yes no longer re-arms an answered permission prompt after a failed
+  screen read. A D-Bus hiccup reads as an empty screen, which cleared the
+  answered-box guard, so the next scan could send a second Enter onto the same
+  unchanged box - or into the next prompt, whose command nobody saw. The guard
+  is now cleared only when a successful read shows no permission prompt.
+
 ## [0.56.1] - 2026-09-28
 
 ### Fixed

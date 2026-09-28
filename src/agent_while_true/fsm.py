@@ -124,6 +124,9 @@ class Observation:
     provider: ProviderAdapter | None
     recognition: Recognition | None
     quota: QuotaSnapshot
+    #: The screen was actually read. A failed read recognises as an empty
+    #: screen, which is not evidence that anything left it.
+    screen_read: bool = False
 
     @property
     def is_agent(self) -> bool:
@@ -293,9 +296,11 @@ class Supervisor:
         classification = classify(info)
         provider = provider_registry.for_process_class(classification.process_class)
         recognition = None
+        screen_read = False
         if provider is not None:
             try:
                 lines = self.terminal.read_visible_text(ref, self.config.visible_lines)
+                screen_read = True
             except TerminalError:
                 lines = []
             recognition = provider.recognise(lines, now=moment)
@@ -310,6 +315,7 @@ class Supervisor:
             provider=provider,
             recognition=recognition,
             quota=self._quota(provider, foreground_pid),
+            screen_read=screen_read,
         )
 
     def _quota(self, provider: ProviderAdapter | None, pid: int) -> QuotaSnapshot:
@@ -698,7 +704,13 @@ class Supervisor:
         session.matched_ids = tuple(recognition.matched_ids) if recognition else ()
         session.approval_exact = bool(recognition and recognition.approval_prompt)
         session.approval_fingerprint = recognition.approval_fingerprint if recognition else ""
-        if not session.approval_exact:
+        # The answered box is forgotten only once a real read shows no
+        # permission prompt; a failed read or a redraw in progress is not that.
+        if (
+            observation.screen_read
+            and recognition is not None
+            and recognition.state is not SessionState.APPROVAL_PENDING
+        ):
             session.approved_fingerprint = ""
 
     def act(
