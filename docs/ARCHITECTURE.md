@@ -185,8 +185,8 @@ A permission prompt is the `APPROVAL_PENDING` state and never a resume prompt:
 `policy.evaluate` refuses it in every mode. The dashboard's `y` switch is the
 only way it is answered. After each scan with the switch on,
 `Supervisor.approve_pending` offers every session whose last observation was
-the exact Yes/No box to `Supervisor.approve`, which refuses observe mode, an
-unsafe session, a non-Claude provider or an action in flight, re-observes the
+the exact Yes/No box to `Supervisor.approve`, which refuses observe and ask
+mode, an unsafe session, a non-Claude provider or an action in flight, re-observes the
 session, requires `claude/tool-approval` as the only match with the exact
 shape and the same box fingerprint, re-reads the foreground process last and
 sends a single Enter. The answered fingerprint is held in memory until a scan

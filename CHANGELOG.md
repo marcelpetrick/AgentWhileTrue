@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.56.5] - 2026-09-28
+
+### Fixed
+
+- Auto-yes answers permission prompts only in full-auto. In ask mode it
+  approved without asking, which broke that mode's promise to send input only
+  after a confirmation per action; the header now shows
+  `ON, inert: ask mode confirms each action` there, and `Shift+A` arms it.
+
 ## [0.56.4] - 2026-09-28
 
 ### Fixed

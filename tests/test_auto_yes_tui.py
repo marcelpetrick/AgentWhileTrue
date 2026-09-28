@@ -75,6 +75,8 @@ def test_the_toggle_line_says_what_auto_yes_will_do() -> None:
     assert "auto-yes on permission prompts: OFF" in toggles_line([], auto, auto_yes=False)
     assert "ON - approves any command asked" in toggles_line([], auto, auto_yes=True)
     assert "ON, inert: observe mode sends nothing" in toggles_line([], observe, auto_yes=True)
+    ask = Config(mode=Mode.ASK)
+    assert "ON, inert: ask mode confirms each action" in toggles_line([], ask, auto_yes=True)
 
 
 @pytest.mark.parametrize(

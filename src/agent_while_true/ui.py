@@ -774,8 +774,10 @@ def toggles_line(sessions: Sequence[SupervisedSession], config: Config, *, auto_
         limit = "ON (Claude)"
     if not auto_yes:
         yes = "OFF"
-    elif config.mode.may_send_input:
+    elif config.mode is Mode.AUTO:
         yes = "ON - approves any command asked"
+    elif config.mode is Mode.ASK:
+        yes = "ON, inert: ask mode confirms each action"
     else:
         yes = "ON, inert: observe mode sends nothing"
     waiting = sum(1 for session in sessions if session.state is SessionState.APPROVAL_PENDING)

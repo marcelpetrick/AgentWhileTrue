@@ -43,9 +43,8 @@ def _log(tmp_path: Path) -> str:
     return (tmp_path / "agent-while-true.log").read_text(encoding="utf-8")
 
 
-@pytest.mark.parametrize("mode", [Mode.AUTO, Mode.ASK])
-def test_the_exact_prompt_is_answered_with_one_enter(tmp_path: Path, mode: Mode) -> None:
-    kit, key = _kit(tmp_path, screens.CLAUDE_APPROVAL_YES_NO, mode=mode)
+def test_the_exact_prompt_is_answered_with_one_enter(tmp_path: Path) -> None:
+    kit, key = _kit(tmp_path, screens.CLAUDE_APPROVAL_YES_NO)
 
     assert _scan(kit) == {key: "approved"}
 
@@ -58,10 +57,21 @@ def test_the_exact_prompt_is_answered_with_one_enter(tmp_path: Path, mode: Mode)
     assert "head -30" not in log
 
 
+def test_ask_mode_never_answers_without_its_confirmation(tmp_path: Path) -> None:
+    kit, key = _kit(tmp_path, screens.CLAUDE_APPROVAL_YES_NO, mode=Mode.ASK)
+
+    assert _scan(kit) == {}
+    fingerprint = kit.supervisor.sessions[key].approval_fingerprint
+    assert kit.supervisor.approve(key, fingerprint) == "ask-mode-confirms-each"
+    assert kit.sent == []
+
+
 def test_observe_mode_never_answers(tmp_path: Path) -> None:
     kit, key = _kit(tmp_path, screens.CLAUDE_APPROVAL_YES_NO, mode=Mode.OBSERVE)
 
-    assert _scan(kit) == {key: "observe-mode"}
+    assert _scan(kit) == {}
+    fingerprint = kit.supervisor.sessions[key].approval_fingerprint
+    assert kit.supervisor.approve(key, fingerprint) == "observe-mode"
     assert kit.sent == []
 
 

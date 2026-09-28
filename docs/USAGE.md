@@ -143,7 +143,7 @@ observe mode.
 
 The header shows both automation switches side by side with their keys:
 `[A] auto-resume on limit: OFF | ASK each | ON (Claude) | ON (Claude + Codex)`
-and `[y] auto-yes on permission prompts: OFF | ON | ON, inert`, followed by the
+and `[y] auto-yes on permission prompts: OFF | ON | ON, inert` (inert outside full-auto), followed by the
 number of sessions waiting for approval.
 
 Like btop, `+` makes the interval number larger and therefore refreshes more
@@ -417,8 +417,9 @@ the agent asked for**, so it starts off on every run, is never saved, and
 exists only in the interactive dashboard - the headless service cannot enable
 it. Each answer is gated like any other input:
 
-- nothing is typed in observe mode, while paused or without input control; the
-  header then says `ON, inert`;
+- it answers only in full-auto: ask mode keeps its promise to confirm every
+  action, and observe mode, a paused dashboard or a watcher without input
+  control types nothing; the header then says `ON, inert`;
 - only the exact tested Yes/No box qualifies, alone on the screen: a limit,
   paid offer or wait menu beside it, the three-option menu, or the cursor
   anywhere but `1. Yes` is refused, so no option that changes Claude Code's

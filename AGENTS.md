@@ -59,7 +59,8 @@ when recognizer behavior changes.
   persisted or retried, and it is limited to five cracks per rolling minute.
 - Claude Code permission prompts are never resume prompts. Only the operator's
   dashboard auto-yes switch (`y`) answers one: off at every start, never
-  persisted, never in observe mode, while paused or without input control;
+  persisted, only in full-auto - never in ask or observe mode, while paused or
+  without input control;
   only the exact tested Yes/No box with the cursor on `1. Yes`, alone on the
   screen and unchanged since the scan, once per appearance. Never select an
   option that writes provider settings ("don't ask again").

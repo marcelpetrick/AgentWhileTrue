@@ -973,8 +973,11 @@ class Supervisor:
         :meth:`approve` then revalidates it from scratch. Returns the outcome
         per session it tried.
         """
-        # An unsafe or busy session stays with its operator; offering it on
-        # every scan would only log the same refusal several times a second.
+        # Ask mode promises a confirmation per action, so auto-yes is a
+        # full-auto switch. An unsafe or busy session stays with its operator;
+        # offering it on every scan would only log the same refusal repeatedly.
+        if self.config.mode is not Mode.AUTO:
+            return {}
         return {
             key: self.approve(key, session.approval_fingerprint)
             for key, session in list(self.sessions.items())
@@ -1031,6 +1034,8 @@ class Supervisor:
         """Everything but the final process re-read, which ``approve`` does last."""
         if not self.config.mode.may_send_input:
             return "observe-mode"
+        if self.config.mode is not Mode.AUTO:
+            return "ask-mode-confirms-each"
         if session.marked_unsafe:
             return "session-unsafe"
         if session.provider_name != "claude":
