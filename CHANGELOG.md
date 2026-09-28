@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.56.4] - 2026-09-28
+
+### Fixed
+
+- A permission menu with the cursor on item 3 ("No, and tell Claude what to do
+  differently") is shown as `APPROVAL_PENDING` instead of `ACTIVE`. Only a
+  cursor on items 1 and 2 was kept inside the prompt region; any numbered item
+  within six rows under "Do you want to proceed?" now is, and a numbered line
+  without that question still starts a new turn. Display only; nothing is sent.
+
 ## [0.56.3] - 2026-09-28
 
 ### Fixed

@@ -315,20 +315,25 @@ class ClaudeAdapter(ProviderAdapter):
             re.IGNORECASE,
         )
         submitted = re.compile(r"^\s*\N{HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT}\s+\S")
+        # Any numbered item of a permission menu may carry the cursor, and
+        # the menu belongs to the question just above it, not to a new turn.
         approval_cursor = re.compile(
-            r"^\s*\N{HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT}\s*[12]\.\s*(?:Yes|No)\b",
-            re.IGNORECASE,
+            r"^\s*\N{HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT}\s*[1-9]\.\s"
         )
+        question = -APPROVAL_MENU_ROWS - 1
         limit_headline = re.compile(
             r"You've hit your (?:session|weekly|Opus|Sonnet|fast) limit",
             re.IGNORECASE,
         )
         for index, line in enumerate(lines):
             stripped = line.lstrip()
+            if _APPROVAL_QUESTION.match(normalise_typography(line)):
+                question = index
+            in_menu = (
+                bool(approval_cursor.search(line)) and 0 < index - question <= APPROVAL_MENU_ROWS
+            )
             if stripped.startswith("●") or (
-                submitted.search(line)
-                and not menu_cursor.search(line)
-                and not approval_cursor.search(line)
+                submitted.search(line) and not menu_cursor.search(line) and not in_menu
             ):
                 latest_turn = index
         live = lines[latest_turn:]
@@ -383,6 +388,8 @@ def _composer_empty(lines: list[str]) -> bool:
     return False
 
 
+#: How many rows below "Do you want to proceed?" a menu item may sit.
+APPROVAL_MENU_ROWS: Final = 6
 #: How far above the menu the permission box's top rule may sit. The box holds
 #: a tool header, the command or diff, and a sentence or two; a rule further up
 #: belongs to something else, and then the shape is not the tested one.

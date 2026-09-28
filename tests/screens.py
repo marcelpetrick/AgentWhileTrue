@@ -433,6 +433,16 @@ CLAUDE_APPROVAL_CURSOR_ON_NO = [
     " Esc to cancel · Tab to amend",
 ]
 
+#: The three-option menu with the operator's cursor on item 3.
+CLAUDE_APPROVAL_CURSOR_ON_THREE = [
+    *CLAUDE_APPROVAL_YES_NO[:14],
+    "   1. Yes",
+    "   2. Yes, and don't ask again for uv run commands in /home/user/project",
+    " ❯ 3. No, and tell Claude what to do differently (esc)",
+    "",
+    " Esc to cancel · Tab to amend",
+]
+
 #: The same words quoted inside an assistant turn are not the prompt.
 CLAUDE_APPROVAL_QUOTED = [
     "● Claude Code asks 'Do you want to proceed?' and lists ❯ 1. Yes and 2. No;",

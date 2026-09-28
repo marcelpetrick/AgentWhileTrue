@@ -40,8 +40,12 @@ def test_the_live_yes_no_prompt_is_the_exact_tested_shape() -> None:
 
 @pytest.mark.parametrize(
     "screen",
-    [screens.CLAUDE_APPROVAL_DONT_ASK_AGAIN, screens.CLAUDE_APPROVAL_CURSOR_ON_NO],
-    ids=["dont-ask-again", "cursor-on-no"],
+    [
+        screens.CLAUDE_APPROVAL_DONT_ASK_AGAIN,
+        screens.CLAUDE_APPROVAL_CURSOR_ON_NO,
+        screens.CLAUDE_APPROVAL_CURSOR_ON_THREE,
+    ],
+    ids=["dont-ask-again", "cursor-on-no", "cursor-on-three"],
 )
 def test_other_menu_shapes_are_shown_but_not_exact(screen: list[str]) -> None:
     recognition = _recognise(screen)
@@ -130,3 +134,14 @@ def test_the_detail_panel_says_which_shape_is_waiting(tmp_path: Path) -> None:
 
     assert any("untested shape; answer it in its tab" in line for line in untested)
     assert "Approval: exact Yes/No permission prompt" in exact
+
+
+def test_a_numbered_submission_without_the_question_still_starts_a_turn() -> None:
+    """Only a cursor under "Do you want to proceed?" belongs to a menu."""
+    screen = [
+        "  ⎿  You've hit your session limit · resets 8:10pm (Europe/Berlin)",
+        "\N{HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT} 1. rename the helper",
+        "  renaming the helper now",
+    ]
+
+    assert _recognise(screen).state is SessionState.ACTIVE
