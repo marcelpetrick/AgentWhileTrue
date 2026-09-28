@@ -311,6 +311,18 @@ actions, verified resumptions, armed Claude automatic waits, failures, and
 refusal episodes (a changed refusal reason counts again; repeated polls of the
 same refusal do not).
 
+Every auto-yes answer is an `approval_sent` event with provider, session,
+process and the permission box's fingerprint - never the command - and every
+refused one an `approval_refused` with its reason. The summary counts them as
+`Auto-yes: approved=N refused=M sessions=K`, next to `Whip: cracks=C
+reminders=R`, so a day or week shows everything the dashboard typed on its
+operator's behalf:
+
+```text
+Auto-yes: approved=4 refused=0 sessions=2
+Whip: cracks=4 reminders=2
+```
+
 Measured blocked and observed session-time sums intervals between consecutive
 known observations across watched sessions. It is sampled supervision time, not
 provider execution time. Pauses, unknown states, clock jumps and long gaps are

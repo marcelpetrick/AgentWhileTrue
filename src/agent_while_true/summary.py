@@ -146,8 +146,19 @@ def render_summary(path: Path, *, now: datetime, days: int) -> str:
     counts: Counter[str] = Counter()
     blocked = observed = 0.0
     interval_count = 0
+    #: Sessions auto-yes answered, counted but never printed: keys name tabs.
+    approved_sessions: set[str] = set()
     for item in _events(path, now=now, start=window_start):
-        if item.name in _SENT:
+        if item.name == "approval_sent":
+            counts["approved"] += 1
+            approved_sessions.add(item.fields.get("session", ""))
+        elif item.name == "approval_refused":
+            counts["approval_refused"] += 1
+        elif item.name == "whip_cracked":
+            counts["cracks"] += 1
+        elif item.name == "whip_delivered":
+            counts["reminders"] += 1
+        elif item.name in _SENT:
             counts["sent"] += 1
         elif item.name in _VERIFIED:
             result = item.fields.get("result", "")
@@ -177,6 +188,11 @@ def render_summary(path: Path, *, now: datetime, days: int) -> str:
         f"refusals={counts['refusals']}"
     )
     lines.append(f"Retry episodes: scheduled={counts['scheduled']} gave-up={counts['gave_up']}")
+    lines.append(
+        f"Auto-yes: approved={counts['approved']} refused={counts['approval_refused']} "
+        f"sessions={len(approved_sessions)}"
+    )
+    lines.append(f"Whip: cracks={counts['cracks']} reminders={counts['reminders']}")
     if not interval_count:
         lines.append("Measured blocked session-time: unavailable (no interval evidence)")
         lines.append("Measured observed session-time: unavailable (no interval evidence)")

@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.57.0] - 2026-09-28
+
+### Added
+
+- `agent-while-true summary` counts what the dashboard typed on its
+  operator's behalf: `Auto-yes: approved=N refused=M sessions=K` from the
+  `approval_sent` / `approval_refused` events that record every auto-yes
+  answer, and `Whip: cracks=C reminders=R`. Session keys are counted, never
+  printed.
+
 ## [0.56.5] - 2026-09-28
 
 ### Fixed

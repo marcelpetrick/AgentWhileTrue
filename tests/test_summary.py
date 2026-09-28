@@ -169,3 +169,37 @@ def test_an_interval_before_the_window_or_without_bounds_is_ignored(tmp_path: Pa
         + _line("2026-09-10T11:00:01+00:00", "event=supervision_interval blocked=true")
     )
     assert "unavailable" in render_summary(path, now=NOW, days=1)
+
+
+def test_summary_counts_every_auto_yes_answer_and_whip_crack(tmp_path: Path) -> None:
+    session = "session=konsole/org.kde.konsole-1/Sessions/1"
+    other = "session=konsole/org.kde.konsole-2/Sessions/1"
+    path = tmp_path / "agent-while-true.log"
+    path.write_text(
+        _line("2026-09-10T10:00:00+00:00", f"event=approval_sent provider=claude {session}")
+        + _line("2026-09-10T10:05:00+00:00", f"event=approval_sent provider=claude {session}")
+        + _line("2026-09-10T10:06:00+00:00", f"event=approval_sent provider=claude {other}")
+        + _line(
+            "2026-09-10T10:07:00+00:00",
+            f"event=approval_refused provider=claude {other} reason=prompt-changed",
+        )
+        + _line("2026-09-10T10:08:00+00:00", "event=whip_cracked delivered=2 sessions=3")
+        + _line("2026-09-10T10:08:01+00:00", f"event=whip_delivered {session} phrase=4")
+        + _line("2026-09-10T10:08:01+00:00", f"event=whip_delivered {other} phrase=9"),
+    )
+
+    text = render_summary(path, now=NOW, days=1)
+
+    assert "Auto-yes: approved=3 refused=1 sessions=2" in text
+    assert "Whip: cracks=1 reminders=2" in text
+    assert "konsole-1" not in text
+
+
+def test_summary_without_operator_input_says_so(tmp_path: Path) -> None:
+    path = tmp_path / "agent-while-true.log"
+    path.write_text(_line("2026-09-10T10:00:00+00:00", "event=resume_sent provider=claude"))
+
+    text = render_summary(path, now=NOW, days=1)
+
+    assert "Auto-yes: approved=0 refused=0 sessions=0" in text
+    assert "Whip: cracks=0 reminders=0" in text
