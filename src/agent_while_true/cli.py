@@ -597,7 +597,7 @@ def _auto_yes_note(
         return "auto-yes on, but observe mode sends nothing (Shift+A arms input)"
     if config.mode is not Mode.AUTO:
         return "auto-yes on, but ask mode confirms each action (Shift+A for full auto)"
-    return "auto-yes on: exact Claude Code Yes/No permission prompts are answered 1. Yes"
+    return "auto-yes on: exact Claude Code permission prompts are answered 1. Yes"
 
 
 def _approval_summary(approvals: dict[str, str]) -> str:

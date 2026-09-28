@@ -49,9 +49,10 @@ the real renderer — `scripts/record_demo.py` feeds fabricated sessions to the 
   Claude's own "wait, then continue" menu are separate, explicit opt-ins.
 - **New: keeps limited accounts moving** — on a Claude Code account that
   cannot switch permission prompts off (managed settings, no bypass mode),
-  every "Do you want to proceed?" used to park the agent until you came back.
-  Press `y` in full-auto and auto-yes answers `1. Yes` on the exact Yes/No
-  prompt, once per prompt, after the same revalidation as every other input.
+  every "Do you want to proceed?", "... overwrite this file?" or "... create
+  this file?" used to park the agent until you came back. Press `y` in
+  full-auto and auto-yes answers `1. Yes` on the exact permission menu, once
+  per prompt, after the same revalidation as every other input.
   It approves whatever command is asked, so it starts off on every run and the
   header always shows it. [Details](docs/USAGE.md#permission-prompts).
 - **Explanations, not surprises** — a detail panel shows the latest decision,
@@ -125,7 +126,7 @@ in [docs/USAGE.md](docs/USAGE.md#the-whip).
 ## Install
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.57.0'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.58.0'
 agent-while-true --version
 agent-while-true doctor
 ```
@@ -149,7 +150,7 @@ Ask and auto mode need Konsole's input D-Bus API enabled once
 dashboard, `Shift+A` switches to full-auto and back to observe or ask, `d`
 explains the selected session, `w` cracks the whip (a reminder to every idle
 agent, through the same revalidation), `y` toggles auto-yes for Claude Code's
-Yes/No permission prompts (off at every start; it approves whatever command is
+permission prompts (off at every start; it approves whatever command is
 asked, see [docs/USAGE.md](docs/USAGE.md#permission-prompts)), and `h` lists
 every key.
 
@@ -173,7 +174,7 @@ prompt fingerprint and retry budget. SSH, containers, tmux/screen, unknown
 prompts, contradictory quota, process replacement and every paid or
 quality-changing choice fail closed. A Claude Code permission prompt is never
 a resume prompt: only the operator's `y` switch answers it, in full-auto, on the
-exact Yes/No box, and never the "don't ask again" option that writes settings.
+exact permission menu, and never a "Yes, and ..." option that changes settings.
 A single-instance lock and the persisted
 action lifecycle prevent duplicate input across processes and crashes.
 

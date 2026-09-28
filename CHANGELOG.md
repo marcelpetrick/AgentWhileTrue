@@ -13,6 +13,22 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.58.0] - 2026-09-28
+
+### Added
+
+- Auto-yes also answers Claude Code's file prompts and three-option menus.
+  AGT 0.56/0.57 stopped at "Do you want to overwrite settings.local.json?" and
+  "Do you want to create <file>?": only "Do you want to proceed?" with exactly
+  `1. Yes` / `2. No` was accepted. Any whole-row "Do you want to ...?" with the
+  cursor on `1. Yes`, an optional `2. Yes, and ...` (wrapped rows allowed) and a
+  final `No` now qualifies, under the box's solid top rule or, when a file
+  preview fills the window, the dashed rule above the question, whose visible
+  preview rows then join the fingerprint. Enter still selects only item 1, the
+  one-time Yes; a "Yes, and ..." item is never reached, and a cursor anywhere
+  else, a fourth item or a reworded item fails closed. Fixtures are
+  transcribed from both live prompts of 2026-09-28.
+
 ## [0.57.0] - 2026-09-28
 
 ### Added

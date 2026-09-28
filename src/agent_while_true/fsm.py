@@ -969,7 +969,7 @@ class Supervisor:
 
         Called by the dashboard after a scan while its auto-yes toggle is on,
         never by :meth:`tick`. A session qualifies when its last observation
-        was the exact tested Yes/No box and that box was not answered already;
+        was an exact tested permission menu and that box was not answered already;
         :meth:`approve` then revalidates it from scratch. Returns the outcome
         per session it tried.
         """
@@ -996,7 +996,7 @@ class Supervisor:
         ``expected_fingerprint`` is the permission box the last scan saw; a
         different box on screen now - a new command, an edited one - is
         refused, and the same box is answered once until it leaves the screen.
-        Only the exact tested Yes/No menu with the cursor on Yes qualifies, so
+        Only an exact tested permission menu with the cursor on Yes qualifies, so
         an option that writes Claude Code's settings can never be reached. The
         session is revalidated from scratch and the foreground process is
         re-read last, directly before ``sendText``.

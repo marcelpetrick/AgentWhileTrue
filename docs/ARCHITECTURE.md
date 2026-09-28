@@ -185,7 +185,7 @@ A permission prompt is the `APPROVAL_PENDING` state and never a resume prompt:
 `policy.evaluate` refuses it in every mode. The dashboard's `y` switch is the
 only way it is answered. After each scan with the switch on,
 `Supervisor.approve_pending` offers every session whose last observation was
-the exact Yes/No box to `Supervisor.approve`, which refuses observe and ask
+an exact permission menu to `Supervisor.approve`, which refuses observe and ask
 mode, an unsafe session, a non-Claude provider or an action in flight, re-observes the
 session, requires `claude/tool-approval` as the only match with the exact
 shape and the same box fingerprint, re-reads the foreground process last and
@@ -303,7 +303,7 @@ and ambiguous process ancestry are non-automatable.
   through the supervisor's revalidation; it types only into a plain working
   screen whose own composer is visibly empty, and is never persisted or retried.
 - Answer a Claude Code permission prompt only while the operator's auto-yes
-  switch is on (`Supervisor.approve_pending`), only on the exact Yes/No box
+  switch is on (`Supervisor.approve_pending`), only on an exact permission menu
   whose fingerprint the scan saw, once per appearance, never persisted.
 - Preserve a narrow adapter boundary for future terminals or providers without
   weakening the current Konsole-specific gate.

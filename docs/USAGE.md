@@ -138,7 +138,7 @@ observe mode.
 | `j` / `k` | Scroll down / up through the dashboard |
 | `g` / `G` | Jump to the top / end of the dashboard |
 | `w` | Crack the whip: an ASCII bullwhip snaps across the screen, then one reminder goes to every idle supervised agent (see [The whip](#the-whip)) |
-| `y` | Toggle auto-yes: answer `1. Yes` on exact Claude Code Yes/No permission prompts (see [Permission prompts](#permission-prompts)); off at every start, never saved |
+| `y` | Toggle auto-yes: answer `1. Yes` on exact Claude Code permission prompts (see [Permission prompts](#permission-prompts)); off at every start, never saved |
 | `q` | Quit and restore the terminal |
 
 The header shows both automation switches side by side with their keys:
@@ -411,15 +411,26 @@ just as "usage limit has reset" outranks a clock.
 
 ### Permission prompts
 
-When Claude Code asks to run a tool ("Do you want to proceed?" under a tool
-header such as *Bash command*), the session shows `APPROVAL_PENDING`. The
-detail panel (`d`) says whether the prompt is the exact tested Yes/No menu:
-the cursor on `1. Yes`, `2. No`, the `Esc to cancel` footer and nothing else
-at the bottom of the screen. The common three-option menu, whose second item
-writes an allow rule into Claude Code's settings, and every other variation are
-shown as an untested shape to answer in the tab itself. A permission prompt is
-never a resume prompt: no mode answers it on its own, and the command text is
-never logged.
+When Claude Code asks for permission - "Do you want to proceed?" under a tool
+header such as *Bash command*, or "Do you want to overwrite
+settings.local.json?" / "Do you want to create notes.py?" under a file preview
+- the session shows `APPROVAL_PENDING`. The detail panel (`d`) says whether
+the prompt is an exact tested permission menu, at the bottom of the screen:
+
+```text
+ Do you want to <anything>?
+ ❯ 1. Yes
+   2. Yes, and <a session or settings choice>      (optional)
+   3. No[, and tell Claude what to do differently]  (2. No without item 2)
+
+ Esc to cancel · Tab to amend
+```
+
+with the box's solid top rule above the question, or the dashed rule right
+above it when a file preview fills the window. A cursor anywhere but item 1, a
+fourth item, a reworded item, or text below the footer is an untested shape to
+answer in the tab itself. A permission prompt is never a resume prompt: no
+mode answers it on its own, and the command text is never logged.
 
 **Why it exists.** On an account whose Claude Code managed settings keep
 permission prompts on - no bypass mode, no broad allow rules - an agent stops
@@ -431,19 +442,21 @@ answered (`approval_sent`) and back to `ACTIVE` within two seconds each.
 
 **Auto-yes (`y`).** The dashboard's `y` key switches auto-yes on and off; the
 header shows `[y] auto-yes on permission prompts: OFF|ON` and how many sessions
-wait for approval. While it is on, every scan answers each exact Yes/No prompt
-with Enter on the visibly selected `1. Yes`. **That approves whatever command
-the agent asked for**, so it starts off on every run, is never saved, and
+wait for approval. While it is on, every scan answers each exact permission
+menu with Enter on the visibly selected `1. Yes`, the one-time approval. **That
+approves whatever command or file write the agent asked for** - including an
+edit to its own `.claude/settings*.json`, which a Bash command could make just
+as well - so it starts off on every run, is never saved, and
 exists only in the interactive dashboard - the headless service cannot enable
 it. Each answer is gated like any other input:
 
 - it answers only in full-auto: ask mode keeps its promise to confirm every
   action, and observe mode, a paused dashboard or a watcher without input
   control types nothing; the header then says `ON, inert`;
-- only the exact tested Yes/No box qualifies, alone on the screen: a limit,
-  paid offer or wait menu beside it, the three-option menu, or the cursor
-  anywhere but `1. Yes` is refused, so no option that changes Claude Code's
-  settings is ever reached;
+- only an exact tested menu qualifies, alone on the screen: a limit, paid
+  offer or wait menu beside it, or the cursor anywhere but `1. Yes` is
+  refused, and Enter on item 1 never reaches a "Yes, and ..." item that would
+  change Claude Code's settings or switch the session to accept-edits mode;
 - the box is re-read immediately before the keypress and must be the one the
   scan saw - a different command, an edit, a replaced process or another
   foreground program cancels it;

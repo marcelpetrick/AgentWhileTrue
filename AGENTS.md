@@ -61,9 +61,11 @@ when recognizer behavior changes.
   dashboard auto-yes switch (`y`) answers one: off at every start, never
   persisted, only in full-auto - never in ask or observe mode, while paused or
   without input control;
-  only the exact tested Yes/No box with the cursor on `1. Yes`, alone on the
-  screen and unchanged since the scan, once per appearance. Never select an
-  option that writes provider settings ("don't ask again").
+  only an exact tested permission menu - a whole-row "Do you want to ...?",
+  the cursor on `1. Yes`, an optional `2. Yes, and ...`, a final `No` - alone
+  on the screen and unchanged since the scan, once per appearance, by Enter on
+  item 1. Never select a "Yes, and ..." item: those change provider settings or
+  session modes.
 - Never log terminal contents, environment values, credentials, or prompt text.
 - Preserve the persisted action lifecycle and single-instance lock.
 - Treat SSH, containers, tmux/screen, conflicting classification signals, and

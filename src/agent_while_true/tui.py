@@ -40,7 +40,7 @@ class DashboardState:
     scroll_offset: int = 0
     redact_accounts: bool = False
     whip_requested: bool = False
-    #: Answer exact Claude Code Yes/No permission prompts with "1. Yes". Off at
+    #: Answer exact Claude Code permission prompts with "1. Yes". Off at
     #: every start and never saved: it approves whatever command is asked.
     auto_yes: bool = False
     auto_yes_toggled: bool = False

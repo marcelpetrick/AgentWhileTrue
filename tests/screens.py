@@ -412,8 +412,48 @@ CLAUDE_APPROVAL_LIVE_2_1_283 = [
 ]
 KONSOLE_PADDING_ROWS = 53
 
-#: The common three-option form. Item 2 would write an allow rule into Claude
-#: Code's settings, so this shape is never answered from the dashboard.
+#: File-edit prompts read live from Claude Code 2.1.283 on 2026-09-28. The
+#: question names the file, a dashed rule separates it from the preview, and
+#: item 2 is a session-scoped "Yes, and ...". File contents are shortened.
+_DASHED = "\u254c" * 100
+CLAUDE_APPROVAL_OVERWRITE_LIVE = [
+    "● Write(.claude/settings.local.json)",
+    "",
+    "\u2500" * 100,
+    " Overwrite file",
+    " .claude/settings.local.json",
+    _DASHED,
+    "   1  {",
+    '   2 +  "env": {',
+    '   3 +    "GIT_CONFIG_COUNT": "2",',
+    "   4 +  },",
+    '   5    "sandbox": {',
+    _DASHED,
+    " Do you want to overwrite settings.local.json?",
+    " ❯ 1. Yes" + " " * 100,
+    "   2. Yes, and allow Claude to edit files in this project's .claude folder for this session",
+    "   3. No",
+    "",
+    " Esc to cancel · Tab to amend",
+]
+#: A new file whose preview fills the window: the box's solid top rule has
+#: scrolled away and only the dashed rule above the question is on screen.
+CLAUDE_APPROVAL_CREATE_LIVE = [
+    *[f"  {number}     print(f'line {number}')" for number in range(141, 172)],
+    '  172 if __name__ == "__main__":',
+    "  173     sys.exit(main())",
+    _DASHED,
+    " Do you want to create allow_github_in_claude_sandbox.py?",
+    " ❯ 1. Yes" + " " * 100,
+    "   2. Yes, and switch to accept edits (auto-approve file edits and common file commands)"
+    " for this session (shi",
+    "   3. No",
+    "",
+    " Esc to cancel · Tab to amend",
+]
+
+#: The common three-option form. Enter on the cursor selects item 1, the
+#: one-time "Yes"; item 2, which would write an allow rule, is never reached.
 CLAUDE_APPROVAL_DONT_ASK_AGAIN = [
     *CLAUDE_APPROVAL_YES_NO[:13],
     " Do you want to proceed?",
@@ -433,7 +473,16 @@ CLAUDE_APPROVAL_CURSOR_ON_NO = [
     " Esc to cancel · Tab to amend",
 ]
 
-#: The three-option menu with the operator's cursor on item 3.
+#: The three-option menu with the operator's cursor on item 2 or item 3.
+CLAUDE_APPROVAL_CURSOR_ON_TWO = [
+    *CLAUDE_APPROVAL_YES_NO[:14],
+    "   1. Yes",
+    " ❯ 2. Yes, and don't ask again for uv run commands in /home/user/project",
+    "   3. No, and tell Claude what to do differently (esc)",
+    "",
+    " Esc to cancel · Tab to amend",
+]
+
 CLAUDE_APPROVAL_CURSOR_ON_THREE = [
     *CLAUDE_APPROVAL_YES_NO[:14],
     "   1. Yes",

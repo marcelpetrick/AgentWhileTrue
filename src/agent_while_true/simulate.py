@@ -93,11 +93,11 @@ APPROVAL_SCREEN = [
     "",
     " Esc to cancel · Tab to amend",
 ]
-#: The three-option box; item 2 would write Claude Code's settings.
-APPROVAL_DONT_ASK_AGAIN_SCREEN = [
+#: The three-option box with the operator's cursor moved onto item 2.
+APPROVAL_CURSOR_MOVED_SCREEN = [
     *APPROVAL_SCREEN[:9],
-    " ❯ 1. Yes",
-    "   2. Yes, and don't ask again for make commands in /home/user/project",
+    "   1. Yes",
+    " ❯ 2. Yes, and don't ask again for make commands in /home/user/project",
     "   3. No, and tell Claude what to do differently (esc)",
     "",
     " Esc to cancel · Tab to amend",
@@ -563,10 +563,10 @@ def scenario_approval_waits_for_the_operator(directory: Path) -> Result:
 
 
 def scenario_auto_yes_answers_once(directory: Path) -> Result:
-    world = _world(directory, screen=APPROVAL_DONT_ASK_AGAIN_SCREEN)
-    world.approve("three-option box: item 2 would change settings")
+    world = _world(directory, screen=APPROVAL_CURSOR_MOVED_SCREEN)
+    world.approve("the cursor was moved off Yes")
     world.screen(APPROVAL_SCREEN)
-    world.approve("exact Yes/No box, auto-yes on")
+    world.approve("exact permission menu, auto-yes on")
     world.approve("the same box, Claude has not redrawn yet")
     world.screen(ACTIVE_SCREEN)
     world.approve("the command runs")
@@ -584,7 +584,7 @@ def scenario_auto_yes_answers_once(directory: Path) -> Result:
     return _result(
         "auto-yes-answers-once",
         "The operator switched auto-yes on; Claude Code asks for permission.",
-        "only the exact Yes/No box is answered, once, and a changed box is refused",
+        "only an exact permission menu is answered, once, and a changed box is refused",
         world,
         passed=world.terminal.sent == [(SESSION, "\r")]
         and outcomes == {world.terminal.ref(SESSION).key(): "prompt-changed"},

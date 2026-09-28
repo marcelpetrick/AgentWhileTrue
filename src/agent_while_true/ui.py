@@ -422,7 +422,7 @@ def session_details(
             [
                 "Approval: "
                 + (
-                    "exact Yes/No permission prompt"
+                    "exact permission menu; auto-yes may answer it"
                     if session.approval_exact
                     else "permission prompt of an untested shape; answer it in its tab"
                 )
@@ -744,7 +744,7 @@ def render_status(
                         "d       show/hide resume explanation; [ / ] previous/next session",
                         "w       crack the whip: one reminder to every idle, empty agent "
                         "composer; five cracks a minute, then a cooldown",
-                        "y       toggle auto-yes: answer 1. Yes on exact Claude Code Yes/No "
+                        "y       toggle auto-yes: answer 1. Yes on exact Claude Code "
                         "permission prompts; approves any command; off at start, never saved",
                         "j / k   scroll down/up; g / G jump to top/end",
                         "h / ?   close this help",

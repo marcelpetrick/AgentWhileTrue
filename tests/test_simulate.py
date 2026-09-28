@@ -36,7 +36,7 @@ TALKATIVE = {
     "reset-and-resume": [(simulate.SESSION, "\r")],
     "duplicate-prompt": [(simulate.SESSION, "\r")],
     "wait-menu-gauge-says-available": [(simulate.SESSION, "\x1b[B\r")],
-    # Auto-yes switched on by the operator answers one exact Yes/No box.
+    # Auto-yes switched on by the operator answers one exact permission menu.
     "auto-yes-answers-once": [(simulate.SESSION, "\r")],
 }
 

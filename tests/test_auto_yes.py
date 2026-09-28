@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Auto-yes answers only the exact, revalidated Claude Code Yes/No prompt, once."""
+"""Auto-yes answers only the exact, revalidated Claude Code permission menu, once."""
 
 from __future__ import annotations
 
@@ -66,6 +66,22 @@ def test_ask_mode_never_answers_without_its_confirmation(tmp_path: Path) -> None
     assert kit.sent == []
 
 
+@pytest.mark.parametrize(
+    "screen",
+    [
+        screens.CLAUDE_APPROVAL_OVERWRITE_LIVE,
+        screens.CLAUDE_APPROVAL_CREATE_LIVE,
+        screens.CLAUDE_APPROVAL_DONT_ASK_AGAIN,
+    ],
+    ids=["overwrite-file", "create-file", "dont-ask-again"],
+)
+def test_three_option_menus_get_the_same_single_enter(tmp_path: Path, screen: list[str]) -> None:
+    kit, key = _kit(tmp_path, screen)
+
+    assert _scan(kit) == {key: "approved"}
+    assert kit.sent == [(CLAUDE, APPROVE_KEYSTROKES)]
+
+
 def test_observe_mode_never_answers(tmp_path: Path) -> None:
     kit, key = _kit(tmp_path, screens.CLAUDE_APPROVAL_YES_NO, mode=Mode.OBSERVE)
 
@@ -78,13 +94,13 @@ def test_observe_mode_never_answers(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     "screen",
     [
-        screens.CLAUDE_APPROVAL_DONT_ASK_AGAIN,
+        screens.CLAUDE_APPROVAL_CURSOR_ON_TWO,
         screens.CLAUDE_APPROVAL_CURSOR_ON_NO,
         screens.CLAUDE_APPROVAL_QUOTED,
         screens.CLAUDE_IDLE_COMPOSER,
         screens.CLAUDE_LIMIT_MENU,
     ],
-    ids=["dont-ask-again", "cursor-on-no", "quoted", "idle", "limit-menu"],
+    ids=["cursor-on-two", "cursor-on-no", "quoted", "idle", "limit-menu"],
 )
 def test_no_other_screen_is_even_attempted(tmp_path: Path, screen: list[str]) -> None:
     kit, _ = _kit(tmp_path, screen)
@@ -129,7 +145,7 @@ def test_a_different_command_since_the_scan_is_refused(tmp_path: Path) -> None:
 def test_a_menu_changed_since_the_scan_is_refused(tmp_path: Path) -> None:
     kit, key = _kit(tmp_path, screens.CLAUDE_APPROVAL_YES_NO)
     kit.supervisor.tick()
-    kit.terminal.set_screen(CLAUDE, list(screens.CLAUDE_APPROVAL_DONT_ASK_AGAIN))
+    kit.terminal.set_screen(CLAUDE, list(screens.CLAUDE_APPROVAL_CURSOR_ON_TWO))
 
     assert kit.supervisor.approve_pending() == {key: "no-exact-approval-prompt"}
     assert kit.sent == []

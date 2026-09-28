@@ -207,12 +207,14 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         provider=NAME,
         kind=PromptKind.APPROVAL_REQUESTED,
         scope="approval",
-        # Both anchors are whole screen lines, so an agent quoting the prompt
+        # "Do you want to proceed?", "... overwrite <file>?", "... create
+        # <file>?" and the like. Both anchors are whole screen lines, so an
+        # agent quoting the prompt
         # inside a sentence is not the prompt. Any menu shape counts here: this
         # pattern only names the state. Which shape an operator may answer is
         # decided by _approval_block below.
         all_of=(
-            re.compile(r"^\s*Do you want to proceed\?\s*$", re.IGNORECASE | re.MULTILINE),
+            re.compile(r"^\s*Do you want to \S.{0,200}\?\s*$", re.IGNORECASE | re.MULTILINE),
             re.compile(
                 r"^\s*(?:\N{HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT}\s*)?1\.\s*Yes\b",
                 re.IGNORECASE | re.MULTILINE,
@@ -388,7 +390,8 @@ def _composer_empty(lines: list[str]) -> bool:
     return False
 
 
-#: How many rows below "Do you want to proceed?" a menu item may sit.
+#: How many rows below the question a menu item may sit: three items, one
+#: wrapped row of item 2, and room for a blank row.
 APPROVAL_MENU_ROWS: Final = 6
 #: How far above the menu the permission box's top rule may sit. The box holds
 #: a tool header, the command or diff, and a sentence or two; a rule further up
@@ -398,20 +401,29 @@ _APPROVAL_FOOTER = re.compile(
     r"^\s*Esc to cancel(?:\s*\N{MIDDLE DOT}\s*Tab to amend)?\s*$", re.IGNORECASE
 )
 _APPROVAL_YES = re.compile(rf"^\s*{_COMPOSER_GLYPH}\s*1\.\s*Yes\s*$")
-_APPROVAL_NO = re.compile(r"^\s*2\.\s*No\s*$")
-_APPROVAL_QUESTION = re.compile(r"^\s*Do you want to proceed\?\s*$")
+_APPROVAL_YES_AND = re.compile(r"^\s*2\.\s*Yes, and\s+\S")
+_APPROVAL_NO = re.compile(r"^\s*(?P<number>[23])\.\s*No(?:\s*$|,\s)")
+_APPROVAL_ITEM = re.compile(r"^\s*\d+\.\s")
+#: "Do you want to proceed?", "... overwrite settings.local.json?",
+#: "... create notes.md?", "... make this edit to cli.py?": one whole row.
+_APPROVAL_QUESTION = re.compile(r"^\s*Do you want to \S.{0,200}\?\s*$")
+#: The dashed rule Claude draws between a file preview and the question.
+_DASHED_ROW = re.compile(r"^\s*[\u254c\u2504\u2508]{8,}\s*$")
 
 
 def _approval_block(lines: list[str]) -> list[str] | None:
     """The exact tested permission box at the bottom of the screen, or None.
 
-    Accepted only when, reading upwards from the last non-blank row: the
-    "Esc to cancel" footer, blank rows, "2. No", the cursor on "1. Yes", and
-    "Do you want to proceed?", each on a row of its own, with the box's top
-    rule above them. A third option, the cursor anywhere else, a reworded
-    item or text below the footer is another shape and yields None. Item 1 is
-    the one-time "Yes"; nothing here can reach an option that writes Claude
-    Code's settings.
+    Reading upwards from the last non-blank row it must find, each on rows of
+    their own: the "Esc to cancel" footer, blank rows, the last item "No"
+    (item 2, or item 3 with "No, and tell Claude ..."), for three items a
+    "2. Yes, and ..." item whose text may wrap, the cursor on "1. Yes", and a
+    "Do you want to ...?" question. Above the question sits the box's solid
+    top rule, or - when a file preview fills the window - the dashed rule
+    right above the question. The cursor anywhere else, a fourth item, a
+    reworded item or text below the footer is another shape and yields None.
+    Enter on this shape selects item 1, the one-time "Yes"; a "Yes, and ..."
+    item is never reached.
     """
     end = len(lines)
     while end and not lines[end - 1].strip():
@@ -421,13 +433,31 @@ def _approval_block(lines: list[str]) -> list[str] | None:
     row = end - 2
     while row >= 0 and not lines[row].strip():
         row -= 1
-    if row < 2 or not _APPROVAL_NO.match(lines[row]):
+    last = _APPROVAL_NO.match(lines[row]) if row >= 0 else None
+    if last is None:
         return None
-    if not _APPROVAL_YES.match(lines[row - 1]):
+    row -= 1
+    if last.group("number") == "3":
+        # Item 2 and the rows it wrapped onto, none of which is an item.
+        while row >= 0 and not _APPROVAL_YES_AND.match(lines[row]):
+            if _APPROVAL_ITEM.match(lines[row]) or _COMPOSER_GLYPH in lines[row]:
+                return None
+            if not lines[row].strip() or end - row > APPROVAL_MENU_ROWS + 2:
+                return None
+            row -= 1
+        if row < 0 or _COMPOSER_GLYPH in lines[row]:
+            return None
+        row -= 1
+    if row < 1 or not _APPROVAL_YES.match(lines[row]):
         return None
-    if not _APPROVAL_QUESTION.match(normalise_typography(lines[row - 2])):
+    question = row - 1
+    if not _APPROVAL_QUESTION.match(normalise_typography(lines[question])):
         return None
-    for top in range(row - 3, max(-1, row - 3 - APPROVAL_BOX_ROWS), -1):
+    for top in range(question - 1, max(-1, question - 1 - APPROVAL_BOX_ROWS), -1):
         if _RULE_ROW.match(lines[top]):
             return lines[top:end]
+    if question >= 1 and _DASHED_ROW.match(lines[question - 1]):
+        # The preview fills the window, so nothing above it can redraw: the
+        # visible preview rows are part of what is being approved.
+        return lines[max(0, question - 1 - APPROVAL_BOX_ROWS) : end]
     return None
