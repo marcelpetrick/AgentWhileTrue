@@ -26,6 +26,7 @@ from dataclasses import replace
 from datetime import datetime
 from typing import Final
 
+from agent_while_true.logging_setup import fingerprint
 from agent_while_true.providers.base import (
     DEFAULT_LIVE_LINES,
     ActionKind,
@@ -38,7 +39,7 @@ from agent_while_true.providers.base import (
 )
 
 NAME: Final = "claude"
-PATTERNS_VERSION: Final = "claude-2.1.x/7"
+PATTERNS_VERSION: Final = "claude-2.1.x/8"
 #: Versions whose screens were actually read, oldest first.
 VERIFIED_VERSIONS: Final = ("2.1.261", "2.1.270", "2.1.278")
 VERIFIED_AGAINST: Final = f"Claude Code {' and '.join(VERIFIED_VERSIONS)}"
@@ -202,6 +203,25 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         verified_against=VERIFIED_AGAINST,
     ),
     PromptPattern(
+        id="claude/tool-approval",
+        provider=NAME,
+        kind=PromptKind.APPROVAL_REQUESTED,
+        scope="approval",
+        # Both anchors are whole screen lines, so an agent quoting the prompt
+        # inside a sentence is not the prompt. Any menu shape counts here: this
+        # pattern only names the state. Which shape an operator may answer is
+        # decided by _approval_block below.
+        all_of=(
+            re.compile(r"^\s*Do you want to proceed\?\s*$", re.IGNORECASE | re.MULTILINE),
+            re.compile(
+                r"^\s*(?:\N{HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT}\s*)?1\.\s*Yes\b",
+                re.IGNORECASE | re.MULTILINE,
+            ),
+        ),
+        note="Tool permission request. Never answered automatically.",
+        verified_against="Claude Code screenshot of 2026-09-28",
+    ),
+    PromptPattern(
         id="claude/spend-limit",
         provider=NAME,
         kind=PromptKind.PAID_ACTION_REQUIRED,
@@ -295,6 +315,10 @@ class ClaudeAdapter(ProviderAdapter):
             re.IGNORECASE,
         )
         submitted = re.compile(r"^\s*\N{HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT}\s+\S")
+        approval_cursor = re.compile(
+            r"^\s*\N{HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT}\s*[12]\.\s*(?:Yes|No)\b",
+            re.IGNORECASE,
+        )
         limit_headline = re.compile(
             r"You've hit your (?:session|weekly|Opus|Sonnet|fast) limit",
             re.IGNORECASE,
@@ -302,7 +326,9 @@ class ClaudeAdapter(ProviderAdapter):
         for index, line in enumerate(lines):
             stripped = line.lstrip()
             if stripped.startswith("●") or (
-                submitted.search(line) and not menu_cursor.search(line)
+                submitted.search(line)
+                and not menu_cursor.search(line)
+                and not approval_cursor.search(line)
             ):
                 latest_turn = index
         live = lines[latest_turn:]
@@ -317,7 +343,13 @@ class ClaudeAdapter(ProviderAdapter):
             for index, line in enumerate(live)
         ]
         result = super().recognise(scoped, now=now, live_lines=live_lines)
-        return replace(result, composer_empty=_composer_empty(lines))
+        block = _approval_block(lines)
+        return replace(
+            result,
+            composer_empty=_composer_empty(lines),
+            approval_prompt=block is not None,
+            approval_fingerprint=fingerprint(block) if block is not None else "",
+        )
 
 
 #: Claude draws its composer cursor with this glyph; the menu cursor uses it too.
@@ -349,3 +381,46 @@ def _composer_empty(lines: list[str]) -> bool:
                 return False
             return index + 1 < end and bool(_RULE_ROW.match(lines[index + 1]))
     return False
+
+
+#: How far above the menu the permission box's top rule may sit. The box holds
+#: a tool header, the command or diff, and a sentence or two; a rule further up
+#: belongs to something else, and then the shape is not the tested one.
+APPROVAL_BOX_ROWS: Final = 40
+_APPROVAL_FOOTER = re.compile(
+    r"^\s*Esc to cancel(?:\s*\N{MIDDLE DOT}\s*Tab to amend)?\s*$", re.IGNORECASE
+)
+_APPROVAL_YES = re.compile(rf"^\s*{_COMPOSER_GLYPH}\s*1\.\s*Yes\s*$")
+_APPROVAL_NO = re.compile(r"^\s*2\.\s*No\s*$")
+_APPROVAL_QUESTION = re.compile(r"^\s*Do you want to proceed\?\s*$")
+
+
+def _approval_block(lines: list[str]) -> list[str] | None:
+    """The exact tested permission box at the bottom of the screen, or None.
+
+    Accepted only when, reading upwards from the last non-blank row: the
+    "Esc to cancel" footer, blank rows, "2. No", the cursor on "1. Yes", and
+    "Do you want to proceed?", each on a row of its own, with the box's top
+    rule above them. A third option, the cursor anywhere else, a reworded
+    item or text below the footer is another shape and yields None. Item 1 is
+    the one-time "Yes"; nothing here can reach an option that writes Claude
+    Code's settings.
+    """
+    end = len(lines)
+    while end and not lines[end - 1].strip():
+        end -= 1
+    if end < 4 or not _APPROVAL_FOOTER.match(normalise_typography(lines[end - 1])):
+        return None
+    row = end - 2
+    while row >= 0 and not lines[row].strip():
+        row -= 1
+    if row < 2 or not _APPROVAL_NO.match(lines[row]):
+        return None
+    if not _APPROVAL_YES.match(lines[row - 1]):
+        return None
+    if not _APPROVAL_QUESTION.match(normalise_typography(lines[row - 2])):
+        return None
+    for top in range(row - 3, max(-1, row - 3 - APPROVAL_BOX_ROWS), -1):
+        if _RULE_ROW.match(lines[top]):
+            return lines[top:end]
+    return None

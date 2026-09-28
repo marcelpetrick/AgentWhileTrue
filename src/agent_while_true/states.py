@@ -24,6 +24,9 @@ class SessionState(enum.StrEnum):
     READY_TO_RESUME = "READY_TO_RESUME"
     CONTINUE_SENT = "CONTINUE_SENT"
     VERIFYING = "VERIFYING"
+    #: The agent waits for its operator to approve a tool call. Not a limit,
+    #: not resumable, and never answered by the supervisor on its own.
+    APPROVAL_PENDING = "APPROVAL_PENDING"
 
     UNSAFE = "UNSAFE"
     UNKNOWN = "UNKNOWN"

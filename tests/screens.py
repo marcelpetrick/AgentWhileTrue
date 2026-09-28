@@ -358,6 +358,63 @@ CODEX_DRAFT = [
 ]
 
 
+#: Claude Code's tool-permission prompt, transcribed from a live screenshot on
+#: 2026-09-28: a subagent's Bash command that cannot be allow-listed, so the
+#: menu offers only Yes and No. The command is illustrative; the frame, the
+#: menu and the footer are verbatim.
+_PROMPT_RULE = "─" * 120
+CLAUDE_APPROVAL_YES_NO = [
+    "● Release files are ready. Now waiting for the frontend agent, which has items 1, 10.",
+    "",
+    "✻ Waiting for 1 background agent to finish",
+    "",
+    _PROMPT_RULE,
+    " Bash command · from the general-purpose agent",
+    "",
+    "   │ cd /home/user/project; PYTHONPATH=src uv run --no-sync pytest -m e2e 2>&1 |",
+    "   │ head -30",
+    "   Run shell command",
+    "",
+    " This command requires approval",
+    "",
+    " Do you want to proceed?",
+    " ❯ 1. Yes",
+    "   2. No",
+    "",
+    " Esc to cancel · Tab to amend",
+]
+
+#: The common three-option form. Item 2 would write an allow rule into Claude
+#: Code's settings, so this shape is never answered from the dashboard.
+CLAUDE_APPROVAL_DONT_ASK_AGAIN = [
+    *CLAUDE_APPROVAL_YES_NO[:13],
+    " Do you want to proceed?",
+    " ❯ 1. Yes",
+    "   2. Yes, and don't ask again for uv run commands in /home/user/project",
+    "   3. No, and tell Claude what to do differently (esc)",
+    "",
+    " Esc to cancel · Tab to amend",
+]
+
+#: The exact menu with the operator's cursor moved onto No.
+CLAUDE_APPROVAL_CURSOR_ON_NO = [
+    *CLAUDE_APPROVAL_YES_NO[:14],
+    "   1. Yes",
+    " ❯ 2. No",
+    "",
+    " Esc to cancel · Tab to amend",
+]
+
+#: The same words quoted inside an assistant turn are not the prompt.
+CLAUDE_APPROVAL_QUOTED = [
+    "● Claude Code asks 'Do you want to proceed?' and lists ❯ 1. Yes and 2. No;",
+    "  Esc to cancel dismisses it.",
+    _RULE,
+    "❯ ",
+    _RULE,
+]
+
+
 #: A limit banner that has scrolled far up the screen. It must not be able to
 #: trigger anything (vision DANGER 3).
 def scrolled_away(block: list[str], *, filler_lines: int = 60) -> list[str]:

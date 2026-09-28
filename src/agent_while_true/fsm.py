@@ -163,6 +163,10 @@ class SupervisedSession:
     #: Held in memory only: after a restart the reset affordance needs a fresh
     #: sighting, and until then it is refused.
     limit_seen: bool = False
+    #: The exact tested approval prompt was on the last observed screen.
+    approval_exact: bool = False
+    #: Fingerprint of that permission box, the one the dashboard showed.
+    approval_fingerprint: str = ""
     quota: QuotaSnapshot = field(
         default_factory=lambda: unknown("unknown", "none", "not-observed-yet")
     )
@@ -337,7 +341,7 @@ class Supervisor:
                     "send-failed",
                 }
                 and not decision.reason.startswith(("revalidation-failed:", "verify:"))
-                and session.observed_state not in {"ACTIVE", "LIMIT_WARNING"}
+                and session.observed_state not in {"ACTIVE", "LIMIT_WARNING", "APPROVAL_PENDING"}
                 else ""
             )
             if refusal and refusal != session.reported_refusal:
@@ -688,6 +692,8 @@ class Supervisor:
         recognition = observation.recognition
         session.observed_state = recognition.state.value if recognition else "unrecognized"
         session.matched_ids = tuple(recognition.matched_ids) if recognition else ()
+        session.approval_exact = bool(recognition and recognition.approval_prompt)
+        session.approval_fingerprint = recognition.approval_fingerprint if recognition else ""
 
     def act(
         self, session: SupervisedSession, observation: Observation, decision: Decision
@@ -975,9 +981,11 @@ class Supervisor:
             match.pattern.kind is PromptKind.SELF_HEALING
             for match in observation.recognition.matches
         )
+        # An agent that asks to run a tool is past its limit and working.
         resumed = armed_self_resume or observation.recognition.state in {
             SessionState.ACTIVE,
             SessionState.LIMIT_WARNING,
+            SessionState.APPROVAL_PENDING,
         }
         if session.retry_episode_key and not observation.recognition.active_evidence:
             resumed = False

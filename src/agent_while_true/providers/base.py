@@ -58,6 +58,10 @@ class PromptKind(enum.StrEnum):
     WILL_NOT_SELF_RESUME = "WILL_NOT_SELF_RESUME"
     PAID_ACTION_REQUIRED = "PAID_ACTION_REQUIRED"
     MODEL_DOWNGRADE_OFFER = "MODEL_DOWNGRADE_OFFER"
+    #: The agent asks its operator to approve a tool call. Never a resume
+    #: prompt and never answered automatically; only an operator keypress on
+    #: the exact tested shape may answer it (``Supervisor.approve``).
+    APPROVAL_REQUESTED = "APPROVAL_REQUESTED"
 
 
 class ActionKind(enum.StrEnum):
@@ -170,6 +174,13 @@ class Recognition:
     #: typed and submitted there lands as a fresh message rather than finishing
     #: a draft or answering a menu. Unknown layouts leave it False.
     composer_empty: bool = False
+    #: The exact tested tool-permission menu - "Do you want to proceed?",
+    #: the cursor on "1. Yes", "2. No" and nothing else - ends the screen.
+    #: Every other approval shape leaves it False.
+    approval_prompt: bool = False
+    #: Fingerprint of that permission box alone, so an operator's approval
+    #: binds to the prompt they saw rather than to a spinner redrawing above.
+    approval_fingerprint: str = ""
 
     @property
     def matched_ids(self) -> tuple[str, ...]:
@@ -300,6 +311,8 @@ class ProviderAdapter(ABC):
             return SessionState.LIMIT_BLOCKED
         if PromptKind.WILL_NOT_SELF_RESUME in kinds:
             return SessionState.WAITING_FOR_RESET
+        if PromptKind.APPROVAL_REQUESTED in kinds:
+            return SessionState.APPROVAL_PENDING
         if PromptKind.LIMIT_WARNING in kinds:
             return SessionState.LIMIT_WARNING
         if kinds & {PromptKind.PAID_ACTION_REQUIRED, PromptKind.MODEL_DOWNGRADE_OFFER}:

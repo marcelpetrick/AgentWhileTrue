@@ -391,6 +391,18 @@ just as "usage limit has reset" outranks a clock.
 
 ![Claude Code session-limit menu](../media/claude_out_of_quota.png)
 
+### Permission prompts
+
+When Claude Code asks to run a tool ("Do you want to proceed?" under a tool
+header such as *Bash command*), the session shows `APPROVAL_PENDING`. The
+detail panel (`d`) says whether the prompt is the exact tested Yes/No menu:
+the cursor on `1. Yes`, `2. No`, the `Esc to cancel` footer and nothing else
+at the bottom of the screen. The common three-option menu, whose second item
+writes an allow rule into Claude Code's settings, and every other variation are
+shown as an untested shape to answer in the tab itself. A permission prompt is
+never a resume prompt: no mode answers it on its own, and the command text is
+never logged.
+
 ### Quota bridge
 
 Claude Code exposes quota data only to its configured status-line command. The

@@ -13,6 +13,22 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.54.0] - 2026-09-28
+
+### Added
+
+- Claude Code's tool-permission prompt ("Do you want to proceed?" with
+  `1. Yes`) is recognised as the new `APPROVAL_PENDING` state, so a session
+  waiting for its operator stands out on the dashboard instead of reading as
+  working. The detail panel says whether the prompt is the exact tested Yes/No
+  menu or an untested shape, such as the three-option menu whose second item
+  writes Claude Code's settings. Nothing is sent: no mode answers a permission
+  prompt, the resume gate refuses it, and the command is never logged. The
+  fixture is transcribed from a live prompt of 2026-09-28; the Claude pattern
+  table is now `claude-2.1.x/8`.
+- A session that shows a permission prompt after a resume counts as resumed:
+  the agent is past its limit and working.
+
 ## [0.53.1] - 2026-09-25
 
 ### Fixed

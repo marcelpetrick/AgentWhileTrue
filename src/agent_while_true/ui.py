@@ -418,6 +418,18 @@ def session_details(
         f"Observation: {age(session.observed_at)}{'; STALE' if stale else ''}",
         f"Recognized state: {session.observed_state}",
         f"Patterns: {', '.join(session.matched_ids) or 'none'}",
+        *(
+            [
+                "Approval: "
+                + (
+                    "exact Yes/No permission prompt"
+                    if session.approval_exact
+                    else "permission prompt of an untested shape; answer it in its tab"
+                )
+            ]
+            if session.observed_state == "APPROVAL_PENDING"
+            else []
+        ),
         f"Quota: {quota_state(session.quota, now)}; source={session.quota.source}; "
         f"age={age(session.quota.observed_at)}",
         f"Quota detail: {session.quota.note or 'none'}",
