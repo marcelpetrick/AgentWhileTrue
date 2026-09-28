@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.56.3] - 2026-09-28
+
+### Fixed
+
+- Auto-yes no longer offers an unsafe session, or one whose resume is being
+  verified, on every scan. Each offer was refused and logged as
+  `approval_refused`, several times a second while the prompt stayed up; such
+  sessions are now skipped, and a direct call still meets the gate's refusal.
+
 ## [0.56.2] - 2026-09-28
 
 ### Fixed

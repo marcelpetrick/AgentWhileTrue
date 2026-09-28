@@ -973,12 +973,16 @@ class Supervisor:
         :meth:`approve` then revalidates it from scratch. Returns the outcome
         per session it tried.
         """
+        # An unsafe or busy session stays with its operator; offering it on
+        # every scan would only log the same refusal several times a second.
         return {
             key: self.approve(key, session.approval_fingerprint)
             for key, session in list(self.sessions.items())
             if session.approval_exact
             and session.approval_fingerprint
             and session.approval_fingerprint != session.approved_fingerprint
+            and not session.marked_unsafe
+            and session.verify_after is None
         }
 
     def approve(self, key: str, expected_fingerprint: str) -> str:

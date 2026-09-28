@@ -168,7 +168,14 @@ def test_an_unsafe_session_is_refused(tmp_path: Path) -> None:
     # An unsafe session keeps its last evidence; the gate still refuses it.
     kit.supervisor.sessions[key].approval_exact = True
 
-    assert kit.supervisor.approve_pending() == {key: "session-unsafe"}
+    # Not even offered, so no refusal is logged on every scan.
+    for _ in range(3):
+        assert _scan(kit) == {}
+    assert "approval_refused" not in _log(tmp_path)
+    # A direct call still meets the gate's own refusal.
+    assert kit.supervisor.approve(key, kit.supervisor.sessions[key].approval_fingerprint) == (
+        "session-unsafe"
+    )
     assert kit.sent == []
 
 
