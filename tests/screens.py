@@ -384,6 +384,34 @@ CLAUDE_APPROVAL_YES_NO = [
     " Esc to cancel · Tab to amend",
 ]
 
+#: The same prompt read live from Claude Code 2.1.283 over D-Bus on
+#: 2026-09-28. Konsole's getAllDisplayedTextList returned all 88 rows of the
+#: window: this content on the top rows, then 53 blank rows of padding below
+#: the footer. The command is shortened; the rows and glyphs are verbatim.
+CLAUDE_APPROVAL_LIVE_2_1_283 = [
+    "● Checking that GitHub access now works from the sandbox:",
+    "",
+    "● Look for settings that could block GitHub",
+    "  ⎿  $ for f in ~/.claude-dmo/settings.json .claude/settings.json; do",
+    '     echo "== $f"; cat "$f" 2>&1 | head -60; done',
+    "",
+    "\u2500" * 100,
+    " Bash command",
+    "",
+    "   │ for f in ~/.claude-dmo/settings.json .claude/settings.json; do",
+    '   │ echo "== $f"; cat "$f" 2>&1 | head -60; done',
+    "   Look for settings that could block GitHub",
+    "",
+    " Contains simple_expansion",
+    "",
+    " Do you want to proceed?",
+    " ❯ 1. Yes",
+    "   2. No",
+    "",
+    " Esc to cancel · Tab to amend",
+]
+KONSOLE_PADDING_ROWS = 53
+
 #: The common three-option form. Item 2 would write an allow rule into Claude
 #: Code's settings, so this shape is never answered from the dashboard.
 CLAUDE_APPROVAL_DONT_ASK_AGAIN = [

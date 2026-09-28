@@ -13,6 +13,19 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.56.1] - 2026-09-28
+
+### Fixed
+
+- Screens shorter than their Konsole window are read again. Konsole returns
+  every row of the window, and a short screen sits on the top rows with blank
+  padding below it; the adapter kept the last 40 raw rows, which could be
+  padding alone. A live Claude Code 2.1.283 permission prompt on 2026-09-28
+  (88 rows, 53 of them blank) was therefore never seen, so auto-yes never
+  fired - and the same padding could hide a limit banner. Trailing blank rows
+  are now dropped before the tail is taken; a fixture transcribed from that
+  screen pins it.
+
 ## [0.56.0] - 2026-09-28
 
 ### Changed

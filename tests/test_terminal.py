@@ -11,12 +11,16 @@ CI, where no KDE session exists. A separate opt-in test exercises the real bus.
 from __future__ import annotations
 
 import os
+from datetime import UTC, datetime
 
 import pytest
 
+from agent_while_true import providers
+from agent_while_true.states import SessionState
 from agent_while_true.terminal.base import SessionRef, TerminalUnavailableError
 from agent_while_true.terminal.fake import FakeAdapter
 from agent_while_true.terminal.konsole import KonsoleAdapter
+from tests import screens
 
 QDBUS_RESPONSES = {
     (): " org.kde.konsole-4452\n org.freedesktop.DBus\n org.kde.konsole\n",
@@ -78,6 +82,38 @@ def test_read_visible_text_is_bounded_to_the_tail() -> None:
     adapter = StubbedKonsole(qdbus="/usr/bin/qdbus6")
     ref = SessionRef("konsole", "org.kde.konsole-4452", "/Sessions/1")
     assert adapter.read_visible_text(ref, lines=2) == ["three", "four"]
+
+
+def test_blank_padding_below_the_content_does_not_hide_it() -> None:
+    """Konsole pads a tall window with blank rows below a short screen.
+
+    Live Claude Code 2.1.283 on 2026-09-28: 88 rows, the permission prompt on
+    the top 35, 53 blank rows under it. Keeping the last 40 raw rows kept only
+    padding, so the prompt was never seen and auto-yes never fired.
+    """
+    padded = "\n".join(
+        [*screens.CLAUDE_APPROVAL_LIVE_2_1_283, *[""] * screens.KONSOLE_PADDING_ROWS]
+    )
+    key = (
+        "org.kde.konsole-4452",
+        "/Sessions/1",
+        "org.kde.konsole.Session.getAllDisplayedTextList",
+        "true",
+    )
+
+    class PaddedKonsole(StubbedKonsole):
+        def _call(self, *args: str):  # type: ignore[override]
+            return padded + "\n" if tuple(args) == key else super()._call(*args)
+
+    adapter = PaddedKonsole(qdbus="/usr/bin/qdbus6")
+    ref = SessionRef("konsole", "org.kde.konsole-4452", "/Sessions/1")
+
+    lines = adapter.read_visible_text(ref, lines=40)
+
+    assert lines == screens.CLAUDE_APPROVAL_LIVE_2_1_283
+    recognition = providers.CLAUDE.recognise(lines, now=datetime.now(UTC))
+    assert recognition.state is SessionState.APPROVAL_PENDING
+    assert recognition.approval_prompt
 
 
 def test_missing_qdbus_reports_unavailable_rather_than_crashing() -> None:

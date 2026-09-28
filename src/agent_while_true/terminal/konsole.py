@@ -168,10 +168,17 @@ class KonsoleAdapter(TerminalAdapter):
         )
         if raw is None:
             return []
+        rows = raw.splitlines()
+        # Konsole returns every row of the window. A screen shorter than the
+        # window sits on the top rows with blank padding below it, and a tail
+        # of padding alone hid a live permission prompt on 2026-09-28. The
+        # padding is not content, so it is dropped before the tail is taken.
+        while rows and not rows[-1].strip():
+            rows.pop()
         # Only the tail is kept. Older lines are exactly the "historical prompt
         # text" hazard the vision warns about (DANGER 3), and keeping them would
         # also mean holding more terminal content in memory than necessary.
-        return raw.splitlines()[-lines:]
+        return rows[-lines:]
 
     def send_text(self, ref: SessionRef, text: str) -> None:
         result = self._call(ref.service, ref.session_id, "org.kde.konsole.Session.sendText", text)
