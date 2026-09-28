@@ -20,7 +20,7 @@ from agent_while_true.tui import DashboardState
 from agent_while_true.ui import render_status, toggles_line
 from tests import harness as harness_module
 from tests import screens
-from tests.test_e2e_whip import Dashboard
+from tests.pty_dashboard import Dashboard
 
 CLAUDE = "/Sessions/1"
 
