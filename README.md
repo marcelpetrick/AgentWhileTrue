@@ -47,14 +47,21 @@ the real renderer — `scripts/record_demo.py` feeds fabricated sessions to the 
 - **Resume with guardrails** — observe without typing, confirm each action, or
   let it continue exact tested prompts automatically; Codex composer input and
   Claude's own "wait, then continue" menu are separate, explicit opt-ins.
+- **New: keeps limited accounts moving** — on a Claude Code account that
+  cannot switch permission prompts off (managed settings, no bypass mode),
+  every "Do you want to proceed?" used to park the agent until you came back.
+  Press `y` in full-auto and auto-yes answers `1. Yes` on the exact Yes/No
+  prompt, once per prompt, after the same revalidation as every other input.
+  It approves whatever command is asked, so it starts off on every run and the
+  header always shows it. [Details](docs/USAGE.md#permission-prompts).
 - **Explanations, not surprises** — a detail panel shows the latest decision,
   quota freshness, blocking windows and the next scheduled check.
 - **The whip, for a friendly nudge** — press `w` and an ASCII bullwhip cracks
   across the dashboard, then every idle agent gets one cheerful reminder that
   results beat burned tokens. [More below](#the-whip).
 - **A record of what happened** — persisted `PLANNED → SENT → VERIFIED|FAILED`
-  history and day/week summaries, holding identifiers and pattern IDs only,
-  never terminal text.
+  history and day/week summaries that also count every auto-yes answer and
+  whip crack, holding identifiers and pattern IDs only, never terminal text.
 
 Target platform: Manjaro/Arch Linux, KDE Plasma, Konsole (Wayland or X11),
 Python 3.12+, `qdbus6`. The runtime has no third-party dependencies.
@@ -118,7 +125,7 @@ in [docs/USAGE.md](docs/USAGE.md#the-whip).
 ## Install
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.53.0'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.57.0'
 agent-while-true --version
 agent-while-true doctor
 ```
@@ -164,7 +171,10 @@ classification; a current known prompt and its permitted action; fresh provider
 quota (or the narrowly opted-in Codex timed-trial gate); and the persisted
 prompt fingerprint and retry budget. SSH, containers, tmux/screen, unknown
 prompts, contradictory quota, process replacement and every paid or
-quality-changing choice fail closed. A single-instance lock and the persisted
+quality-changing choice fail closed. A Claude Code permission prompt is never
+a resume prompt: only the operator's `y` switch answers it, in full-auto, on the
+exact Yes/No box, and never the "don't ask again" option that writes settings.
+A single-instance lock and the persisted
 action lifecycle prevent duplicate input across processes and crashes.
 
 Unknown or stale quota never means available. The reasoning is in

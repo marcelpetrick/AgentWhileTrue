@@ -110,11 +110,21 @@ These are deliberate limits, not pending implementation bugs:
 - KDE Konsole exposes no atomic compare-screen-and-send operation. Agent While
   True minimizes the remaining race by making the last external check a fresh
   process-identity read and performing no persistence between it and `sendText`.
+- Auto-yes answers only the exact two-option Yes/No permission box. The common
+  three-option menu, whose second item writes an allow rule into Claude Code's
+  settings, stays with the operator; supporting it would mean pressing Enter on
+  item 1 of a menu that also offers a settings change, which is untested.
 - Unsupported terminals, SSH, containers, tmux/screen, unknown prompt shapes,
   purchases, paid credits, upgrades, reset credits, and model downgrades remain
   intentionally outside automation.
 
 ## Resolved debugging issues
+
+Auto-yes, 2026-09-28: the first live run never fired because Konsole returns
+every row of the window and a short Claude Code 2.1.283 screen left 53 blank
+rows below the prompt, so the 40-row tail held padding only. Fixed in 0.56.1
+with a fixture transcribed from that screen; the next run answered two real
+prompts (`approval_sent`, then `ACTIVE`).
 
 The former D1–D8 incident report is summarized here so old failures are not
 mistaken for current work:

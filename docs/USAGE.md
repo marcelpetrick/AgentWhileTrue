@@ -421,6 +421,14 @@ shown as an untested shape to answer in the tab itself. A permission prompt is
 never a resume prompt: no mode answers it on its own, and the command text is
 never logged.
 
+**Why it exists.** On an account whose Claude Code managed settings keep
+permission prompts on - no bypass mode, no broad allow rules - an agent stops
+at every tool call it cannot pre-approve, and a supervised session sits idle
+until someone comes back to the tab. Auto-yes lets such a limited account keep
+working unattended, within the gates below. It was validated live on
+2026-09-28 with Claude Code 2.1.283: two sessions on a managed account were
+answered (`approval_sent`) and back to `ACTIVE` within two seconds each.
+
 **Auto-yes (`y`).** The dashboard's `y` key switches auto-yes on and off; the
 header shows `[y] auto-yes on permission prompts: OFF|ON` and how many sessions
 wait for approval. While it is on, every scan answers each exact Yes/No prompt
