@@ -157,18 +157,35 @@ def test_without_input_control_auto_yes_stays_inert(tmp_path: Path, monkeypatch)
 
 @pytest.mark.e2e
 def test_the_real_dashboard_toggles_auto_yes_with_y(tmp_path: Path) -> None:
-    """The real CLI on a pseudo-terminal, offline and without Konsole."""
+    """The real CLI on a pseudo-terminal, offline and without Konsole.
+
+    A frame reaches the pseudo-terminal in chunks, so each step waits for the
+    very rows it asserts - the header and the last-event row - rather than for
+    one and then reading the other before it has arrived.
+    """
     dashboard = Dashboard(tmp_path)
-    dashboard.read_until(lambda text: "auto-yes on permission prompts: OFF" in text)
-    assert "[A] auto-resume on limit: OFF" in dashboard.text
+    dashboard.read_until(
+        lambda text: (
+            "auto-yes on permission prompts: OFF" in text
+            and "[A] auto-resume on limit: OFF" in text
+        )
+    )
 
     start = len(dashboard.text)
     dashboard.press("y")
-    dashboard.read_until(lambda text: "ON, inert: observe mode sends nothing" in text[start:])
-    assert "auto-yes on, but observe mode sends nothing" in dashboard.text[start:]
+    dashboard.read_until(
+        lambda text: (
+            "ON, inert: observe mode sends nothing" in text[start:]
+            and "auto-yes on, but observe mode sends nothing" in text[start:]
+        )
+    )
 
     start = len(dashboard.text)
     dashboard.press("y")
-    dashboard.read_until(lambda text: "auto-yes on permission prompts: OFF" in text[start:])
-    assert "auto-yes off: permission prompts wait for you" in dashboard.text[start:]
+    dashboard.read_until(
+        lambda text: (
+            "auto-yes on permission prompts: OFF" in text[start:]
+            and "auto-yes off: permission prompts wait for you" in text[start:]
+        )
+    )
     assert dashboard.quit() == 0

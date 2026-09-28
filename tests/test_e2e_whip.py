@@ -30,7 +30,13 @@ def _crack_in(dashboard: Dashboard, number: int) -> str:
     """Press w and return the output of exactly that crack, up to its redraw."""
     start = len(dashboard.text)
     dashboard.press("w")
-    dashboard.read_until(lambda text: f"whip={number} sent=0" in text[start:])
+    # The badge is on the first row and the last-event row comes later in the
+    # same frame; wait for both, as a frame arrives in chunks.
+    dashboard.read_until(
+        lambda text: (
+            f"whip={number} sent=0" in text[start:] and "whip cracked in the air" in text[start:]
+        )
+    )
     return dashboard.text[start:]
 
 

@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.58.1] - 2026-09-28
+
+### Fixed
+
+- The end-to-end dashboard tests wait for every row they assert. A frame
+  reaches the pseudo-terminal in chunks, and the auto-yes and whip tests waited
+  for the header and then read the last-event row before it had arrived, which
+  failed the v0.58.0 release run on GitHub Actions. v0.58.0 was never
+  published; this release carries its auto-yes changes.
+
 ## [0.58.0] - 2026-09-28
 
 ### Added
