@@ -90,6 +90,34 @@ quality-changing choice as a test.
 - When a bug is found from a live prompt, add a regression fixture before the
   fix.
 
+## Working with the maintainer
+
+The maintainer's standing requests, collected from their sessions:
+
+- Work fast and finish. Make a short plan, present it, then execute it end to
+  end without stopping for confirmation; "get it done" means every step,
+  including the fixes a review turns up.
+- Ask only when a decision truly belongs to the maintainer, and ask it once and
+  briefly. Otherwise pick the sensible option, say which, and continue.
+- Make atomic commits: one logical change each, every one passing the required
+  verification below. Committing is expected; pushing and tagging still wait
+  for an explicit request.
+- Keep everything testable and tested: unit tests for the gate, dashboard-loop
+  tests for keys, a `simulate` scenario for each safety behaviour, and a real
+  pseudo-terminal end-to-end test (`tests/pty_dashboard.py`) for anything the
+  dashboard shows.
+- After a feature, self-review it with `/reviewBranch` (base: the last commit
+  before the feature when working on `master`) and fix every finding.
+- A bug seen live, often reported as a screenshot, is debugged from the live
+  session read-only: read the screen through the Konsole adapter, find the
+  root cause, add a fixture transcribed from that screen, then fix.
+- Finish by presenting a running version: the full pipeline result, the
+  commits, and whether the running dashboard must be restarted to pick up the
+  change (a running `agent-while-true` keeps the code it started with).
+- Dashboard automation switches are separate toggles with their own hotkeys,
+  always visible with their state in the header: `A` auto-resume on limit and
+  `y` auto-yes on permission prompts.
+
 ## Required verification
 
 Before every commit:
