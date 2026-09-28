@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.56.0] - 2026-09-28
+
+### Changed
+
+- The dashboard header shows both automation switches side by side with their
+  hotkeys: `[A] auto-resume on limit` (OFF, ASK each, ON for Claude, or ON for
+  Claude + Codex) and `[y] auto-yes on permission prompts`, followed by the
+  number of sessions waiting for approval. The key hint and help call `A`
+  auto-resume instead of mode.
+
 ## [0.55.0] - 2026-09-28
 
 ### Added

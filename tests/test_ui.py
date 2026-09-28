@@ -68,8 +68,9 @@ def test_full_auto_mode_and_toggle_are_explicit_in_dashboard() -> None:
     )
     text = render_status([_session()], now=NOW, config=config, show_help=True)
     assert "mode=full-auto" in text
-    assert "A mode" in text
-    assert "toggle observe/full-auto" in text
+    assert "A auto-resume" in text
+    assert "toggle auto-resume on limit: observe <-> full-auto" in text
+    assert "[A] auto-resume on limit: ON (Claude + Codex)" in text
 
 
 def test_status_handles_nothing_selected() -> None:

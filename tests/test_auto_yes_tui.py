@@ -77,6 +77,22 @@ def test_the_toggle_line_says_what_auto_yes_will_do() -> None:
     assert "ON, inert: observe mode sends nothing" in toggles_line([], observe, auto_yes=True)
 
 
+@pytest.mark.parametrize(
+    ("config", "shown"),
+    [
+        (Config(mode=Mode.OBSERVE), "[A] auto-resume on limit: OFF"),
+        (Config(mode=Mode.ASK), "[A] auto-resume on limit: ASK each"),
+        (Config(mode=Mode.AUTO), "[A] auto-resume on limit: ON (Claude)"),
+    ],
+    ids=["observe", "ask", "auto"],
+)
+def test_both_switches_are_shown_side_by_side(config: Config, shown: str) -> None:
+    line = toggles_line([], config, auto_yes=False)
+
+    assert line.startswith(shown)
+    assert "[y] auto-yes on permission prompts: OFF" in line
+
+
 def test_the_dashboard_shows_the_toggle_its_key_and_its_help(tmp_path: Path) -> None:
     kit = _kit(tmp_path, Mode.AUTO, screens.CLAUDE_APPROVAL_YES_NO)
     kit.supervisor.tick()
@@ -142,6 +158,7 @@ def test_the_real_dashboard_toggles_auto_yes_with_y(tmp_path: Path) -> None:
     """The real CLI on a pseudo-terminal, offline and without Konsole."""
     dashboard = Dashboard(tmp_path)
     dashboard.read_until(lambda text: "auto-yes on permission prompts: OFF" in text)
+    assert "[A] auto-resume on limit: OFF" in dashboard.text
 
     start = len(dashboard.text)
     dashboard.press("y")

@@ -125,7 +125,7 @@ observe mode.
 | Key | Effect |
 | --- | --- |
 | `-` / `+` | Refresh faster / slower across `0.25 0.5 1 2 3 5 10 30 60` seconds |
-| `A` | Toggle full-auto and back to observe/ask; uppercase activation is an explicit Codex resume opt-in |
+| `A` | Toggle auto-resume on limit: full-auto and back to observe/ask; uppercase activation is an explicit Codex resume opt-in |
 | `p` | Pause/resume; pause performs no terminal or quota polling |
 | `r` | Rediscover Konsole sessions immediately |
 | `t` | Cycle dark, vivid, CGA, amber, and plain themes |
@@ -140,6 +140,11 @@ observe mode.
 | `w` | Crack the whip: an ASCII bullwhip snaps across the screen, then one reminder goes to every idle supervised agent (see [The whip](#the-whip)) |
 | `y` | Toggle auto-yes: answer `1. Yes` on exact Claude Code Yes/No permission prompts (see [Permission prompts](#permission-prompts)); off at every start, never saved |
 | `q` | Quit and restore the terminal |
+
+The header shows both automation switches side by side with their keys:
+`[A] auto-resume on limit: OFF | ASK each | ON (Claude) | ON (Claude + Codex)`
+and `[y] auto-yes on permission prompts: OFF | ON | ON, inert`, followed by the
+number of sessions waiting for approval.
 
 Like btop, `+` makes the interval number larger and therefore refreshes more
 slowly. Selected sessions use that interval; full Konsole rediscovery runs every

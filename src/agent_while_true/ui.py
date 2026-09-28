@@ -576,7 +576,7 @@ def render_status(
     ]
     for part in _wrap(
         f"{now.astimezone().strftime('%Y-%m-%d %H:%M:%S')}  "
-        "+ slower  - faster  A mode  e events  l history  r rescan  "
+        "+ slower  - faster  A auto-resume  e events  l history  r rescan  "
         "p pause  t theme  x redact  d details  w whip  y auto-yes",
         max(1, panel_width - 4),
     ):
@@ -733,7 +733,8 @@ def render_status(
                     _panel_line(part, panel_width, "text", color=color, theme=theme)
                     for item in (
                         "- / +   refresh faster / slower (0.25, 0.5, 1, 2, 3, 5, 10, 30, 60s)",
-                        "A       toggle observe/full-auto; full-auto opts in Codex continuation",
+                        "A       toggle auto-resume on limit: observe <-> full-auto; "
+                        "full-auto opts in Codex continuation",
                         "p       pause/resume; paused means no terminal or quota polling",
                         "r       rediscover Konsole sessions now",
                         "t       cycle dark, vivid, CGA, amber and plain themes",
@@ -763,6 +764,14 @@ def render_status(
 
 def toggles_line(sessions: Sequence[SupervisedSession], config: Config, *, auto_yes: bool) -> str:
     """Both automation switches with their hotkeys, and who waits for approval."""
+    if config.mode is Mode.OBSERVE:
+        limit = "OFF"
+    elif config.mode is Mode.ASK:
+        limit = "ASK each"
+    elif config.policy.allow_codex_auto_resume:
+        limit = "ON (Claude + Codex)"
+    else:
+        limit = "ON (Claude)"
     if not auto_yes:
         yes = "OFF"
     elif config.mode.may_send_input:
@@ -770,7 +779,10 @@ def toggles_line(sessions: Sequence[SupervisedSession], config: Config, *, auto_
     else:
         yes = "ON, inert: observe mode sends nothing"
     waiting = sum(1 for session in sessions if session.state is SessionState.APPROVAL_PENDING)
-    return f"[y] auto-yes on permission prompts: {yes}   waiting for approval: {waiting}"
+    return (
+        f"[A] auto-resume on limit: {limit}   "
+        f"[y] auto-yes on permission prompts: {yes}   waiting for approval: {waiting}"
+    )
 
 
 def render_line(session: SupervisedSession, now: datetime) -> str:
