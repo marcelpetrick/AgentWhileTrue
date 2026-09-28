@@ -13,6 +13,18 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.58.2] - 2026-09-28
+
+### Fixed
+
+- The whip reaches idle Codex CLI 0.158 composers again. 0.158 added a second
+  placeholder, "Ask a follow-up question", and writes its status line as
+  `Context 93% left`; the first read as a draft, so the whip skipped such
+  sessions with `composer-not-empty`, and the second could hide the footer.
+  Both placeholders, the `N% left` form and the `tab to queue message` hint
+  are now accepted. Codex 0.158.0 is recorded as verified (pattern table
+  `codex-0.158.x/7`): its limit, retry, credit and downgrade wording is unchanged.
+
 ## [0.58.1] - 2026-09-28
 
 ### Fixed

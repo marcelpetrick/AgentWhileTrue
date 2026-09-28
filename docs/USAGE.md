@@ -351,6 +351,14 @@ a newline. The continuation is therefore wrapped in bracketed-paste markers and
 followed by Enter in the same revalidated D-Bus write, so a genuine submit
 happens instead of leaving `continue` in the composer.
 
+An empty Codex composer is one that shows nothing after its `›` glyph or one
+of its placeholders - "Ask Codex to do anything" or, since 0.158, "Ask a
+follow-up question" - with only the status line (`Context 93% left`,
+`7% used`) and key hints (`? for shortcuts`, `tab to queue message`) below it.
+Anything else is a draft, and the whip leaves it alone. Checked against Codex
+CLI 0.158.0 on 2026-09-28: its limit, retry, credit and downgrade wording is
+unchanged.
+
 ### Timed retries
 
 With full-auto and `ALLOW_CODEX_AUTO_RESUME=true`, the exact tested Codex limit

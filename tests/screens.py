@@ -342,6 +342,40 @@ CODEX_DRAFT_AFTER_NEWLINE_WITH_DOT = [
     "  gpt-5-codex high · ~/code/tide-mapper · 38% used",
 ]
 
+#: Codex CLI 0.158.0 read live over D-Bus on 2026-09-28: a working turn above
+#: the placeholder composer, then the status line (now "Context N% left") and
+#: a key-hint row. Text above the composer is shortened; the rows are verbatim.
+CODEX_0_158_WORKING = [
+    "• The benchmark blocker is gone. You can hibernate from KDE now.",
+    "",
+    "• Working (2m 44s • esc to interrupt)",
+    "  └ Tip: Use /archive to archive the current session.",
+    "",
+    " ",
+    "› Ask Codex to do anything",
+    " ",
+    "  GPT-6-Sol high · Context 93% left · ~/repos/codingWithGPT · master · Context 7% used",
+    "  ← for agents · ? for shortcuts",
+]
+
+#: Codex 0.158 ships a second composer placeholder next to the first one
+#: (strings of the 0.158.0 binary), and its status line may end on "N% left".
+#: Constructed from those strings, not read from a live screen.
+CODEX_0_158_FOLLOW_UP = [
+    "• Ran cargo test",
+    "",
+    "› Ask a follow-up question",
+    "",
+    "  GPT-6-Sol high · Context 93% left · ~/repos/codingWithGPT",
+]
+CODEX_0_158_QUEUE_HINT = [
+    "• Working (12s • esc to interrupt)",
+    "",
+    "› Ask Codex to do anything",
+    "",
+    "  tab to queue message",
+]
+
 #: A person's unsent draft in each composer. Submitting anything here would
 #: send their half-written message, so neither composer counts as empty.
 CLAUDE_DRAFT = [

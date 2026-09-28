@@ -272,3 +272,15 @@ def test_a_crack_that_runs_out_of_messages_types_nothing_more(tmp_path: Path) ->
         codex: "no-message-left",
     }
     assert kit.sent == [(CLAUDE, whip_keystrokes(message(3)))]
+
+
+@pytest.mark.parametrize(
+    "screen",
+    [screens.CODEX_0_158_WORKING, screens.CODEX_0_158_FOLLOW_UP, screens.CODEX_0_158_QUEUE_HINT],
+    ids=["live-0.158", "follow-up-placeholder", "queue-hint"],
+)
+def test_codex_0_158_idle_composers_hear_the_whip(tmp_path: Path, screen: list[str]) -> None:
+    """Codex 0.158's second placeholder read as a draft, so the whip skipped it."""
+    kit, _, codex = _kit(tmp_path, codex=screen)
+
+    assert _whip(kit)[codex] == "delivered"

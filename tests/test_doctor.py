@@ -103,12 +103,12 @@ def test_a_provider_newer_than_the_patterns_is_warned_about(monkeypatch) -> None
     On 2026-09-20 Codex 0.155.1 changed one apostrophe and no blocked session
     could be continued; nothing in the log said the recognizer had gone blind.
     """
-    monkeypatch.setattr(doctor, "_tool_version", lambda *_: "codex-cli 0.156.0")
+    monkeypatch.setattr(doctor, "_tool_version", lambda *_: "codex-cli 0.159.0")
 
     check = doctor.check_agent("codex", "--version", adapter=providers.CODEX)
 
     assert check.status is Status.WARN
-    assert "0.155.1" in check.detail
+    assert "0.158.0" in check.detail
     assert "verify the prompts" in check.detail
 
 

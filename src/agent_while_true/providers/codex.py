@@ -34,9 +34,9 @@ from agent_while_true.providers.base import (
 )
 
 NAME: Final = "codex"
-PATTERNS_VERSION: Final = "codex-0.155.x/6"
+PATTERNS_VERSION: Final = "codex-0.158.x/7"
 #: Versions whose screens were actually read, oldest first.
-VERIFIED_VERSIONS: Final = ("0.153.2", "0.153.4", "0.154.0", "0.155.1")
+VERIFIED_VERSIONS: Final = ("0.153.2", "0.153.4", "0.154.0", "0.155.1", "0.158.0")
 VERIFIED_AGAINST: Final = (
     f"Codex CLI {', '.join(VERIFIED_VERSIONS[:-1])} and {VERIFIED_VERSIONS[-1]}"
 )
@@ -69,7 +69,15 @@ _BRAILLE_PARTICLES = re.compile(r"[\u2800-\u28ff]")
 #: usage figure, or the key hints. A middle dot alone is not enough - a draft's
 #: continuation row can contain one - so anything else below an empty composer
 #: refuses a whip.
-_CODEX_FOOTER = re.compile(r"\b\d{1,3}% (?:used|context left)\b|\? for shortcuts\s*$")
+#: 0.158 also writes "Context 93% left" and, while a turn runs, the
+#: "tab to queue message" hint.
+_CODEX_FOOTER = re.compile(
+    r"\b\d{1,3}% (?:used|left|context left)\b|(?:\? for shortcuts|to queue message)\s*$"
+)
+#: What an empty composer shows: nothing, or one of Codex's placeholders. 0.158
+#: added "Ask a follow-up question" beside "Ask Codex to do anything"; without
+#: it an idle composer read as a draft and the whip skipped it.
+CODEX_PLACEHOLDERS: Final = frozenset({"", "Ask Codex to do anything", "Ask a follow-up question"})
 
 
 def _without_particles(lines: list[str]) -> list[str]:
@@ -221,7 +229,7 @@ class CodexAdapter(ProviderAdapter):
             if composer >= 0
             else None
         )
-        empty = body in {"", "Ask Codex to do anything"}
+        empty = body in CODEX_PLACEHOLDERS
         # A multi-line draft begun with Shift+Enter leaves the composer row
         # empty and continues below it. For typing a fresh message, only the
         # footer may follow; the resume path keeps its tested ``input_ready``.
