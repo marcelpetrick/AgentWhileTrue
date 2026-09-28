@@ -167,6 +167,10 @@ class SupervisedSession:
     approval_exact: bool = False
     #: Fingerprint of that permission box, the one the dashboard showed.
     approval_fingerprint: str = ""
+    #: The last permission box auto-yes answered. The same box is answered
+    #: once until a scan sees it gone: a second Enter while Claude redraws
+    #: would land in whatever comes next.
+    approved_fingerprint: str = ""
     quota: QuotaSnapshot = field(
         default_factory=lambda: unknown("unknown", "none", "not-observed-yet")
     )
@@ -694,6 +698,8 @@ class Supervisor:
         session.matched_ids = tuple(recognition.matched_ids) if recognition else ()
         session.approval_exact = bool(recognition and recognition.approval_prompt)
         session.approval_fingerprint = recognition.approval_fingerprint if recognition else ""
+        if not session.approval_exact:
+            session.approved_fingerprint = ""
 
     def act(
         self, session: SupervisedSession, observation: Observation, decision: Decision
@@ -944,6 +950,102 @@ class Supervisor:
             return "quota-exhausted"
         return ""
 
+    # -- auto-yes ------------------------------------------------------------
+
+    def approve_pending(self) -> dict[str, str]:
+        """Answer every exact permission prompt the last scan saw; auto-yes only.
+
+        Called by the dashboard after a scan while its auto-yes toggle is on,
+        never by :meth:`tick`. A session qualifies when its last observation
+        was the exact tested Yes/No box and that box was not answered already;
+        :meth:`approve` then revalidates it from scratch. Returns the outcome
+        per session it tried.
+        """
+        return {
+            key: self.approve(key, session.approval_fingerprint)
+            for key, session in list(self.sessions.items())
+            if session.approval_exact
+            and session.approval_fingerprint
+            and session.approval_fingerprint != session.approved_fingerprint
+        }
+
+    def approve(self, key: str, expected_fingerprint: str) -> str:
+        """Answer "1. Yes" on one session's permission prompt.
+
+        Reached only through the operator's auto-yes toggle, never from a
+        tick: nothing here is persisted or retried, and a refusal is final.
+        ``expected_fingerprint`` is the permission box the last scan saw; a
+        different box on screen now - a new command, an edited one - is
+        refused, and the same box is answered once until it leaves the screen.
+        Only the exact tested Yes/No menu with the cursor on Yes qualifies, so
+        an option that writes Claude Code's settings can never be reached. The
+        session is revalidated from scratch and the foreground process is
+        re-read last, directly before ``sendText``.
+
+        Returns ``"approved"`` or the refusal reason.
+        """
+        session = self.sessions.get(key)
+        reason = (
+            "no-session"
+            if session is None
+            else self._approval_refusal(session, expected_fingerprint)
+        )
+        if session is not None and not reason:
+            reason = self._live_process_drift(session)
+            if not reason:
+                try:
+                    self.terminal.send_text(session.ref, APPROVE_KEYSTROKES)
+                except TerminalError as exc:
+                    reason = f"send-failed:{type(exc).__name__}"
+                else:
+                    session.approved_fingerprint = expected_fingerprint
+                    reason = "approved"
+        # Identifiers and the box fingerprint only; never the command itself.
+        self.log.info(
+            "approval_sent" if reason == "approved" else "approval_refused",
+            provider=session.provider_name if session else "-",
+            session=key,
+            process=session.describe_process() if session else "-",
+            screen=expected_fingerprint or "-",
+            reason=reason,
+        )
+        return reason
+
+    def _approval_refusal(self, session: SupervisedSession, expected: str) -> str:
+        """Everything but the final process re-read, which ``approve`` does last."""
+        if not self.config.mode.may_send_input:
+            return "observe-mode"
+        if session.marked_unsafe:
+            return "session-unsafe"
+        if session.provider_name != "claude":
+            return "unsupported-provider"
+        pending = self.store.records.get(session.pending_key)
+        if session.verify_after is not None or (pending is not None and not pending.is_settled):
+            return "action-in-flight"
+        if not expected:
+            return "no-exact-approval-prompt"
+        if expected == session.approved_fingerprint:
+            return "already-approved"
+        observation = self.observe(session.ref)
+        self._remember_observation(session, observation)
+        if observation.identity is None or observation.identity != session.identity:
+            return "process-identity-changed"
+        classification = observation.classification
+        recognition = observation.recognition
+        if not classification.automatable or recognition is None:
+            return f"not-automatable:{classification.blocker or 'unknown'}"
+        # The permission prompt alone: a limit, paid offer or wait menu on the
+        # same screen is a screen that was not understood.
+        if (
+            recognition.state is not SessionState.APPROVAL_PENDING
+            or recognition.matched_ids != ("claude/tool-approval",)
+            or not recognition.approval_prompt
+        ):
+            return "no-exact-approval-prompt"
+        if recognition.approval_fingerprint != expected:
+            return "prompt-changed"
+        return ""
+
     # -- verification ------------------------------------------------------
 
     def _verify(self, session: SupervisedSession, now: datetime) -> Decision:
@@ -1120,6 +1222,10 @@ class WhipOutcome:
     @property
     def delivered(self) -> bool:
         return self.reason == "delivered"
+
+
+#: Enter on the visibly selected "1. Yes": the one-time approval.
+APPROVE_KEYSTROKES = "\r"
 
 
 def whip_keystrokes(text: str) -> str:

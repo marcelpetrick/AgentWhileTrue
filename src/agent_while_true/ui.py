@@ -530,6 +530,7 @@ def render_status(
     service_health: dict[str, ProviderHealth] | None = None,
     redact_accounts: bool = False,
     whip_badge: str = "",
+    auto_yes: bool = False,
 ) -> str:
     """Render the running watcher's status table."""
     listed = list(sessions)
@@ -565,11 +566,18 @@ def render_status(
             color=color,
             theme=theme,
         ),
+        _panel_line(
+            toggles_line(listed, config, auto_yes=auto_yes),
+            panel_width,
+            "warning" if auto_yes else "accent",
+            color=color,
+            theme=theme,
+        ),
     ]
     for part in _wrap(
         f"{now.astimezone().strftime('%Y-%m-%d %H:%M:%S')}  "
         "+ slower  - faster  A mode  e events  l history  r rescan  "
-        "p pause  t theme  x redact  d details  w whip",
+        "p pause  t theme  x redact  d details  w whip  y auto-yes",
         max(1, panel_width - 4),
     ):
         lines.append(_panel_line(part, panel_width, "surface", color=color, theme=theme))
@@ -735,6 +743,8 @@ def render_status(
                         "d       show/hide resume explanation; [ / ] previous/next session",
                         "w       crack the whip: one reminder to every idle, empty agent "
                         "composer; five cracks a minute, then a cooldown",
+                        "y       toggle auto-yes: answer 1. Yes on exact Claude Code Yes/No "
+                        "permission prompts; approves any command; off at start, never saved",
                         "j / k   scroll down/up; g / G jump to top/end",
                         "h / ?   close this help",
                         "q       quit cleanly",
@@ -749,6 +759,18 @@ def render_status(
     bottom = "└ " + _fit(hint, max(0, panel_width - 4)) + " ┘"
     lines.append(_paint(_fit(bottom, panel_width), "structure", color=color, theme=theme))
     return _viewport(lines, height, scroll_offset)
+
+
+def toggles_line(sessions: Sequence[SupervisedSession], config: Config, *, auto_yes: bool) -> str:
+    """Both automation switches with their hotkeys, and who waits for approval."""
+    if not auto_yes:
+        yes = "OFF"
+    elif config.mode.may_send_input:
+        yes = "ON - approves any command asked"
+    else:
+        yes = "ON, inert: observe mode sends nothing"
+    waiting = sum(1 for session in sessions if session.state is SessionState.APPROVAL_PENDING)
+    return f"[y] auto-yes on permission prompts: {yes}   waiting for approval: {waiting}"
 
 
 def render_line(session: SupervisedSession, now: datetime) -> str:

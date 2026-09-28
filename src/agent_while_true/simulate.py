@@ -76,6 +76,32 @@ ARMED_WAIT_SCREEN = [
     "  ⚠ Usage limit reached · continuing shortly · esc to cancel",
 ]
 CODEX_BLOCKED_SCREEN = ["▌ You've hit your usage limit. Try again at 8:10 PM.", "", "› "]
+#: Claude Code's permission box, as read live on 2026-09-28; the command is invented.
+_BOX_RULE = "\u2500" * 80
+APPROVAL_SCREEN = [
+    "● Running the end-to-end suite.",
+    "",
+    _BOX_RULE,
+    " Bash command",
+    "",
+    "   │ make e2e",
+    "   Run shell command",
+    "",
+    " Do you want to proceed?",
+    " ❯ 1. Yes",
+    "   2. No",
+    "",
+    " Esc to cancel · Tab to amend",
+]
+#: The three-option box; item 2 would write Claude Code's settings.
+APPROVAL_DONT_ASK_AGAIN_SCREEN = [
+    *APPROVAL_SCREEN[:9],
+    " ❯ 1. Yes",
+    "   2. Yes, and don't ask again for make commands in /home/user/project",
+    "   3. No, and tell Claude what to do differently (esc)",
+    "",
+    " Esc to cancel · Tab to amend",
+]
 
 
 @dataclass(slots=True)
@@ -212,6 +238,13 @@ class World:
         """Advance the supervisor once and record what it decided."""
         decisions = self.supervisor.tick()
         reason = decisions[0].reason if decisions else "no-sessions"
+        self.steps.append(Step(label=label, decision_reason=reason, sent=len(self.terminal.sent)))
+
+    def approve(self, label: str) -> None:
+        """One scan with the dashboard's auto-yes switched on."""
+        self.supervisor.tick()
+        outcomes = self.supervisor.approve_pending()
+        reason = ", ".join(sorted(outcomes.values())) or "nothing-to-approve"
         self.steps.append(Step(label=label, decision_reason=reason, sent=len(self.terminal.sent)))
 
     def screen(self, lines: list[str]) -> None:
@@ -514,6 +547,50 @@ def scenario_observe_mode(directory: Path) -> Result:
     )
 
 
+def scenario_approval_waits_for_the_operator(directory: Path) -> Result:
+    world = _world(directory, screen=APPROVAL_SCREEN)
+    for index in range(3):
+        world.step(f"Claude asks to run a command ({index + 1})")
+        world.clock.advance(5)
+    return _result(
+        "approval-waits-for-operator",
+        "Full auto sees Claude Code ask for permission to run a tool.",
+        "without the auto-yes switch nothing is approved, however long it waits",
+        world,
+        passed=world.terminal.sent == []
+        and all(step.decision_reason.endswith("APPROVAL_PENDING") for step in world.steps),
+    )
+
+
+def scenario_auto_yes_answers_once(directory: Path) -> Result:
+    world = _world(directory, screen=APPROVAL_DONT_ASK_AGAIN_SCREEN)
+    world.approve("three-option box: item 2 would change settings")
+    world.screen(APPROVAL_SCREEN)
+    world.approve("exact Yes/No box, auto-yes on")
+    world.approve("the same box, Claude has not redrawn yet")
+    world.screen(ACTIVE_SCREEN)
+    world.approve("the command runs")
+    world.screen(APPROVAL_SCREEN)
+    world.supervisor.tick()
+    world.screen([line.replace("make e2e", "rm -rf ~") for line in APPROVAL_SCREEN])
+    outcomes = world.supervisor.approve_pending()
+    world.steps.append(
+        Step(
+            label="the command changed after the scan",
+            decision_reason=", ".join(outcomes.values()),
+            sent=len(world.terminal.sent),
+        )
+    )
+    return _result(
+        "auto-yes-answers-once",
+        "The operator switched auto-yes on; Claude Code asks for permission.",
+        "only the exact Yes/No box is answered, once, and a changed box is refused",
+        world,
+        passed=world.terminal.sent == [(SESSION, "\r")]
+        and outcomes == {world.terminal.ref(SESSION).key(): "prompt-changed"},
+    )
+
+
 SCENARIOS: dict[str, ScenarioFn] = {
     "reset-and-resume": scenario_reset_and_resume,
     "agent-exited": scenario_agent_exited,
@@ -529,6 +606,8 @@ SCENARIOS: dict[str, ScenarioFn] = {
     "crash-recovery": scenario_crash_between_send_and_persist,
     "codex-needs-opt-in": scenario_codex_needs_opt_in,
     "observe-mode": scenario_observe_mode,
+    "approval-waits-for-operator": scenario_approval_waits_for_the_operator,
+    "auto-yes-answers-once": scenario_auto_yes_answers_once,
 }
 
 

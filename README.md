@@ -141,7 +141,10 @@ Ask and auto mode need Konsole's input D-Bus API enabled once
 [docs/USAGE.md §1](docs/USAGE.md#1-enable-konsole-input-once). In the running
 dashboard, `Shift+A` switches to full-auto and back to observe or ask, `d`
 explains the selected session, `w` cracks the whip (a reminder to every idle
-agent, through the same revalidation), and `h` lists every key.
+agent, through the same revalidation), `y` toggles auto-yes for Claude Code's
+Yes/No permission prompts (off at every start; it approves whatever command is
+asked, see [docs/USAGE.md](docs/USAGE.md#permission-prompts)), and `h` lists
+every key.
 
 | Mode | Command | Sends input? |
 | --- | --- | --- |

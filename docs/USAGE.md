@@ -138,6 +138,7 @@ observe mode.
 | `j` / `k` | Scroll down / up through the dashboard |
 | `g` / `G` | Jump to the top / end of the dashboard |
 | `w` | Crack the whip: an ASCII bullwhip snaps across the screen, then one reminder goes to every idle supervised agent (see [The whip](#the-whip)) |
+| `y` | Toggle auto-yes: answer `1. Yes` on exact Claude Code Yes/No permission prompts (see [Permission prompts](#permission-prompts)); off at every start, never saved |
 | `q` | Quit and restore the terminal |
 
 Like btop, `+` makes the interval number larger and therefore refreshes more
@@ -402,6 +403,33 @@ writes an allow rule into Claude Code's settings, and every other variation are
 shown as an untested shape to answer in the tab itself. A permission prompt is
 never a resume prompt: no mode answers it on its own, and the command text is
 never logged.
+
+**Auto-yes (`y`).** The dashboard's `y` key switches auto-yes on and off; the
+header shows `[y] auto-yes on permission prompts: OFF|ON` and how many sessions
+wait for approval. While it is on, every scan answers each exact Yes/No prompt
+with Enter on the visibly selected `1. Yes`. **That approves whatever command
+the agent asked for**, so it starts off on every run, is never saved, and
+exists only in the interactive dashboard - the headless service cannot enable
+it. Each answer is gated like any other input:
+
+- nothing is typed in observe mode, while paused or without input control; the
+  header then says `ON, inert`;
+- only the exact tested Yes/No box qualifies, alone on the screen: a limit,
+  paid offer or wait menu beside it, the three-option menu, or the cursor
+  anywhere but `1. Yes` is refused, so no option that changes Claude Code's
+  settings is ever reached;
+- the box is re-read immediately before the keypress and must be the one the
+  scan saw - a different command, an edit, a replaced process or another
+  foreground program cancels it;
+- one Enter per appearance: the same box is answered again only after a scan
+  has seen it leave the screen;
+- nothing is persisted or retried, and the log records `approval_sent` or
+  `approval_refused` with identifiers, a box fingerprint and a reason - never
+  the command.
+
+For commands you approve every time, an allow rule in Claude Code's own
+settings (`/permissions`) is narrower and matches the real command rather than
+its rendering, and leaves every other prompt with you.
 
 ### Quota bridge
 

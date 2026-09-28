@@ -57,6 +57,12 @@ when recognizer behavior changes.
   into a selected, revalidated session with a plain working screen, a visibly
   empty provider composer and quota that is not exhausted; it is never
   persisted or retried, and it is limited to five cracks per rolling minute.
+- Claude Code permission prompts are never resume prompts. Only the operator's
+  dashboard auto-yes switch (`y`) answers one: off at every start, never
+  persisted, never in observe mode, while paused or without input control;
+  only the exact tested Yes/No box with the cursor on `1. Yes`, alone on the
+  screen and unchanged since the scan, once per appearance. Never select an
+  option that writes provider settings ("don't ask again").
 - Never log terminal contents, environment values, credentials, or prompt text.
 - Preserve the persisted action lifecycle and single-instance lock.
 - Treat SSH, containers, tmux/screen, conflicting classification signals, and

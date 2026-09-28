@@ -40,6 +40,10 @@ class DashboardState:
     scroll_offset: int = 0
     redact_accounts: bool = False
     whip_requested: bool = False
+    #: Answer exact Claude Code Yes/No permission prompts with "1. Yes". Off at
+    #: every start and never saved: it approves whatever command is asked.
+    auto_yes: bool = False
+    auto_yes_toggled: bool = False
 
     @classmethod
     def from_interval(cls, value: float) -> DashboardState:
@@ -101,12 +105,20 @@ class DashboardState:
             self.mode_toggle_requested = True
         elif lowered == "w":
             self.whip_requested = True
+        elif lowered == "y":
+            self.auto_yes = not self.auto_yes
+            self.auto_yes_toggled = True
         return False
 
     def consume_mode_toggle(self) -> bool:
         requested = self.mode_toggle_requested
         self.mode_toggle_requested = False
         return requested
+
+    def consume_auto_yes_toggle(self) -> bool:
+        toggled = self.auto_yes_toggled
+        self.auto_yes_toggled = False
+        return toggled
 
     def consume_whip(self) -> bool:
         requested = self.whip_requested

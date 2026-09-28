@@ -586,6 +586,32 @@ def _crack_whip(
     return summary
 
 
+def _auto_yes_note(
+    supervisor: Supervisor, enabled: bool, config: Config, lock: SingleInstanceLock
+) -> str:
+    """Log the auto-yes switch and say what it will do from now on."""
+    supervisor.log.info("auto_yes_toggled", enabled=enabled)
+    if not enabled:
+        return "auto-yes off: permission prompts wait for you"
+    if not lock.held or not config.mode.may_send_input:
+        return "auto-yes on, but observe mode sends nothing (Shift+A arms input)"
+    return "auto-yes on: exact Claude Code Yes/No permission prompts are answered 1. Yes"
+
+
+def _approval_summary(approvals: dict[str, str]) -> str:
+    """One line for the last-event row; empty when nothing was tried."""
+    if not approvals:
+        return ""
+    approved = sum(1 for reason in approvals.values() if reason == "approved")
+    summary = f"auto-yes approved {approved}/{len(approvals)} permission prompt(s)"
+    refused = collections.Counter(reason for reason in approvals.values() if reason != "approved")
+    if refused:
+        summary += "; refused " + ", ".join(
+            f"{count}x {reason}" for reason, count in sorted(refused.items())
+        )
+    return summary
+
+
 def _loop(
     supervisor: Supervisor,
     config: Config,
@@ -653,6 +679,9 @@ def _loop(
                     max_gap=max(2, dashboard.interval * 2),
                 )
                 last_event = _summarise(supervisor.sessions.values(), decisions) or last_event
+                if dashboard.auto_yes and lock.held:
+                    approvals = supervisor.approve_pending()
+                    last_event = _approval_summary(approvals) or last_event
                 event_history = read_history(config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES)
                 # Presentation keys redraw cached observations, not terminal/quota
                 # reads. Schedule from completion so slow scans never catch up in
@@ -682,6 +711,7 @@ def _loop(
                     service_health=health.snapshot(),
                     redact_accounts=dashboard.redact_accounts,
                     whip_badge=whip_counter.badge(time.monotonic()) if interactive else "",
+                    auto_yes=dashboard.auto_yes,
                 )
                 if interactive:
                     height = max(1, size.lines - 1)
@@ -758,6 +788,12 @@ def _loop(
                         color=color,
                         theme=dashboard.theme,
                     )
+                    next_scan = 0.0
+                    event_history = read_history(
+                        config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
+                    )
+                if dashboard.consume_auto_yes_toggle():
+                    last_event = _auto_yes_note(supervisor, dashboard.auto_yes, config, lock)
                     next_scan = 0.0
                     event_history = read_history(
                         config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES

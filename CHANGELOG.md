@@ -13,6 +13,26 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.55.0] - 2026-09-28
+
+### Added
+
+- The dashboard's `y` key toggles **auto-yes**: while it is on, every scan
+  answers each exact Claude Code Yes/No permission prompt with Enter on the
+  visibly selected `1. Yes`. It approves whatever command the agent asked for,
+  so it is off at every start, never saved, exists only in the interactive
+  dashboard, and is shown in the header as
+  `[y] auto-yes on permission prompts: OFF|ON` with the number of sessions
+  waiting for approval. Every answer is revalidated like other input: never in
+  observe mode, while paused or without input control (the header says
+  `ON, inert`); only the exact box alone on the screen, unchanged since the
+  scan, in the same process; once per appearance; never persisted or retried.
+  The three-option menu, whose second item writes Claude Code's settings, is
+  never answered. The log records `approval_sent`/`approval_refused` with
+  identifiers and a box fingerprint, never the command.
+- `simulate` gains `approval-waits-for-operator` and `auto-yes-answers-once`;
+  unit, dashboard-loop and real pseudo-terminal end-to-end tests cover the switch.
+
 ## [0.54.0] - 2026-09-28
 
 ### Added

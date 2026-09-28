@@ -131,6 +131,9 @@ def test_pressing_w_in_the_dashboard_cracks_and_counts(
 ) -> None:
     kit = _kit(tmp_path, mode=Mode.OBSERVE)
     pressed = iter(["w", "", "q"])
+    # The viewport follows the terminal; pin it so the last-event row is in view.
+    size = os.terminal_size((120, 40))
+    monkeypatch.setattr(cli.shutil, "get_terminal_size", lambda fallback=None: size)
     monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: True)
     monkeypatch.setattr(cli.TerminalKeys, "read", lambda self, timeout: next(pressed))
     monkeypatch.setattr(cli.HealthMonitor, "start", lambda self: None)
