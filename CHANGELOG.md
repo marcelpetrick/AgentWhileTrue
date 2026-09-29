@@ -13,6 +13,18 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.59.5] - 2026-09-29
+
+### Fixed
+
+- Codex CLI 0.159's usage-limit reset menu vetoes input again. 0.159 replaced
+  "Redeem usage limit reset" with a menu opened by `$` - "Usage limit resets",
+  "Choose a different reset", "Resetting your usage..." - which no longer
+  matched the reset-credit veto. All of it now does; a mention inside other
+  text does not. Codex 0.159.0 is verified (`codex-0.159.x/8`): its limit,
+  retry, credit, downgrade and composer wording is otherwise unchanged. The
+  doctor test derives its "newer than verified" version instead of naming one.
+
 ## [0.59.4] - 2026-09-29
 
 ### Fixed

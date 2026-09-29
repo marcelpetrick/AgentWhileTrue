@@ -239,9 +239,24 @@ def test_codex_model_downgrade_is_vetoed() -> None:
     assert any(veto.startswith("model-downgrade-offer") for veto in result.vetoes)
 
 
-def test_codex_reset_credit_offer_is_vetoed() -> None:
-    result = providers.CODEX.recognise(screens.CODEX_RESET_CREDIT, now=NOW)
-    assert any(veto.startswith("paid-action-required") for veto in result.vetoes)
+@pytest.mark.parametrize(
+    "screen",
+    [screens.CODEX_RESET_CREDIT, screens.CODEX_0_159_RESET_MENU, screens.CODEX_0_159_RESETTING],
+    ids=["0.153-redeem", "0.159-menu", "0.159-resetting"],
+)
+def test_codex_reset_credit_offer_is_vetoed(screen: list[str]) -> None:
+    """A usage limit reset is finite and earned: every wording of it is a veto."""
+    result = providers.CODEX.recognise(screen, now=NOW)
+    # The policy gate refuses any proposed action while a veto stands.
+    assert "paid-action-required:codex/reset-credit-offer" in result.vetoes
+
+
+def test_a_status_line_mentioning_resets_is_not_the_reset_menu() -> None:
+    result = providers.CODEX.recognise(
+        ["• Explained /status: view account usage or use a usage limit reset", "", "› "],
+        now=NOW,
+    )
+    assert result.vetoes == ()
 
 
 def test_real_codex_mixed_limit_banner_is_recognised_without_losing_paid_evidence() -> None:

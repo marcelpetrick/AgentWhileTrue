@@ -34,9 +34,9 @@ from agent_while_true.providers.base import (
 )
 
 NAME: Final = "codex"
-PATTERNS_VERSION: Final = "codex-0.158.x/7"
+PATTERNS_VERSION: Final = "codex-0.159.x/8"
 #: Versions whose screens were actually read, oldest first.
-VERIFIED_VERSIONS: Final = ("0.153.2", "0.153.4", "0.154.0", "0.155.1", "0.158.0")
+VERIFIED_VERSIONS: Final = ("0.153.2", "0.153.4", "0.154.0", "0.155.1", "0.158.0", "0.159.0")
 VERIFIED_AGAINST: Final = (
     f"Codex CLI {', '.join(VERIFIED_VERSIONS[:-1])} and {VERIFIED_VERSIONS[-1]}"
 )
@@ -168,7 +168,16 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         provider=NAME,
         kind=PromptKind.PAID_ACTION_REQUIRED,
         scope="reset-credit",
-        all_of=(_pattern(r"Redeem usage limit reset|usage limit resets? available"),),
+        # 0.159 replaced the "Redeem" line with a menu opened by "$": its
+        # heading row, its choices and its progress line are all this offer.
+        all_of=(
+            re.compile(
+                r"Redeem usage limit reset|usage limit resets? available"
+                r"|^\s*Usage limit resets\s*$|Choose a different reset|Resetting your usage"
+                r"|press \$ to open this list",
+                re.IGNORECASE | re.MULTILINE,
+            ),
+        ),
         note="Consumes a finite earned reset. Never automated.",
         verified_against=VERIFIED_AGAINST,
     ),

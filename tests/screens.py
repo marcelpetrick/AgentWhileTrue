@@ -229,6 +229,20 @@ CODEX_RESET_CREDIT = [
     "› ",
 ]
 
+#: Codex 0.159 replaced "Redeem usage limit reset" with a reset menu opened by
+#: "$". Built from the strings of the 0.159.0 binary, not a live screen: the
+#: heading, its subtitle, the confirmation choice and the tip.
+CODEX_0_159_RESET_MENU = [
+    "  Usage limit resets",
+    "  Account usage and resets.",
+    "",
+    "› 1. Use a usage limit reset",
+    "  2. Choose a different reset",
+    "",
+    "  Tip: press $ to open this list directly",
+]
+CODEX_0_159_RESETTING = ["  Resetting your usage...", "", "› "]
+
 # Transcribed from media/agentWhileTrue_notWorking.png (Codex CLI 0.153.4).
 # The paid paths are passive links in the ordinary limit banner; the composer
 # is a separate control below them.

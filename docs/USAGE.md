@@ -356,8 +356,11 @@ of its placeholders - "Ask Codex to do anything" or, since 0.158, "Ask a
 follow-up question" - with only the status line (`Context 93% left`,
 `7% used`) and key hints (`? for shortcuts`, `tab to queue message`) below it.
 Anything else is a draft, and the whip leaves it alone. Checked against Codex
-CLI 0.158.0 on 2026-09-28: its limit, retry, credit and downgrade wording is
-unchanged.
+CLI 0.158.0 on 2026-09-28 and 0.159.0 on 2026-09-29: the limit, retry, credit
+and downgrade wording is unchanged. 0.159 replaced "Redeem usage limit reset"
+with a reset menu opened by `$` ("Usage limit resets", "Choose a different
+reset", "Resetting your usage..."); every part of it vetoes input, because a
+usage limit reset is finite and earned.
 
 ### Timed retries
 
