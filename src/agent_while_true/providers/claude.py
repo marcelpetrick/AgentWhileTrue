@@ -41,7 +41,7 @@ from agent_while_true.providers.base import (
 NAME: Final = "claude"
 PATTERNS_VERSION: Final = "claude-2.1.x/10"
 #: Versions whose screens were actually read, oldest first.
-VERIFIED_VERSIONS: Final = ("2.1.261", "2.1.270", "2.1.278", "2.1.283", "2.1.284")
+VERIFIED_VERSIONS: Final = ("2.1.261", "2.1.270", "2.1.278", "2.1.283", "2.1.284", "2.1.285")
 VERIFIED_AGAINST: Final = f"Claude Code {' and '.join(VERIFIED_VERSIONS)}"
 
 

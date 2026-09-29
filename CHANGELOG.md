@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.59.6] - 2026-09-29
+
+### Changed
+
+- Claude Code 2.1.285 is verified. Its limit headlines, window names, armed-wait
+  templates, time formatter, wait menu and permission prompts are identical to
+  2.1.284's, so `doctor` no longer asks to verify the prompts.
+
 ## [0.59.5] - 2026-09-29
 
 ### Fixed
