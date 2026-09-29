@@ -39,9 +39,9 @@ from agent_while_true.providers.base import (
 )
 
 NAME: Final = "claude"
-PATTERNS_VERSION: Final = "claude-2.1.x/9"
+PATTERNS_VERSION: Final = "claude-2.1.x/10"
 #: Versions whose screens were actually read, oldest first.
-VERIFIED_VERSIONS: Final = ("2.1.261", "2.1.270", "2.1.278", "2.1.283")
+VERIFIED_VERSIONS: Final = ("2.1.261", "2.1.270", "2.1.278", "2.1.283", "2.1.284")
 VERIFIED_AGAINST: Final = f"Claude Code {' and '.join(VERIFIED_VERSIONS)}"
 
 
@@ -213,9 +213,11 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         kind=PromptKind.SELF_HEALING,
         scope="session",
         all_of=(
+            # Claude drops zero minutes ("7pm") and prefixes a date to a reset
+            # more than a day out ("Oct 3, 7pm"); both are the same armed wait.
             _pattern(
                 r"(?:Claude Code will continue|continuing) automatically at "
-                r"\d{1,2}[:.]\d{2}(?:am|pm)"
+                r"(?:[A-Z][a-z]{2} \d{1,2}, )?\d{1,2}(?:[:.]\d{2})?\s?(?:am|pm)"
             ),
         ),
         note="Timed automatic wait is already armed; the supervisor must stand down.",

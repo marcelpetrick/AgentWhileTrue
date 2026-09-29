@@ -428,6 +428,13 @@ usage limit, "Your org is out of usage", a seat type without usage, a disabled
 allocation, a group limit of $0 - are paid or admin choices: every one vetoes
 input, including arming Claude's own wait.
 
+An armed wait makes the supervisor stand down in every wording Claude uses:
+"Continuing automatically when it resets", "... at 6:50pm", "... at 7pm" (zero
+minutes are dropped), "... at Oct 3, 7pm" (a reset more than a day out) and
+"... shortly". Since 2.1.284 these lines are templates Claude can change
+remotely; a wording the patterns do not know leaves the wait unrecognised,
+which `doctor`'s version check and a live read are there to catch.
+
 ### Permission prompts
 
 When Claude Code asks for permission - "Do you want to proceed?" under a tool

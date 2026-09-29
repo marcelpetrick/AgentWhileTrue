@@ -84,3 +84,28 @@ def test_quoted_headlines_inside_a_sentence_still_do_not_match_the_prompt_region
 
     assert recognition.state is SessionState.ACTIVE
     assert recognition.vetoes == ()
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "  ⚠ Continuing automatically at 7pm · esc to cancel",
+        "  ⚠ Continuing automatically at 6:50pm · esc to cancel",
+        "  ⚠ Usage limit reached · continuing automatically at 7pm · esc to cancel",
+        "  ⚠ Usage limit reached · continuing automatically at Oct 3, 7pm · esc to cancel",
+        "  ⚠ Usage limit reached · continuing automatically at Oct 3, 6:50pm · esc to cancel",
+        "  ⚠ Continuing automatically when it resets · esc to cancel",
+        "  ⚠ Usage limit reached · continuing automatically shortly · esc to cancel",
+    ],
+    ids=["on-the-hour", "minutes", "started-hour", "date-hour", "date-minutes", "when", "shortly"],
+)
+def test_every_armed_wait_wording_makes_the_supervisor_stand_down(line: str) -> None:
+    """Claude formats an on-the-hour reset as "7pm" and one a day out as "Oct 3, 7pm".
+
+    Strings of 2.1.283 and 2.1.284: the formatter drops the minutes when they
+    are zero. A pattern that required "6:50pm" missed the armed wait, and the
+    supervisor would not have stood down while Claude waited by itself.
+    """
+    recognition = _recognise(["● Waiting.", line])
+
+    assert any(veto.startswith("provider-resumes-itself:") for veto in recognition.vetoes)

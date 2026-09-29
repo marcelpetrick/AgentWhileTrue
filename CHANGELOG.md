@@ -13,6 +13,17 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.59.1] - 2026-09-29
+
+### Fixed
+
+- The supervisor stands down for every armed Claude wait again. Claude formats a
+  reset on the hour as "7pm" and one more than a day out as "Oct 3, 7pm"; the
+  timed stand-down pattern required "6:50pm", so "Continuing automatically at
+  7pm" was not recognised as Claude resuming itself. Both forms now match.
+  Claude Code 2.1.284, which turned these lines into remotely configurable
+  templates with the same rendered wording, is verified (`claude-2.1.x/10`).
+
 ## [0.59.0] - 2026-09-29
 
 ### Added
