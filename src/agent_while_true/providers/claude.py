@@ -39,9 +39,9 @@ from agent_while_true.providers.base import (
 )
 
 NAME: Final = "claude"
-PATTERNS_VERSION: Final = "claude-2.1.x/8"
+PATTERNS_VERSION: Final = "claude-2.1.x/9"
 #: Versions whose screens were actually read, oldest first.
-VERIFIED_VERSIONS: Final = ("2.1.261", "2.1.270", "2.1.278")
+VERIFIED_VERSIONS: Final = ("2.1.261", "2.1.270", "2.1.278", "2.1.283")
 VERIFIED_AGAINST: Final = f"Claude Code {' and '.join(VERIFIED_VERSIONS)}"
 
 
@@ -95,6 +95,54 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         scope="fast",
         all_of=(_pattern(r"You've hit your fast limit"),),
         verified_against=VERIFIED_AGAINST,
+    ),
+    PromptPattern(
+        id="claude/limit-fable",
+        provider=NAME,
+        kind=PromptKind.LIMIT_BLOCKED,
+        scope="fable",
+        all_of=(_pattern(r"You've (?:hit|reached) your Fable limit"),),
+        note="2.1.283: the Fable model window; it resets like the weekly window.",
+        verified_against="strings of the Claude Code 2.1.283 binary",
+    ),
+    PromptPattern(
+        id="claude/limit-generic",
+        provider=NAME,
+        kind=PromptKind.LIMIT_BLOCKED,
+        scope="session",
+        # "limit" and "usage limit" only: "usage credit limit" is a cap below.
+        all_of=(_pattern(r"You've hit your (?:usage )?limit\b"),),
+        note="2.1.283 names no window when the type is unknown; it still resets.",
+        verified_against="strings of the Claude Code 2.1.283 binary",
+    ),
+    PromptPattern(
+        id="claude/credits-exhausted",
+        provider=NAME,
+        kind=PromptKind.PAID_ACTION_REQUIRED,
+        scope="credits",
+        all_of=(
+            _pattern(
+                r"You've hit your usage credit limit|You're out of (?:usage credits|extra usage)"
+                r"|Fable 5 requires usage credits"
+            ),
+        ),
+        note="Credits, not a window: no wait ends it. Never automated.",
+        verified_against="strings of the Claude Code 2.1.283 binary",
+    ),
+    PromptPattern(
+        id="claude/admin-limit",
+        provider=NAME,
+        kind=PromptKind.PAID_ACTION_REQUIRED,
+        scope="admin",
+        all_of=(
+            _pattern(
+                r"You've hit your (?:org's|channel's|team's|individual) "
+                r"|Your org is out of usage|Your seat type doesn't include"
+                r"|Your usage allocation has been disabled|Your group's usage limit is set to \$0"
+            ),
+        ),
+        note="An admin's or organisation's cap: only an admin or money lifts it. Never automated.",
+        verified_against="strings of the Claude Code 2.1.283 binary",
     ),
     PromptPattern(
         id="claude/limit-banner",
@@ -324,7 +372,8 @@ class ClaudeAdapter(ProviderAdapter):
         )
         question = -APPROVAL_MENU_ROWS - 1
         limit_headline = re.compile(
-            r"You've hit your (?:session|weekly|Opus|Sonnet|fast) limit",
+            r"You've (?:hit|reached) your "
+            r"(?:(?:session|weekly|Opus|Sonnet|fast|Fable|usage) )?limit",
             re.IGNORECASE,
         )
         for index, line in enumerate(lines):

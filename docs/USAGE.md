@@ -417,6 +417,17 @@ just as "usage limit has reset" outranks a clock.
 
 ![Claude Code session-limit menu](../media/claude_out_of_quota.png)
 
+Claude Code 2.1.283 builds its limit headline at runtime ("You've hit your
+<limit>", optionally "· progress saved"). Two kinds are told apart. Window
+limits reset by waiting and block like the session limit: the session, weekly,
+Opus, Sonnet and fast limits, "You've reached your Fable limit", and the
+unnamed "You've hit your limit" / "... usage limit". Caps that no wait lifts -
+"usage credit limit", "You're out of usage credits" or "extra usage", "Fable 5
+requires usage credits", an org's, channel's, team's or individual spend or
+usage limit, "Your org is out of usage", a seat type without usage, a disabled
+allocation, a group limit of $0 - are paid or admin choices: every one vetoes
+input, including arming Claude's own wait.
+
 ### Permission prompts
 
 When Claude Code asks for permission - "Do you want to proceed?" under a tool

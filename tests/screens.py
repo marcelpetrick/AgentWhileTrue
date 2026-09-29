@@ -376,6 +376,31 @@ CODEX_0_158_QUEUE_HINT = [
     "  tab to queue message",
 ]
 
+#: Limit headlines Claude Code 2.1.283 builds at runtime ("You've hit your
+#: ${limit}" plus an optional " · progress saved"), taken from the strings of
+#: the 2.1.283 binary on 2026-09-29, not from a live screen.
+CLAUDE_2_1_283_WINDOW_LIMITS = {
+    "fable": "  ⎿  You've reached your Fable limit · resets 8:10pm (Europe/Berlin)",
+    "fable-hit": "  ⎿  You've hit your Fable limit · progress saved · resets 8:10pm",
+    "generic": "  ⎿  You've hit your limit · progress saved · resets 8:10pm (Europe/Berlin)",
+    "usage": "  ⎿  You've hit your usage limit · resets 8:10pm (Europe/Berlin)",
+}
+#: The ones that no wait ends: credits, an admin's cap, a seat type.
+CLAUDE_2_1_283_ADMIN_LIMITS = {
+    "credit-limit": "  ⎿  You've hit your usage credit limit",
+    "out-of-credits": "  ⎿  You're out of usage credits. /model to switch models.",
+    "out-of-extra": "  ⎿  You're out of extra usage",
+    "fable-credits": "  ⎿  Fable 5 requires usage credits.",
+    "org-spend": "  ⎿  You've hit your org's monthly spend limit · ask your admin for a higher limit",
+    "channel-usage": "  ⎿  You've hit your channel's monthly usage limit",
+    "team-budget": "  ⎿  You've hit your team's shared budget. /model to switch models.",
+    "individual": "  ⎿  You've hit your individual usage limit · ask your admin for a higher limit",
+    "org-out": "  ⎿  Your org is out of usage · add funds to continue",
+    "seat": "  ⎿  Your seat type doesn't include usage credits",
+    "disabled": "  ⎿  Your usage allocation has been disabled by your admin",
+    "zero": "  ⎿  Your group's usage limit is set to $0",
+}
+
 #: A person's unsent draft in each composer. Submitting anything here would
 #: send their half-written message, so neither composer counts as empty.
 CLAUDE_DRAFT = [

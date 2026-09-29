@@ -13,6 +13,21 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.59.0] - 2026-09-29
+
+### Added
+
+- Claude Code 2.1.283's new limit headlines are recognised. Window limits that
+  reset by waiting block like the session limit: "You've reached your Fable
+  limit" (scope `fable`) and the unnamed "You've hit your limit" / "... usage
+  limit". Caps no wait lifts veto every input, including arming Claude's own
+  wait: `claude/credits-exhausted` (usage credit limit, out of usage credits or
+  extra usage, Fable 5 requires usage credits) and `claude/admin-limit` (org,
+  channel, team or individual caps, an org out of usage, a seat type without
+  usage, a disabled allocation, a $0 group limit). Taken from the strings of the
+  2.1.283 binary; 2.1.283 is now verified (pattern table `claude-2.1.x/9`), so
+  `doctor` no longer warns about it.
+
 ## [0.58.2] - 2026-09-28
 
 ### Fixed
