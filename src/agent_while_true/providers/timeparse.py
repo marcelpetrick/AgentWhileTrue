@@ -23,6 +23,13 @@ _CLOCK_RE = re.compile(
     r"(?:\s*\((?P<tz>[A-Za-z_]+/[A-Za-z_+-]+)\))?",
     re.IGNORECASE,
 )
+#: Claude drops zero minutes: "resets 8pm". Without minutes the meridiem is
+#: what makes a number a time, so it is required.
+_HOUR_RE = re.compile(
+    r"\b(?P<hour>\d{1,2})\s*(?P<meridiem>am|pm)\b"
+    r"(?:\s*\((?P<tz>[A-Za-z_]+/[A-Za-z_+-]+)\))?",
+    re.IGNORECASE,
+)
 _MONTH_NAMES = {
     "jan": 1,
     "feb": 2,
@@ -41,9 +48,12 @@ _MONTH_DATE_RE = re.compile(
     r"\b(?P<month>Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|"
     r"Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|"
     r"Nov(?:ember)?|Dec(?:ember)?)\s+"
-    r"(?P<day>\d{1,2})(?:st|nd|rd|th)?(?:,\s*|\s+)"
-    r"(?P<year>\d{4})\s+"
-    r"(?P<hour>\d{1,2})[:.](?P<minute>\d{2})\s*(?P<meridiem>am|pm)?"
+    # Claude writes "Sep 9, 7pm" and names a year only for another year, then
+    # with a comma after it. Without a year the comma is required, so a bare
+    # "Sep 11th 4:35 AM" stays unsupported and refused.
+    r"(?P<day>\d{1,2})(?:st|nd|rd|th)?(?:,\s*|\s+(?=\d{4}\s))"
+    r"(?:(?P<year>\d{4}),?\s+)?"
+    r"(?P<hour>\d{1,2})(?:[:.](?P<minute>\d{2}))?\s*(?P<meridiem>am|pm)?"
     r"(?:\s*\((?P<tz>[A-Za-z_]+/[A-Za-z_+-]+)\))?",
     re.IGNORECASE,
 )
@@ -141,8 +151,10 @@ def _parse_explicit_date(text: str, now: datetime) -> tuple[bool, datetime | Non
     match = _MONTH_DATE_RE.search(text) or _ISO_DATE_RE.search(text)
     if match is None:
         return _DATED_TEXT_RE.search(text) is not None, None
+    if match.group("minute") is None and match.group("meridiem") is None:
+        return True, None
     hour = _apply_meridiem(int(match.group("hour")), match.group("meridiem"))
-    minute = int(match.group("minute"))
+    minute = int(match.group("minute") or 0)
     if hour is None or minute >= MINUTES_PER_HOUR:
         return True, None
     zone_name = match.group("tz")
@@ -153,8 +165,9 @@ def _parse_explicit_date(text: str, now: datetime) -> tuple[bool, datetime | Non
     try:
         month_text = match.group("month")
         month = int(month_text) if month_text.isdigit() else _MONTH_NAMES[month_text[:3].lower()]
+        year = match.group("year")
         candidate = datetime(
-            int(match.group("year")),
+            int(year) if year else now.astimezone(effective_zone).year,
             month,
             int(match.group("day")),
             hour,
@@ -186,11 +199,11 @@ def parse_reset(text: str, now: datetime) -> datetime | None:
     if (relative := parse_relative(text, now)) is not None:
         return relative
 
-    clock = _CLOCK_RE.search(text)
+    clock = _CLOCK_RE.search(text) or _HOUR_RE.search(text)
     if clock is None:
         return None
     hour = _apply_meridiem(int(clock.group("hour")), clock.group("meridiem"))
-    minute = int(clock.group("minute"))
+    minute = int(clock.groupdict().get("minute") or 0)
     if hour is None or minute >= MINUTES_PER_HOUR:
         return None
 

@@ -13,6 +13,17 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.59.2] - 2026-09-29
+
+### Fixed
+
+- Claude reset times on the hour and more than a day out are parsed. Claude
+  prints "resets 8pm", "resets Sep 9, 7pm" and, for another year,
+  "resets Jan 2, 2027, 9am"; all three read as unknown, so the dashboard showed no
+  prompt reset and no check could be scheduled from it. An hour with am/pm and a
+  year-less month date with Claude's comma are now accepted; a bare number, a
+  year-less date without that comma and an impossible date are still refused.
+
 ## [0.59.1] - 2026-09-29
 
 ### Fixed

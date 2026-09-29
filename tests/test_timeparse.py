@@ -150,3 +150,41 @@ def test_full_weekday_words_are_still_understood(text: str, expected: datetime) 
 def test_month_names_used_as_ordinary_words_do_not_suppress_the_clock(text: str) -> None:
     """A bare month word is not a date, and must not discard the only reset time."""
     assert parse_reset(text, NOW) == datetime(2026, 9, 5, 20, 10, tzinfo=BERLIN)
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("You've hit your limit · resets 8pm (Europe/Berlin)", datetime(2026, 9, 5, 20, 0)),
+        ("resets 7am", datetime(2026, 9, 6, 7, 0)),
+        ("resets 12am (Europe/Berlin)", datetime(2026, 9, 6, 0, 0)),
+        ("resets Sep 9, 7pm (Europe/Berlin)", datetime(2026, 9, 9, 19, 0)),
+        ("resets Sep 9, 6:50pm", datetime(2026, 9, 9, 18, 50)),
+        ("resets Jan 2, 2027, 9am (Europe/Berlin)", datetime(2027, 1, 2, 9, 0)),
+        ("Sep 10, 2026 9:52 PM", datetime(2026, 9, 10, 21, 52)),
+    ],
+    ids=[
+        "hour-only",
+        "hour-only-rolls",
+        "midnight",
+        "month-day",
+        "month-day-minutes",
+        "year-comma",
+        "legacy-dated",
+    ],
+)
+def test_claude_reset_formats(text: str, expected: datetime) -> None:
+    """Claude drops zero minutes ("8pm"), and dates a reset over a day out.
+
+    Its formatter (2.1.283/2.1.284) prints "Sep 9, 7pm" without a year and adds
+    one - followed by a comma - only for another year.
+    """
+    assert parse_reset(text, NOW) == expected.replace(tzinfo=BERLIN)
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["resets 7", "resets Sep 9, 7", "5h used", "resets 13pm", "resets Sep 31, 7pm"],
+)
+def test_an_hour_without_minutes_needs_its_meridiem(text: str) -> None:
+    assert parse_reset(text, NOW) is None
