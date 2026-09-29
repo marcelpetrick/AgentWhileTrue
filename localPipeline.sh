@@ -26,7 +26,9 @@ Runs the same complete gate used by GitHub Actions:
 
 A fresh clone has none of the pinned tools, so step 1 provisions them once in
 .venv (override with AGENT_WHILE_TRUE_TOOLCHAIN_VENV). An environment that
-already provides them, such as CI after `pip install .[dev]`, is used unchanged.
+already provides exactly the pinned versions, such as CI after
+`pip install .[dev]`, is used unchanged; any other version of a tool, on PATH
+or installed, is reported and the pinned .venv is used instead.
 
 --noRun is accepted for consistency with this repository's other local
 pipelines. Agent While True has no final interactive launch, so it is a no-op.
@@ -67,12 +69,11 @@ print("\n".join(project["project"]["optional-dependencies"]["dev"]))
 REQUIREMENTS
 }
 
+# Present is not enough: a stray ~/.local/bin/ruff 0.15.20 once linted every
+# local run while the pin said 0.16.9. Every installed tool and every command
+# on PATH must report exactly the pinned version.
 toolchain_complete() {
-    local tool
-    for tool in ruff pytest reuse; do
-        command -v "$tool" > /dev/null 2>&1 || return 1
-    done
-    "$PYTHON_BIN" -c 'import build, cyclonedx, pytest_cov, spdx_tools' > /dev/null 2>&1
+    "$PYTHON_BIN" "$PROJECT_ROOT/scripts/check_toolchain.py" "$PROJECT_ROOT/pyproject.toml"
 }
 
 # Without this a fresh clone failed with "missing tool: reuse" and an SBOM

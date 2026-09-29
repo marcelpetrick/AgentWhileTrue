@@ -13,6 +13,18 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.59.4] - 2026-09-29
+
+### Fixed
+
+- `localPipeline.sh` runs the gate with exactly the pinned tools. It accepted any
+  `ruff`, `pytest` or `reuse` found on `PATH`, so a stray `~/.local/bin/ruff`
+  0.15.20 linted local runs while the pin said 0.16.9. The new
+  `scripts/check_toolchain.py` compares every installed `dev` distribution and
+  the version each command on `PATH` prints against `pyproject.toml`, names each
+  difference, and on any difference the pipeline provisions and uses the pinned
+  `.venv`.
+
 ## [0.59.3] - 2026-09-29
 
 ### Changed

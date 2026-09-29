@@ -18,11 +18,16 @@ cd AgentWhileTrue
 ./localPipeline.sh
 ```
 
-The gate provisions what it needs: when any pinned tool is missing it installs
-the `dev` extra into `.venv` once and uses it, so a fresh clone runs its own
-gate with no setup step. An environment that already has those tools, such as
-CI after `pip install .[dev]`, is used unchanged. Set
-`AGENT_WHILE_TRUE_TOOLCHAIN_VENV` to put that environment elsewhere.
+The gate provisions what it needs: when any pinned tool is missing or at
+another version it installs the `dev` extra into `.venv` once and uses it, so a
+fresh clone runs its own gate with no setup step. `scripts/check_toolchain.py`
+decides: every `dev` distribution installed for the interpreter, and the
+version printed by each `ruff`, `pytest` and `reuse` on `PATH`, must equal its
+pin, and each difference is printed as `[INFO] toolchain: ...`. A stray
+`~/.local/bin/ruff` of another version therefore no longer lints the run. An
+environment that already has exactly the pinned tools, such as CI after
+`pip install .[dev]`, is used unchanged. Set `AGENT_WHILE_TRUE_TOOLCHAIN_VENV`
+to put that environment elsewhere.
 
 Runtime code uses only the Python 3.12+ standard library; the `dev` extra pins
 exact versions of the test, lint, build, licensing and SBOM tooling.
@@ -32,7 +37,8 @@ exact versions of the test, lint, build, licensing and SBOM tooling.
 `./localPipeline.sh` is the canonical release gate and the same script GitHub
 Actions runs on Python 3.12, 3.13 and 3.14. It checks, in order:
 
-1. Python 3.12+, and the pinned toolchain, provisioned if it is missing.
+1. Python 3.12+, and the pinned toolchain at exactly its pinned versions,
+   provisioned if anything is missing or differs.
 2. `scripts/quality.sh`: REUSE SPDX licensing, Ruff lint and format, ShellCheck
    on every tracked shell script, the worktree whitespace check, pytest with a
    98% combined statement/branch coverage floor, and version/changelog
