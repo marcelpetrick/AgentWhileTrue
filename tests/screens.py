@@ -485,6 +485,34 @@ CLAUDE_APPROVAL_LIVE_2_1_283 = [
 ]
 KONSOLE_PADDING_ROWS = 53
 
+#: A subagent's permission box read live from Claude Code 2.1.285 over D-Bus on
+#: 2026-09-30, after auto-yes had already sent its Enter: the box stayed, with
+#: the very same fingerprint, and the once-per-appearance guard then left it
+#: waiting for good. The window was 281 columns wide; the paths are anonymised,
+#: every other row and glyph is verbatim.
+CLAUDE_APPROVAL_STAYED_2_1_285 = [
+    "✻ Waiting for 7 background agents to finish",
+    "",
+    "─" * 281,
+    " Bash command · from the general-purpose agent",
+    "",
+    "   │ cd /home/user/project/tests; bash -c 'ls integration/ocr; grep -nE \"^def test|skipif"
+    '|fixtures|playtest" integration/ocr/*.py | head -40; sed -n 1,40p e2e/test_e2e_playtest.py'
+    ' | head -60; grep -rn "rotat" --include=*.py integration | head -5; grep -rnE "def',
+    '   │ test.*(windows|case_insens|reserved)" --include=*.py unit/filesystem invariants'
+    ' component | head; grep -rn "OCR_DISAGREEMENT" gui/test_gui_review_workflow.py | head -3\'',
+    "   Run shell command",
+    "",
+    " │ bash names a path that is computed at run time, which cannot be checked against the"
+    " read block (permissions.blockReadsOutsideWorkingDirectories)",
+    "",
+    " Do you want to proceed?",
+    " ❯ 1. Yes",
+    "   2. No",
+    "",
+    " Esc to cancel · Tab to amend",
+]
+
 #: File-edit prompts read live from Claude Code 2.1.283 on 2026-09-28. The
 #: question names the file, a dashed rule separates it from the preview, and
 #: item 2 is a session-scoped "Yes, and ...". File contents are shortened.

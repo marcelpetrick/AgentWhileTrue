@@ -149,7 +149,9 @@ def render_summary(path: Path, *, now: datetime, days: int) -> str:
     #: Sessions auto-yes answered, counted but never printed: keys name tabs.
     approved_sessions: set[str] = set()
     for item in _events(path, now=now, start=window_start):
-        if item.name == "approval_sent":
+        if item.name == "approval_sent" and item.fields.get("reason") == "resent":
+            counts["approval_resent"] += 1
+        elif item.name == "approval_sent":
             counts["approved"] += 1
             approved_sessions.add(item.fields.get("session", ""))
         elif item.name == "approval_refused":
@@ -189,8 +191,8 @@ def render_summary(path: Path, *, now: datetime, days: int) -> str:
     )
     lines.append(f"Retry episodes: scheduled={counts['scheduled']} gave-up={counts['gave_up']}")
     lines.append(
-        f"Auto-yes: approved={counts['approved']} refused={counts['approval_refused']} "
-        f"sessions={len(approved_sessions)}"
+        f"Auto-yes: approved={counts['approved']} resent={counts['approval_resent']} "
+        f"refused={counts['approval_refused']} sessions={len(approved_sessions)}"
     )
     lines.append(f"Whip: cracks={counts['cracks']} reminders={counts['reminders']}")
     if not interval_count:

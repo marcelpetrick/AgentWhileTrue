@@ -604,14 +604,21 @@ def _approval_summary(approvals: dict[str, str]) -> str:
     """One line for the last-event row; empty when nothing was tried."""
     if not approvals:
         return ""
-    approved = sum(1 for reason in approvals.values() if reason == "approved")
-    summary = f"auto-yes approved {approved}/{len(approvals)} permission prompt(s)"
-    refused = collections.Counter(reason for reason in approvals.values() if reason != "approved")
-    if refused:
-        summary += "; refused " + ", ".join(
-            f"{count}x {reason}" for reason, count in sorted(refused.items())
-        )
-    return summary
+    resent = sum(1 for reason in approvals.values() if reason == "resent")
+    fresh = [reason for reason in approvals.values() if reason != "resent"]
+    parts = []
+    if fresh:
+        approved = fresh.count("approved")
+        summary = f"auto-yes approved {approved}/{len(fresh)} permission prompt(s)"
+        refused = collections.Counter(reason for reason in fresh if reason != "approved")
+        if refused:
+            summary += "; refused " + ", ".join(
+                f"{count}x {reason}" for reason, count in sorted(refused.items())
+            )
+        parts.append(summary)
+    if resent:
+        parts.append(f"auto-yes pressed Enter again on {resent} permission prompt(s) that stayed")
+    return "; ".join(parts)
 
 
 def _loop(

@@ -38,6 +38,8 @@ TALKATIVE = {
     "wait-menu-gauge-says-available": [(simulate.SESSION, "\x1b[B\r")],
     # Auto-yes switched on by the operator answers one exact permission menu.
     "auto-yes-answers-once": [(simulate.SESSION, "\r")],
+    # An answered box that stays gets exactly one more Enter, never a third.
+    "auto-yes-resends-once": [(simulate.SESSION, "\r"), (simulate.SESSION, "\r")],
 }
 
 

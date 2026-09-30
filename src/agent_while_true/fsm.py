@@ -34,7 +34,7 @@ import json
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
-from typing import Protocol
+from typing import Final, Protocol
 
 from agent_while_true import providers as provider_registry
 from agent_while_true.classify import Classification, Confidence, ProcessClass, classify
@@ -63,6 +63,12 @@ TIME_JUMP_THRESHOLD_SECONDS = 30.0
 
 #: How long after sending input to check whether it worked.
 DEFAULT_VERIFY_DELAY_SECONDS = 5.0
+
+#: How long an answered permission box may stay on screen before auto-yes
+#: takes it as an Enter that did not land. Long enough for Claude Code to
+#: redraw after a real answer; short enough that a dropped Enter does not leave
+#: an agent parked. The identical box then gets one more Enter, never a third.
+APPROVAL_RECHECK_SECONDS: Final = 3.0
 
 #: States in which a provider is holding the session on a usage limit. Seeing
 #: one is what lets a later "usage limit has reset" affordance authorise input.
@@ -172,8 +178,15 @@ class SupervisedSession:
     approval_fingerprint: str = ""
     #: The last permission box auto-yes answered. The same box is answered
     #: once until a scan sees it gone: a second Enter while Claude redraws
-    #: would land in whatever comes next.
+    #: would land in whatever comes next. Only when the identical box is still
+    #: there after :data:`APPROVAL_RECHECK_SECONDS` is it answered once more.
     approved_fingerprint: str = ""
+    #: Monotonic time of the last Enter sent onto ``approved_fingerprint``.
+    approved_at: float | None = None
+    #: That box has had its one extra Enter; it never gets a third.
+    approval_resent: bool = False
+    #: The box outlived the extra Enter too, and that was reported once.
+    approval_stuck: bool = False
     quota: QuotaSnapshot = field(
         default_factory=lambda: unknown("unknown", "none", "not-observed-yet")
     )
@@ -712,6 +725,9 @@ class Supervisor:
             and recognition.state is not SessionState.APPROVAL_PENDING
         ):
             session.approved_fingerprint = ""
+            session.approved_at = None
+            session.approval_resent = False
+            session.approval_stuck = False
 
     def act(
         self, session: SupervisedSession, observation: Observation, decision: Decision
@@ -972,21 +988,44 @@ class Supervisor:
         was an exact tested permission menu and that box was not answered already;
         :meth:`approve` then revalidates it from scratch. Returns the outcome
         per session it tried.
+
+        An answered box that is still on screen :data:`APPROVAL_RECHECK_SECONDS`
+        later, unchanged, is taken as an Enter that did not land and is answered
+        once more through the same gate. If it outlives that one as well, the
+        scan reports ``unanswered-after-resend`` once and leaves it to the
+        operator.
         """
         # Ask mode promises a confirmation per action, so auto-yes is a
         # full-auto switch. An unsafe or busy session stays with its operator;
         # offering it on every scan would only log the same refusal repeatedly.
         if self.config.mode is not Mode.AUTO:
             return {}
-        return {
-            key: self.approve(key, session.approval_fingerprint)
-            for key, session in list(self.sessions.items())
-            if session.approval_exact
-            and session.approval_fingerprint
-            and session.approval_fingerprint != session.approved_fingerprint
-            and not session.marked_unsafe
-            and session.verify_after is None
-        }
+        now = self.monotonic_fn()
+        outcomes: dict[str, str] = {}
+        for key, session in list(self.sessions.items()):
+            if not (
+                session.approval_exact
+                and session.approval_fingerprint
+                and not session.marked_unsafe
+                and session.verify_after is None
+            ):
+                continue
+            if session.approval_fingerprint != session.approved_fingerprint or _resend_due(
+                session, now
+            ):
+                outcomes[key] = self.approve(key, session.approval_fingerprint)
+            elif session.approval_resent and not session.approval_stuck and _settled(session, now):
+                session.approval_stuck = True
+                outcomes[key] = "unanswered-after-resend"
+                self.log.info(
+                    "approval_refused",
+                    provider=session.provider_name,
+                    session=key,
+                    process=session.describe_process(),
+                    screen=session.approval_fingerprint,
+                    reason=outcomes[key],
+                )
+        return outcomes
 
     def approve(self, key: str, expected_fingerprint: str) -> str:
         """Answer "1. Yes" on one session's permission prompt.
@@ -1001,7 +1040,11 @@ class Supervisor:
         session is revalidated from scratch and the foreground process is
         re-read last, directly before ``sendText``.
 
-        Returns ``"approved"`` or the refusal reason.
+        The identical box once more, when it outlived its first Enter by
+        :data:`APPROVAL_RECHECK_SECONDS`, is the one exception to answering a
+        box once; that second Enter returns ``"resent"``.
+
+        Returns ``"approved"``, ``"resent"`` or the refusal reason.
         """
         session = self.sessions.get(key)
         reason = (
@@ -1017,11 +1060,15 @@ class Supervisor:
                 except TerminalError as exc:
                     reason = f"send-failed:{type(exc).__name__}"
                 else:
+                    resend = expected_fingerprint == session.approved_fingerprint
                     session.approved_fingerprint = expected_fingerprint
-                    reason = "approved"
+                    session.approved_at = self.monotonic_fn()
+                    session.approval_resent = resend
+                    session.approval_stuck = False
+                    reason = "resent" if resend else "approved"
         # Identifiers and the box fingerprint only; never the command itself.
         self.log.info(
-            "approval_sent" if reason == "approved" else "approval_refused",
+            "approval_sent" if reason in {"approved", "resent"} else "approval_refused",
             provider=session.provider_name if session else "-",
             session=key,
             process=session.describe_process() if session else "-",
@@ -1045,7 +1092,9 @@ class Supervisor:
             return "action-in-flight"
         if not expected:
             return "no-exact-approval-prompt"
-        if expected == session.approved_fingerprint:
+        if expected == session.approved_fingerprint and not _resend_due(
+            session, self.monotonic_fn()
+        ):
             return "already-approved"
         observation = self.observe(session.ref)
         self._remember_observation(session, observation)
@@ -1247,6 +1296,20 @@ class WhipOutcome:
 
 #: Enter on the visibly selected "1. Yes": the one-time approval.
 APPROVE_KEYSTROKES = "\r"
+
+
+def _settled(session: SupervisedSession, now: float) -> bool:
+    """The last Enter on the answered box is at least the settle delay old."""
+    return session.approved_at is not None and now - session.approved_at >= APPROVAL_RECHECK_SECONDS
+
+
+def _resend_due(session: SupervisedSession, now: float) -> bool:
+    """The answered box may have its one extra Enter: settled and not used yet."""
+    return (
+        bool(session.approved_fingerprint)
+        and not session.approval_resent
+        and _settled(session, now)
+    )
 
 
 def whip_keystrokes(text: str) -> str:

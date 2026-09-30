@@ -15,6 +15,7 @@ import pytest
 
 from agent_while_true import cli
 from agent_while_true.config import Config, Mode
+from agent_while_true.fsm import APPROVAL_RECHECK_SECONDS
 from agent_while_true.lock import SingleInstanceLock
 from agent_while_true.tui import DashboardState
 from agent_while_true.ui import render_status, toggles_line
@@ -38,12 +39,15 @@ def _kit(tmp_path: Path, mode: Mode, screen: list[str]):
     return kit
 
 
-def _run(tmp_path, monkeypatch, kit, keys: list[str], *, hold_lock: bool) -> str:
+def _run(
+    tmp_path, monkeypatch, kit, keys: list[str], *, hold_lock: bool, read_patched: bool = False
+) -> str:
     pressed = iter(keys)
     size = os.terminal_size((120, 40))
     monkeypatch.setattr(cli.shutil, "get_terminal_size", lambda fallback=None: size)
     monkeypatch.setattr(cli.sys.stdin, "isatty", lambda: True)
-    monkeypatch.setattr(cli.TerminalKeys, "read", lambda self, timeout: next(pressed))
+    if not read_patched:
+        monkeypatch.setattr(cli.TerminalKeys, "read", lambda self, timeout: next(pressed))
     monkeypatch.setattr(cli.HealthMonitor, "start", lambda self: None)
     stream = InteractiveOutput()
     flag = "--auto" if kit.supervisor.config.mode is Mode.AUTO else "--observe"
@@ -124,6 +128,39 @@ def test_pressing_y_answers_the_waiting_prompt(tmp_path: Path, monkeypatch) -> N
     assert "auto_yes_toggled enabled=true" in log.lower()
     assert "approval_sent" in log
     assert "ON - approves any command asked" in output
+
+
+def test_a_prompt_that_stays_gets_one_more_enter_then_waits(tmp_path: Path, monkeypatch) -> None:
+    """y, then rescans spaced past the settle delay: two Enters, then a note."""
+    kit = _kit(tmp_path, Mode.AUTO, screens.CLAUDE_APPROVAL_STAYED_2_1_285)
+    keys = iter(["y", "r", "r", "r", "d", "q"])
+
+    def press(self, timeout):
+        key = next(keys)
+        if key == "r":
+            kit.clock.advance(APPROVAL_RECHECK_SECONDS)
+        return key
+
+    monkeypatch.setattr(cli.TerminalKeys, "read", press)
+    output = _run(tmp_path, monkeypatch, kit, [], hold_lock=True, read_patched=True)
+
+    assert kit.sent == [(CLAUDE, "\r"), (CLAUDE, "\r")]
+    assert "auto-yes pressed Enter again on 1 permission prompt(s) that stayed" in output
+    assert "refused 1x unanswered-after-resend" in output
+    assert "auto-yes pressed Enter twice and it stayed - answer it in its tab" in output
+
+
+def test_the_last_event_row_separates_answers_and_second_enters() -> None:
+    assert cli._approval_summary({"a": "approved", "b": "resent"}) == (
+        "auto-yes approved 1/1 permission prompt(s); "
+        "auto-yes pressed Enter again on 1 permission prompt(s) that stayed"
+    )
+    assert cli._approval_summary({"a": "resent"}) == (
+        "auto-yes pressed Enter again on 1 permission prompt(s) that stayed"
+    )
+    assert cli._approval_summary({"a": "unanswered-after-resend"}) == (
+        "auto-yes approved 0/1 permission prompt(s); refused 1x unanswered-after-resend"
+    )
 
 
 def test_without_the_key_nothing_is_approved(tmp_path: Path, monkeypatch) -> None:

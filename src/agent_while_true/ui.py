@@ -422,7 +422,10 @@ def session_details(
             [
                 "Approval: "
                 + (
-                    "exact permission menu; auto-yes may answer it"
+                    "exact permission menu; auto-yes pressed Enter twice and it stayed -"
+                    " answer it in its tab"
+                    if session.approval_exact and session.approval_stuck
+                    else "exact permission menu; auto-yes may answer it"
                     if session.approval_exact
                     else "permission prompt of an untested shape; answer it in its tab"
                 )

@@ -304,6 +304,8 @@ and ambiguous process ancestry are non-automatable.
   screen whose own composer is visibly empty, and is never persisted or retried.
 - Answer a Claude Code permission prompt only while the operator's auto-yes
   switch is on (`Supervisor.approve_pending`), only on an exact permission menu
-  whose fingerprint the scan saw, once per appearance, never persisted.
+  whose fingerprint the scan saw, once per appearance, never persisted; the
+  identical box still there `APPROVAL_RECHECK_SECONDS` after its answer gets
+  one more fully revalidated Enter, and never a third.
 - Preserve a narrow adapter boundary for future terminals or providers without
   weakening the current Konsole-specific gate.

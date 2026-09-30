@@ -26,7 +26,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from agent_while_true.config import Config, Mode, Policy
-from agent_while_true.fsm import Supervisor
+from agent_while_true.fsm import APPROVAL_RECHECK_SECONDS, Supervisor
 from agent_while_true.logging_setup import setup
 from agent_while_true.proc import ProcessIdentity, ProcessInfo
 from agent_while_true.quota import Availability, QuotaSnapshot, QuotaSource, QuotaWindow, unknown
@@ -591,6 +591,36 @@ def scenario_auto_yes_answers_once(directory: Path) -> Result:
     )
 
 
+def scenario_auto_yes_resends_once(directory: Path) -> Result:
+    world = _world(directory, screen=APPROVAL_SCREEN)
+    world.approve("exact permission menu, auto-yes on")
+    world.clock.advance(APPROVAL_RECHECK_SECONDS - 1)
+    world.approve("the same box, still inside the settle delay")
+    world.clock.advance(1)
+    world.approve("the same box outlived its Enter")
+    world.clock.advance(APPROVAL_RECHECK_SECONDS)
+    world.approve("the same box outlived the second Enter as well")
+    for index in range(2):
+        world.clock.advance(APPROVAL_RECHECK_SECONDS)
+        world.approve(f"the operator has not answered yet ({index + 1})")
+    return _result(
+        "auto-yes-resends-once",
+        "Auto-yes answered a permission menu, but the identical box stays on screen.",
+        "one more Enter after the settle delay, then it is reported once and left alone",
+        world,
+        passed=world.terminal.sent == [(SESSION, "\r"), (SESSION, "\r")]
+        and [step.decision_reason for step in world.steps]
+        == [
+            "approved",
+            "nothing-to-approve",
+            "resent",
+            "unanswered-after-resend",
+            "nothing-to-approve",
+            "nothing-to-approve",
+        ],
+    )
+
+
 SCENARIOS: dict[str, ScenarioFn] = {
     "reset-and-resume": scenario_reset_and_resume,
     "agent-exited": scenario_agent_exited,
@@ -608,6 +638,7 @@ SCENARIOS: dict[str, ScenarioFn] = {
     "observe-mode": scenario_observe_mode,
     "approval-waits-for-operator": scenario_approval_waits_for_the_operator,
     "auto-yes-answers-once": scenario_auto_yes_answers_once,
+    "auto-yes-resends-once": scenario_auto_yes_resends_once,
 }
 
 

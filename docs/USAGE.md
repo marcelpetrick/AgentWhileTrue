@@ -314,12 +314,13 @@ same refusal do not).
 Every auto-yes answer is an `approval_sent` event with provider, session,
 process and the permission box's fingerprint - never the command - and every
 refused one an `approval_refused` with its reason. The summary counts them as
-`Auto-yes: approved=N refused=M sessions=K`, next to `Whip: cracks=C
+`Auto-yes: approved=N resent=R refused=M sessions=K` - `resent` counts the
+second Enters on a box that stayed - next to `Whip: cracks=C
 reminders=R`, so a day or week shows everything the dashboard typed on its
 operator's behalf:
 
 ```text
-Auto-yes: approved=4 refused=0 sessions=2
+Auto-yes: approved=4 resent=0 refused=0 sessions=2
 Whip: cracks=4 reminders=2
 ```
 
@@ -490,8 +491,15 @@ it. Each answer is gated like any other input:
   scan saw - a different command, an edit, a replaced process or another
   foreground program cancels it;
 - one Enter per appearance: the same box is answered again only after a scan
-  has seen it leave the screen;
-- nothing is persisted or retried, and the log records `approval_sent` or
+  has seen it leave the screen - with one exception. An Enter can be dropped
+  while Claude Code is still drawing the box; seen live on 2026-09-30 with
+  2.1.285, the answered box then simply stayed. So the identical box still on
+  screen 3 seconds after its answer gets exactly one more Enter, through the
+  same revalidation (`approval_sent` with `reason=resent`). If it outlives that
+  one too, the scan reports `unanswered-after-resend` once, the session details
+  say to answer it in its tab, and auto-yes leaves it alone until it leaves the
+  screen. Switching `y` off and on does not grant another try;
+- nothing is persisted, and the log records `approval_sent` or
   `approval_refused` with identifiers, a box fingerprint and a reason - never
   the command.
 

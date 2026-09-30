@@ -6,13 +6,14 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 
 from agent_while_true.config import Mode
-from agent_while_true.fsm import APPROVE_KEYSTROKES
+from agent_while_true.fsm import APPROVAL_RECHECK_SECONDS, APPROVE_KEYSTROKES
 from agent_while_true.states import SessionState
 from agent_while_true.terminal.base import TerminalUnavailableError
 from tests import harness as harness_module
@@ -259,3 +260,119 @@ def test_a_failed_read_does_not_rearm_an_answered_box(tmp_path: Path) -> None:
     assert _scan(kit) == {}
     assert kit.sent == [(CLAUDE, "\r")]
     assert kit.supervisor.sessions[key].approved_fingerprint
+
+
+def test_the_live_box_that_stayed_is_the_exact_tested_menu(tmp_path: Path) -> None:
+    kit, key = _kit(tmp_path, screens.CLAUDE_APPROVAL_STAYED_2_1_285)
+
+    assert _scan(kit) == {key: "approved"}
+    assert kit.sent == [(CLAUDE, APPROVE_KEYSTROKES)]
+
+
+def test_a_box_that_stays_gets_one_more_enter_after_the_settle_delay(tmp_path: Path) -> None:
+    """Regression: the live 2.1.285 box outlived its Enter and then waited for good.
+
+    The answered box was remembered until a scan saw it gone, and it never went,
+    so no scan ever tried again. The identical box still on screen once the
+    settle delay has passed now earns exactly one more Enter through the full
+    gate; after that it is the operator's.
+    """
+    kit, key = _kit(tmp_path, screens.CLAUDE_APPROVAL_STAYED_2_1_285)
+    assert _scan(kit) == {key: "approved"}
+
+    kit.clock.advance(APPROVAL_RECHECK_SECONDS - 0.5)
+    assert _scan(kit) == {}
+    assert kit.sent == [(CLAUDE, "\r")]
+
+    kit.clock.advance(0.5)
+    assert _scan(kit) == {key: "resent"}
+    assert kit.sent == [(CLAUDE, "\r"), (CLAUDE, "\r")]
+
+    kit.clock.advance(APPROVAL_RECHECK_SECONDS - 0.5)
+    assert _scan(kit) == {}
+    kit.clock.advance(0.5)
+    assert _scan(kit) == {key: "unanswered-after-resend"}
+    for _ in range(3):
+        kit.clock.advance(APPROVAL_RECHECK_SECONDS)
+        assert _scan(kit) == {}
+    assert kit.supervisor.approve(key, kit.supervisor.sessions[key].approval_fingerprint) == (
+        "already-approved"
+    )
+    assert kit.sent == [(CLAUDE, "\r"), (CLAUDE, "\r")]
+    log = _log(tmp_path)
+    assert log.count("approval_sent") == 2
+    assert "reason=resent" in log
+    assert log.count("reason=unanswered-after-resend") == 1
+    assert "blockReadsOutsideWorkingDirectories" not in log
+
+
+def test_a_box_that_leaves_earns_a_fresh_answer_and_retry(tmp_path: Path) -> None:
+    kit, key = _kit(tmp_path, screens.CLAUDE_APPROVAL_YES_NO)
+    assert _scan(kit) == {key: "approved"}
+    kit.clock.advance(APPROVAL_RECHECK_SECONDS)
+    assert _scan(kit) == {key: "resent"}
+
+    kit.terminal.set_screen(CLAUDE, list(screens.CLAUDE_IDLE_COMPOSER))
+    assert _scan(kit) == {}
+    session = kit.supervisor.sessions[key]
+    assert (session.approved_fingerprint, session.approved_at, session.approval_resent) == (
+        "",
+        None,
+        False,
+    )
+
+    kit.terminal.set_screen(CLAUDE, list(screens.CLAUDE_APPROVAL_YES_NO))
+    assert _scan(kit) == {key: "approved"}
+    kit.clock.advance(APPROVAL_RECHECK_SECONDS)
+    assert _scan(kit) == {key: "resent"}
+    assert kit.sent == [(CLAUDE, "\r")] * 4
+
+
+def test_a_different_box_is_a_new_appearance(tmp_path: Path) -> None:
+    kit, key = _kit(tmp_path, screens.CLAUDE_APPROVAL_YES_NO)
+    assert _scan(kit) == {key: "approved"}
+    kit.clock.advance(APPROVAL_RECHECK_SECONDS)
+    assert _scan(kit) == {key: "resent"}
+
+    # Straight to the next command's box, with no scan in between.
+    kit.terminal.set_screen(CLAUDE, list(screens.CLAUDE_APPROVAL_STAYED_2_1_285))
+    assert _scan(kit) == {key: "approved"}
+    kit.clock.advance(APPROVAL_RECHECK_SECONDS)
+    assert _scan(kit) == {key: "resent"}
+    assert kit.sent == [(CLAUDE, "\r")] * 4
+
+
+def test_the_retry_meets_a_changed_command_with_a_refusal(tmp_path: Path) -> None:
+    kit, key = _kit(tmp_path, screens.CLAUDE_APPROVAL_YES_NO)
+    assert _scan(kit) == {key: "approved"}
+    kit.clock.advance(APPROVAL_RECHECK_SECONDS)
+    kit.supervisor.tick()
+    kit.terminal.set_screen(
+        CLAUDE,
+        [line.replace("head -30", "rm -rf ~") for line in screens.CLAUDE_APPROVAL_YES_NO],
+    )
+
+    assert kit.supervisor.approve_pending() == {key: "prompt-changed"}
+    assert kit.sent == [(CLAUDE, "\r")]
+
+
+def test_the_retry_meets_a_replaced_process_with_a_refusal(tmp_path: Path) -> None:
+    kit, key = _kit(tmp_path, screens.CLAUDE_APPROVAL_YES_NO)
+    assert _scan(kit) == {key: "approved"}
+    kit.clock.advance(APPROVAL_RECHECK_SECONDS)
+    kit.supervisor.tick()
+    kit.inspector.add_claude(4999, start_time=999)
+    kit.terminal.set_foreground(CLAUDE, 4999)
+
+    assert kit.supervisor.approve_pending() == {key: "process-identity-changed"}
+    assert kit.sent == [(CLAUDE, "\r")]
+
+
+def test_the_retry_is_full_auto_only(tmp_path: Path) -> None:
+    kit, key = _kit(tmp_path, screens.CLAUDE_APPROVAL_YES_NO)
+    assert _scan(kit) == {key: "approved"}
+    kit.clock.advance(APPROVAL_RECHECK_SECONDS)
+    kit.supervisor.config = replace(kit.supervisor.config, mode=Mode.ASK)
+
+    assert _scan(kit) == {}
+    assert kit.sent == [(CLAUDE, "\r")]

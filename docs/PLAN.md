@@ -58,7 +58,8 @@ The requested implementation is complete:
   mode, while paused, or without input control.
 - Claude Code permission prompts are the `APPROVAL_PENDING` state, and a
   non-persistent `y` auto-yes switch answers `1. Yes` on an exact permission menu
-  only, once per appearance, after revalidation; only in full-auto, never in
+  only, once per appearance (plus one re-sent Enter if the identical box
+  outlives the first by 3 s), after revalidation; only in full-auto, never in
   ask or observe mode, while paused or without input control.
 - Measured performance, coverage, licensing and dual-format SBOM gates are
   recorded in [history/maturityPlan.md](history/maturityPlan.md). The observed

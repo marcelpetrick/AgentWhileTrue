@@ -64,8 +64,11 @@ when recognizer behavior changes.
   only an exact tested permission menu - a whole-row "Do you want to ...?",
   the cursor on `1. Yes`, an optional `2. Yes, and ...`, a final `No` - alone
   on the screen and unchanged since the scan, once per appearance, by Enter on
-  item 1. Never select a "Yes, and ..." item: those change provider settings or
-  session modes.
+  item 1. The identical box still on screen 3 seconds after its answer counts
+  as an Enter that did not land and gets exactly one more Enter, through the
+  full revalidation; if it stays after that too it is reported once and left
+  to the operator. Never select a "Yes, and ..." item: those change provider
+  settings or session modes.
 - Never log terminal contents, environment values, credentials, or prompt text.
 - Preserve the persisted action lifecycle and single-instance lock.
 - Treat SSH, containers, tmux/screen, conflicting classification signals, and

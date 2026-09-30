@@ -180,6 +180,10 @@ def test_summary_counts_every_auto_yes_answer_and_whip_crack(tmp_path: Path) -> 
         + _line("2026-09-10T10:05:00+00:00", f"event=approval_sent provider=claude {session}")
         + _line("2026-09-10T10:06:00+00:00", f"event=approval_sent provider=claude {other}")
         + _line(
+            "2026-09-10T10:06:04+00:00",
+            f"event=approval_sent provider=claude {other} reason=resent",
+        )
+        + _line(
             "2026-09-10T10:07:00+00:00",
             f"event=approval_refused provider=claude {other} reason=prompt-changed",
         )
@@ -190,7 +194,7 @@ def test_summary_counts_every_auto_yes_answer_and_whip_crack(tmp_path: Path) -> 
 
     text = render_summary(path, now=NOW, days=1)
 
-    assert "Auto-yes: approved=3 refused=1 sessions=2" in text
+    assert "Auto-yes: approved=3 resent=1 refused=1 sessions=2" in text
     assert "Whip: cracks=1 reminders=2" in text
     assert "konsole-1" not in text
 
@@ -201,5 +205,5 @@ def test_summary_without_operator_input_says_so(tmp_path: Path) -> None:
 
     text = render_summary(path, now=NOW, days=1)
 
-    assert "Auto-yes: approved=0 refused=0 sessions=0" in text
+    assert "Auto-yes: approved=0 resent=0 refused=0 sessions=0" in text
     assert "Whip: cracks=0 reminders=0" in text

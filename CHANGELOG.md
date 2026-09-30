@@ -13,6 +13,22 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.59.7] - 2026-09-30
+
+### Fixed
+
+- Auto-yes no longer leaves a permission prompt waiting for good when its
+  Enter did not land. Seen live with Claude Code 2.1.285: the answered box
+  stayed on screen unchanged, and because an answered box was only forgotten
+  once a scan saw it gone, no scan tried again. The identical box still on
+  screen 3 seconds (`APPROVAL_RECHECK_SECONDS`) after its answer now gets
+  exactly one more Enter through the full revalidation (`approval_sent` with
+  `reason=resent`); if it stays after that too, the scan reports
+  `unanswered-after-resend` once, the session details say to answer it in its
+  tab, and it gets no third Enter. The summary counts `resent=` separately, and
+  `simulate` gains `auto-yes-resends-once`. A fixture is transcribed from the
+  live screen.
+
 ## [0.59.6] - 2026-09-29
 
 ### Changed
