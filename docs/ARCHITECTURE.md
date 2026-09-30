@@ -196,7 +196,12 @@ exception is a dropped keypress: when the identical box is still there
 `approve` once more through the same gate (`approval_sent reason=resent`). A
 box that outlives that Enter too is reported once as `unanswered-after-resend`
 and left to the operator; toggling `y` does not reset this, and nothing about it
-is persisted.
+is persisted. The re-send cannot tell a dropped Enter from one still queued in
+the terminal while Claude Code is stalled for longer than the settle delay; in
+that case both arrive once it resumes and the second lands on whatever screen
+follows, unchecked. That is accepted because Claude's next menus put a harmless
+choice on item 1; if it is ever seen live, gate the re-send on evidence that
+Claude redrew the rest of the screen after the first Enter.
 
 ## Operator whip
 

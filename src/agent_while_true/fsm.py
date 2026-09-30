@@ -68,6 +68,9 @@ DEFAULT_VERIFY_DELAY_SECONDS = 5.0
 #: takes it as an Enter that did not land. Long enough for Claude Code to
 #: redraw after a real answer; short enough that a dropped Enter does not leave
 #: an agent parked. The identical box then gets one more Enter, never a third.
+#: A stall longer than this is indistinguishable from a dropped Enter: both
+#: queued Enters then arrive, and the second lands on the next screen unchecked
+#: (see "Auto-yes" in docs/ARCHITECTURE.md for why that is accepted).
 APPROVAL_RECHECK_SECONDS: Final = 3.0
 
 #: States in which a provider is holding the session on a usage limit. Seeing

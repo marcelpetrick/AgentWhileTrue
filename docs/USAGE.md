@@ -495,9 +495,10 @@ it. Each answer is gated like any other input:
   scan saw - a different command, an edit, a replaced process or another
   foreground program cancels it;
 - one Enter per appearance: the same box is answered again only after a scan
-  has seen it leave the screen - with one exception. An Enter can be dropped
-  while Claude Code is still drawing the box; seen live on 2026-09-30 with
-  2.1.285, the answered box then simply stayed. So the identical box still on
+  has seen it leave the screen - with one exception. Seen live on 2026-09-30
+  with 2.1.285, an answered box stayed on screen unchanged; the likely cause is
+  an Enter dropped while Claude Code was still setting the dialog up, but the
+  log (which holds no screen text) cannot prove it. So the identical box still on
   screen 3 seconds after its answer gets exactly one more Enter, through the
   same revalidation (`approval_sent` with `reason=resent`). If it outlives that
   one too, the scan reports `unanswered-after-resend` once, the session details
@@ -593,7 +594,10 @@ managed observe-only configuration; `--uninstall` removes the service and its
 drop-in.
 
 The service runs `~/.local/bin/agent-while-true` and keeps the code it started
-with. After installing a newer version with `pipx`, restart it:
+with. Install a newer version with `UV_VENV_CLEAR=1 pipx install --force ...`
+(see [Install](../README.md#install); without the variable pipx's uv backend
+keeps the old environment and reports success), check
+`agent-while-true --version`, then restart it:
 
 ```bash
 systemctl --user restart agent-while-true.service

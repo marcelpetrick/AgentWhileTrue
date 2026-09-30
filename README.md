@@ -136,7 +136,16 @@ agent-while-true doctor
 Pick any tag from the [releases](https://github.com/marcelpetrick/AgentWhileTrue/releases);
 a development checkout is described in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
-To upgrade, run the same command with the newer tag and `--force`. A running
+To upgrade, reinstall with the newer tag and confirm the version:
+
+```bash
+UV_VENV_CLEAR=1 pipx install --force 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-vX.Y.Z'
+agent-while-true --version
+```
+
+`UV_VENV_CLEAR=1` matters when pipx uses its uv backend: without it `--force`
+only warns that it will not remove the existing environment, exits
+successfully and leaves the old version installed. A running
 `agent-while-true` keeps the code it started with, so restart it afterwards:
 quit and reopen the dashboard, and run
 `systemctl --user restart agent-while-true.service` if the
