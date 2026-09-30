@@ -52,7 +52,8 @@ the real renderer — `scripts/record_demo.py` feeds fabricated sessions to the 
   every "Do you want to proceed?", "... overwrite this file?" or "... create
   this file?" used to park the agent until you came back. Press `y` in
   full-auto and auto-yes answers `1. Yes` on the exact permission menu, once
-  per prompt, after the same revalidation as every other input.
+  per prompt (plus a single re-sent Enter if that exact box is still there 3 s
+  later), after the same revalidation as every other input.
   It approves whatever command is asked, so it starts off on every run and the
   header always shows it. [Details](docs/USAGE.md#permission-prompts).
 - **Explanations, not surprises** — a detail panel shows the latest decision,
@@ -135,6 +136,12 @@ agent-while-true doctor
 Pick any tag from the [releases](https://github.com/marcelpetrick/AgentWhileTrue/releases);
 a development checkout is described in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
+To upgrade, run the same command with the newer tag and `--force`. A running
+`agent-while-true` keeps the code it started with, so restart it afterwards:
+quit and reopen the dashboard, and run
+`systemctl --user restart agent-while-true.service` if the
+[background service](docs/USAGE.md#9-background-service) is installed.
+
 ## Quick start
 
 ```bash
@@ -160,7 +167,10 @@ every key.
 | Ask | `run --ask` | Only after you confirm each action. |
 | Auto | `run --auto` | Yes, for policy-approved exact prompts, after fresh revalidation. |
 
-A background observe-only user service, the Claude quota bridge, configuration
+A background service is its own watcher: a dashboard started beside it does
+not attach to it but runs a second one, see
+[docs/USAGE.md §9](docs/USAGE.md#opening-the-dashboard-while-the-service-runs).
+The background user service, the Claude quota bridge, configuration
 keys, Codex timed retries and the full dashboard reference are all in
 [docs/USAGE.md](docs/USAGE.md).
 

@@ -43,7 +43,10 @@ The requested implementation is complete:
 - Generic and timed Claude automatic-wait confirmations both verify as
   provider-armed waits; current extra-usage, early-reset and lower-priority
   choices are explicit non-automatable vetoes.
-- The single-instance lock permits at most one input-capable watcher.
+- The single-instance lock permits at most one input-capable watcher; a
+  dashboard started beside it asks the holder over an owner-only local socket
+  to hand input control over (`Shift+A`), and the holder re-arms when the
+  dashboard exits.
 - Deterministic simulations, package smoke tests, and a live read-only Konsole
   adapter test are part of the release gate.
 - Resume explanations, saved presentation preferences, day/week operational
@@ -120,8 +123,8 @@ Maintenance is evidence-driven rather than scheduled feature growth.
 6. Before pushing or tagging, run `./localPipeline.sh`, all CLI diagnostics and
    simulations, and the opt-in live Konsole test when KDE Konsole is available.
 7. Build and install the wheel in isolation; smoke-test the canonical command.
-8. Push only when requested. Tag only a fully verified release and confirm both
-   GitHub workflows and published artifacts.
+8. Push only when requested. Tag only a fully verified release and confirm the
+   quality, security and release workflows and the published artifacts.
 
 ## Deferred scope
 

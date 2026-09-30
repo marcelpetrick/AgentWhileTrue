@@ -190,7 +190,13 @@ mode, an unsafe session, a non-Claude provider or an action in flight, re-observ
 session, requires `claude/tool-approval` as the only match with the exact
 shape and the same box fingerprint, re-reads the foreground process last and
 sends a single Enter. The answered fingerprint is held in memory until a scan
-no longer sees an exact box, so a slow redraw cannot take a second Enter.
+sees no permission prompt, so a slow redraw cannot take a second Enter. The one
+exception is a dropped keypress: when the identical box is still there
+`APPROVAL_RECHECK_SECONDS` (3 s) after its answer, `approve_pending` offers it to
+`approve` once more through the same gate (`approval_sent reason=resent`). A
+box that outlives that Enter too is reported once as `unanswered-after-resend`
+and left to the operator; toggling `y` does not reset this, and nothing about it
+is persisted.
 
 ## Operator whip
 

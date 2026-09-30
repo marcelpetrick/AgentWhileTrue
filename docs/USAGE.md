@@ -143,7 +143,8 @@ observe mode.
 
 The header shows both automation switches side by side with their keys:
 `[A] auto-resume on limit: OFF | ASK each | ON (Claude) | ON (Claude + Codex)`
-and `[y] auto-yes on permission prompts: OFF | ON | ON, inert` (inert outside full-auto), followed by the
+and `[y] auto-yes on permission prompts: OFF | ON - approves any command asked |
+ON, inert: ...` (inert outside full-auto, with the reason), followed by the
 number of sessions waiting for approval.
 
 Like btop, `+` makes the interval number larger and therefore refreshes more
@@ -331,7 +332,10 @@ excluded, and waiting without fresh observations is not inferred. Intervals are
 flushed about once per minute and on clean exit, so a crash can lose the
 unflushed tail. Older logs lack interval/refusal evidence, rotation can remove
 events, and multiple observers contribute separate samples — use one watcher for
-a non-overlapping report.
+a non-overlapping report. A dashboard opened beside the background service is
+such a second observer: both write every state change to the same log, so the
+lines appear twice (see
+[Opening the dashboard while the service runs](#opening-the-dashboard-while-the-service-runs)).
 
 ## 7. Codex specifics
 
@@ -587,6 +591,39 @@ Both forms enable and start `agent-while-true.service` immediately and on
 future desktop logins. Running the installer without `--auto` restores the
 managed observe-only configuration; `--uninstall` removes the service and its
 drop-in.
+
+The service runs `~/.local/bin/agent-while-true` and keeps the code it started
+with. After installing a newer version with `pipx`, restart it:
+
+```bash
+systemctl --user restart agent-while-true.service
+```
+
+### Opening the dashboard while the service runs
+
+There is no attach-only viewer: every `run` is a complete watcher that scans the
+selected sessions and writes its own log lines. With the service running, pick
+one of two ways:
+
+- **One watcher, one log.** Stop the service, use the dashboard, and start the
+  service again when you leave:
+
+  ```bash
+  systemctl --user stop agent-while-true.service
+  agent-while-true run --auto --all
+  systemctl --user start agent-while-true.service   # after quitting
+  ```
+
+- **Keep the service and take input control.** Open a read-only dashboard and
+  press `Shift+A`; the service hands input control over, drops to observe and
+  re-arms when the dashboard exits (see [§3](#3-choose-sessions-and-a-mode)):
+
+  ```bash
+  agent-while-true run --observe --all   # then Shift+A
+  ```
+
+  Both processes keep scanning and logging, so every state change is logged
+  twice, and `summary` counts both watchers' samples.
 
 ## 10. One-shot full-auto launcher
 

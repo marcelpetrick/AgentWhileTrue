@@ -56,7 +56,7 @@ Actions runs on Python 3.12, 3.13 and 3.14. It checks, in order:
 ### Coverage
 
 The floor is 98% of statements and branches combined, measured over
-`src/agent_while_true` by `scripts/quality.sh`; 0.52.3 measured 98.8%. It is a
+`src/agent_while_true` by `scripts/quality.sh`; 0.59.7 measured 98.8%. It is a
 floor for behaviour, not for lines:
 
 - Cover a branch with a test that states what the branch is for - a refusal, a
@@ -85,9 +85,11 @@ git --no-pager diff --check
 without `-F` then holds an automated run open on an empty diff.
 
 End-to-end tests (`-m e2e`, part of the normal suite) start the real CLI on a
-pseudo-terminal and drive it with key presses: a dashboard cracks the whip in
-every theme and checks each crack is painted in that theme's colours, and bare
-ASCII in the plain theme, with `--no-color` and with `NO_COLOR`. They run
+pseudo-terminal (`tests/pty_dashboard.py`) and drive it with key presses: a
+dashboard cracks the whip in every theme and checks each crack is painted in
+that theme's colours, and bare ASCII in the plain theme, with `--no-color` and
+with `NO_COLOR`; another toggles auto-yes with `y` and reads the header and
+last-event row it shows. They run
 without Konsole (no `qdbus` on `PATH`), in observe mode, with isolated state
 directories and the status poll pointed at a closed local proxy, so nothing is
 typed anywhere and nothing reaches the network:

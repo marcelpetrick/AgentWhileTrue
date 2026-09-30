@@ -93,6 +93,14 @@ none weakens a safety gate.
 | --- | --- | --- | --- | --- |
 | F8 | LOW | `providers/timeparse.py:69` | `_WEEKDAY_RE` matches the words "sat" and "sun"; fails safe (waits longer). Needs a real fixture before the recognizer changes. | Code reading; no live occurrence. |
 
+## Possible future work
+
+Not scheduled; recorded so the question has one answer.
+
+| ID | Idea | Why it is open |
+| --- | --- | --- |
+| I1 | An attach-only dashboard that draws a running watcher's state (normally the background service) without scanning or logging itself. | Today every `run` is a full watcher, so a dashboard beside the service doubles every log line and summary sample ([USAGE.md §9](USAGE.md#opening-the-dashboard-while-the-service-runs)). The owner-only control socket carries only mode, PID and version by design; serving session state over it needs its own privacy review (no terminal text, no account data). |
+
 ## Known conservative boundaries
 
 These are deliberate limits, not pending implementation bugs:
