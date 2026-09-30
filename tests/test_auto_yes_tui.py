@@ -150,6 +150,27 @@ def test_a_prompt_that_stays_gets_one_more_enter_then_waits(tmp_path: Path, monk
     assert "auto-yes pressed Enter twice and it stayed - answer it in its tab" in output
 
 
+def test_switching_y_off_and_on_grants_a_stuck_prompt_no_third_enter(
+    tmp_path: Path, monkeypatch
+) -> None:
+    kit = _kit(tmp_path, Mode.AUTO, screens.CLAUDE_APPROVAL_STAYED_2_1_285)
+    keys = iter(["y", "r", "r", "y", "y", "r", "r", "q"])
+
+    def press(self, timeout):
+        key = next(keys)
+        if key == "r":
+            kit.clock.advance(APPROVAL_RECHECK_SECONDS)
+        return key
+
+    monkeypatch.setattr(cli.TerminalKeys, "read", press)
+    _run(tmp_path, monkeypatch, kit, [], hold_lock=True, read_patched=True)
+
+    assert kit.sent == [(CLAUDE, "\r"), (CLAUDE, "\r")]
+    log = (tmp_path / "agent-while-true.log").read_text(encoding="utf-8")
+    assert log.count("auto_yes_toggled") == 3
+    assert log.count("reason=unanswered-after-resend") == 1
+
+
 def test_the_last_event_row_separates_answers_and_second_enters() -> None:
     assert cli._approval_summary({"a": "approved", "b": "resent"}) == (
         "auto-yes approved 1/1 permission prompt(s); "
