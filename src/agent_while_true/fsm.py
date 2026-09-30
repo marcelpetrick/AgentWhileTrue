@@ -1031,7 +1031,8 @@ class Supervisor:
         """Answer "1. Yes" on one session's permission prompt.
 
         Reached only through the operator's auto-yes toggle, never from a
-        tick: nothing here is persisted or retried, and a refusal is final.
+        tick: nothing here is persisted, and a refusal is final. The only
+        repeat is the single re-sent Enter described below.
         ``expected_fingerprint`` is the permission box the last scan saw; a
         different box on screen now - a new command, an edited one - is
         refused, and the same box is answered once until it leaves the screen.
