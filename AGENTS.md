@@ -113,6 +113,10 @@ The maintainer's standing requests, collected from their sessions:
   dashboard shows.
 - After a feature, self-review it with `/reviewBranch` (base: the last commit
   before the feature when working on `master`) and fix every finding.
+- Use subagents for independent parts of the work where possible, and keep the
+  documentation current: a behaviour change updates every document that
+  describes it. Documentation-only commits (`docs(AgentWhileTrue): ...`) do not
+  bump the version.
 - A bug seen live, often reported as a screenshot, is debugged from the live
   session read-only: read the screen through the Konsole adapter, find the
   root cause, add a fixture transcribed from that screen, then fix.
@@ -164,7 +168,7 @@ Confirm that installed `agent-while-true --version`, `doctor`, `quota`, and
 4. Push the atomic commits to `origin/master` only when requested.
 5. Create an annotated `agentwhiletrue-vX.Y.Z` tag only for a fully verified
    version and push that tag to trigger the release workflow.
-6. Verify the GitHub Actions quality and release results.
+6. Verify the GitHub Actions quality, security and release results.
 
 Do not tag merely because a version was bumped; intermediate versioned commits
 remain normal development versions.
