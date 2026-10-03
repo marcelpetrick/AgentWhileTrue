@@ -284,3 +284,22 @@ def test_codex_0_158_idle_composers_hear_the_whip(tmp_path: Path, screen: list[s
     kit, _, codex = _kit(tmp_path, codex=screen)
 
     assert _whip(kit)[codex] == "delivered"
+
+
+@pytest.mark.parametrize(
+    "screen",
+    [screens.CODEX_0_160_WARNING_FOOTER, screens.CODEX_0_160_PLAN_FOOTER],
+    ids=["live-warning-footer", "plan-mode-footer"],
+)
+def test_codex_0_160_idle_composers_hear_the_whip(tmp_path: Path, screen: list[str]) -> None:
+    """Codex 0.160 added footer chrome below an otherwise empty composer."""
+    kit, _, codex = _kit(tmp_path, codex=screen)
+
+    assert _whip(kit)[codex] == "delivered"
+
+
+def test_unknown_text_after_the_codex_shortcut_hint_still_refuses_the_whip(tmp_path: Path) -> None:
+    screen = [*screens.CODEX_0_160_WARNING_FOOTER[:-1], "  ? for shortcuts · unfinished draft"]
+    kit, _, codex = _kit(tmp_path, codex=screen)
+
+    assert _whip(kit)[codex] == "composer-not-empty"

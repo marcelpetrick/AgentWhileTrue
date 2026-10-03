@@ -37,6 +37,8 @@ def _empty(provider: str, lines: list[str]) -> bool:
         ("codex", screens.CODEX_0_158_WORKING),
         ("codex", screens.CODEX_0_158_FOLLOW_UP),
         ("codex", screens.CODEX_0_158_QUEUE_HINT),
+        ("codex", screens.CODEX_0_160_WARNING_FOOTER),
+        ("codex", screens.CODEX_0_160_PLAN_FOOTER),
     ],
 )
 def test_empty_composer_is_recognised(provider: str, lines: list[str]) -> None:
@@ -66,6 +68,7 @@ def test_empty_composer_is_recognised(provider: str, lines: list[str]) -> None:
         # The placeholder's words typed as a longer draft are a draft.
         ("codex", [f"{CODEX_CURSOR} Ask a follow-up question about the parser"]),
         ("codex", [f"{CODEX_CURSOR} ", "  93% of the tests are left"]),
+        ("codex", [f"{CODEX_CURSOR} ", "  ? for shortcuts · unfinished draft"]),
     ],
 )
 def test_draft_menu_or_missing_composer_is_not_empty(provider: str, lines: list[str]) -> None:

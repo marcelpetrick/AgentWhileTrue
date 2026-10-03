@@ -34,9 +34,17 @@ from agent_while_true.providers.base import (
 )
 
 NAME: Final = "codex"
-PATTERNS_VERSION: Final = "codex-0.159.x/8"
+PATTERNS_VERSION: Final = "codex-0.160.x/9"
 #: Versions whose screens were actually read, oldest first.
-VERIFIED_VERSIONS: Final = ("0.153.2", "0.153.4", "0.154.0", "0.155.1", "0.158.0", "0.159.0")
+VERIFIED_VERSIONS: Final = (
+    "0.153.2",
+    "0.153.4",
+    "0.154.0",
+    "0.155.1",
+    "0.158.0",
+    "0.159.0",
+    "0.160.0",
+)
 VERIFIED_AGAINST: Final = (
     f"Codex CLI {', '.join(VERIFIED_VERSIONS[:-1])} and {VERIFIED_VERSIONS[-1]}"
 )
@@ -70,9 +78,14 @@ _BRAILLE_PARTICLES = re.compile(r"[\u2800-\u28ff]")
 #: continuation row can contain one - so anything else below an empty composer
 #: refuses a whip.
 #: 0.158 also writes "Context 93% left" and, while a turn runs, the
-#: "tab to queue message" hint.
+#: "tab to queue message" hint. 0.160 can append its exact warning counter to
+#: the shortcuts row, or show its exact Plan-mode cycle hint without a context
+#: percentage. Those are status chrome, not composer text.
 _CODEX_FOOTER = re.compile(
-    r"\b\d{1,3}% (?:used|left|context left)\b|(?:\? for shortcuts|to queue message)\s*$"
+    r"\b\d{1,3}% (?:used|left|context left)\b"
+    r"|(?:\? for shortcuts|to queue message)"
+    r"(?:\s+⚠\s+\d+\s+warnings?\s+·\s+f2 to view)?\s*$"
+    r"|Plan mode \(shift\+tab to cycle\)(?:\s+·\s+IDE context)?\s*$"
 )
 #: What an empty composer shows: nothing, or one of Codex's placeholders. 0.158
 #: added "Ask a follow-up question" beside "Ask Codex to do anything"; without

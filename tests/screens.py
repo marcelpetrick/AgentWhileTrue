@@ -390,6 +390,30 @@ CODEX_0_158_QUEUE_HINT = [
     "  tab to queue message",
 ]
 
+#: Codex CLI 0.160.0 read live over D-Bus on 2026-10-03. The warning badge is
+#: appended far to the right of the key-hint row; requiring ``? for shortcuts``
+#: at end of row made this empty composer look like a draft.
+CODEX_0_160_WARNING_FOOTER = [
+    "• Working (2m 11s • esc to interrupt) · 2 background terminals running · /ps to view · /stop to close",
+    "  └ Tip: Use /side to start a side conversation in a temporary fork without polluting the main thread.",
+    "",
+    " ",
+    "› Ask Codex to do anything",
+    " ",
+    "  GPT-5.6-Sol high · Context 64% left · ~/repos/AgentWhileTrue · GPT-5.6-Sol · AgentWhileTrue · master · Context 36% used · 5h 46% left · …",
+    "  ← for agents · ? for shortcuts                                                                                  ⚠ 1 warning · f2 to view",
+]
+
+#: Codex CLI 0.160.0's shipped TUI snapshots also prove that Plan mode can be
+#: the only recognizable status text below an empty composer. This is upstream
+#: evidence rather than a live capture; accepting anything else still fails
+#: closed.
+CODEX_0_160_PLAN_FOOTER = [
+    "› Ask Codex to do anything",
+    "",
+    "  gpt-test default                              Plan mode (shift+tab to cycle)",
+]
+
 #: Limit headlines Claude Code 2.1.283 builds at runtime ("You've hit your
 #: ${limit}" plus an optional " · progress saved"), taken from the strings of
 #: the 2.1.283 binary on 2026-09-29, not from a live screen.

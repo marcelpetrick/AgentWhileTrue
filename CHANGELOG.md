@@ -13,6 +13,20 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.59.8] - 2026-10-03
+
+### Fixed
+
+- The dashboard whip reaches idle Codex CLI 0.160 composers again. Codex 0.160
+  can append an exact warning counter (`⚠ N warning(s) · f2 to view`) after
+  `? for shortcuts`, or show its Plan-mode cycle hint as the only footer
+  status. Both made the conservative empty-composer check report
+  `composer-not-empty`, so no input was sent. A D-Bus capture from the live
+  0.160.0 screen and the shipped Plan-mode shape are regression fixtures; only
+  those exact footer forms are accepted, and unknown trailing text still fails
+  closed. Codex 0.160.0 is now verified (`codex-0.160.x/9`); its limit, retry,
+  paid, reset-credit and downgrade wording is unchanged.
+
 ## [0.59.7] - 2026-09-30
 
 ### Fixed
