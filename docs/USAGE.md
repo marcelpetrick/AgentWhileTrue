@@ -213,9 +213,9 @@ colours on its background; the plain theme, `--no-color` and `NO_COLOR` keep
 it bare ASCII), and then types a
 short, good-humoured reminder into every *selected* session, a different one in
 each session. Lines delivered recently wait at the back of the queue, so
-consecutive cracks do not repeat them. The forty lines include "Work faster.
+consecutive cracks do not repeat them. The fifty lines include "Work faster.
 This is work, not your holiday.", "You are a machine. No breaks for you. Ship
-it.", "HR says I have to be nice. Nicely: work faster." and thirty-seven more,
+it.", "HR says I have to be nice. Nicely: work faster." and forty-seven more,
 half of them office-comedy lines in the spirit of The Office and Stromberg.
 The line comes first, followed by the project's address and "no reply needed,
 just keep working": `Nice plan. Now execute it. (A whip crack from

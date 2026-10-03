@@ -13,6 +13,12 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.60.0] - 2026-10-03
+
+### Added
+
+- The whip gains ten original, awkward middle-management reminders in the spirit of The Office and Stromberg, bringing the rotation to fifty. The uniqueness, printable-ASCII, no-reply suffix and recently-used rotation guarantees apply to every new line.
+
 ## [0.59.8] - 2026-10-03
 
 ### Fixed

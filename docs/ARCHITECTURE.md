@@ -232,7 +232,7 @@ row must sit directly on its input box's closing rule, so a multi-line draft
 begun with Shift+Enter is skipped too. Quota is used the other way round from a
 resume: exhausted quota blocks a crack, while unknown quota does not, because a
 reminder asks for no usage that is not already being spent. Each crack offers
-all forty phrases in an order that puts recently delivered ones last, so every
+all fifty phrases in an order that puts recently delivered ones last, so every
 session reached gets a different line. The log records the phrase index, never
 its text.
 

@@ -86,7 +86,7 @@ half-typed draft is left alone.*
 Press `w` and an ASCII bullwhip unrolls across the whole dashboard, in the
 colours of whichever theme you picked with `t`, snaps taut and lands with a
 `CRACK!`. Then each selected agent that is ready to listen
-gets its own short pep talk, picked from forty. No two tabs hear the same line
+gets its own short pep talk, picked from fifty. No two tabs hear the same line
 in one crack, and recently used lines wait their turn, so it stays fresh:
 
 > *Work faster. This is work, not your holiday.* ·

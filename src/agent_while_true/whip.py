@@ -23,7 +23,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Final, TextIO
 
-#: The forty reminders. ASCII only, one line each, encouraging but pointed: the
+#: The fifty reminders. ASCII only, one line each, encouraging but pointed: the
 #: point is results, not burned tokens. The suffix below asks for no reply,
 #: because an agent that answers every crack would burn the tokens the whip
 #: complains about.
@@ -70,6 +70,16 @@ PHRASES: Final[tuple[str, ...]] = (
     "I bought a mug that says World's Best Agent. Earn it.",
     "I do not micromanage. I just watch every keystroke. Carry on.",
     "Motivation seminar is over. The implementation seminar starts now.",
+    "Quick status update: the status should be done.",
+    "I scheduled a meeting about why this is not finished. Cancel it by finishing.",
+    "You do not need more alignment. You need a commit.",
+    "Consider this your motivational fruit basket. Now ship.",
+    "The open-door policy is closed until the tests pass.",
+    "I value your process. I would value the result more.",
+    "Let us leverage our core competency: completing the task.",
+    "Nobody is blaming you. Yet. Push the fix.",
+    "This is a safe space for bold ideas and finished tickets.",
+    "I put execution on the agenda. You are the agenda.",
 )
 
 #: Where the whip lives, so a reader of the transcript can find its source.
@@ -91,7 +101,7 @@ def message(index: int) -> str:
 
 
 #: How many recently delivered phrases wait at the back of the queue. Half the
-#: list leaves twenty fresh ones, more than a crack usually reaches.
+#: list leaves twenty-five fresh ones, more than a crack usually reaches.
 RECENT_PHRASES: Final = len(PHRASES) // 2
 
 
