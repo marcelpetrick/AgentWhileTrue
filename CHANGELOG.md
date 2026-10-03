@@ -13,6 +13,12 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.60.1] - 2026-10-03
+
+### Changed
+
+- `AGENTS.md` now records the maintainer's complete delivery contract: every commit is versioned, continuous pushes apply when explicitly requested, the canonical pipeline runs before every commit and push, container images stay non-root and outside the host-Konsole trust boundary, reusable scripts are documented, and final delivery includes branch review, GitHub About, green Actions, container smoke tests and a clean worktree.
+
 ## [0.60.0] - 2026-10-03
 
 ### Added

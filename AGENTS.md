@@ -84,6 +84,10 @@ quality-changing choice as a test.
 - Make one logical change per commit.
 - Every feature or fix commit bumps `src/agent_while_true/version.py` and adds the
   matching newest section to `CHANGELOG.md`.
+- Every other commit also bumps the patch version and adds a matching newest
+  `CHANGELOG.md` section. Substantial product features bump the minor version;
+  fixes, tests, documentation, CI, build and maintenance changes bump the patch
+  version.
 - Use commit subjects in the existing style, for example
   `feat(AgentWhileTrue): ...` or `fix(AgentWhileTrue): ...`.
 - Do not amend or rewrite commits that are not yours.
@@ -105,8 +109,9 @@ The maintainer's standing requests, collected from their sessions:
 - Ask only when a decision truly belongs to the maintainer, and ask it once and
   briefly. Otherwise pick the sensible option, say which, and continue.
 - Make atomic commits: one logical change each, every one passing the required
-  verification below. Committing is expected; pushing and tagging still wait
-  for an explicit request.
+  verification below. Committing is expected; pushing and tagging wait for an
+  explicit request unless the maintainer has requested continuous pushes for
+  the current task.
 - Keep everything testable and tested: unit tests for the gate, dashboard-loop
   tests for keys, a `simulate` scenario for each safety behaviour, and a real
   pseudo-terminal end-to-end test (`tests/pty_dashboard.py`) for anything the
@@ -115,8 +120,7 @@ The maintainer's standing requests, collected from their sessions:
   before the feature when working on `master`) and fix every finding.
 - Use subagents for independent parts of the work where possible, and keep the
   documentation current: a behaviour change updates every document that
-  describes it. Documentation-only commits (`docs(AgentWhileTrue): ...`) do not
-  bump the version.
+  describes it.
 - A bug seen live, often reported as a screenshot, is debugged from the live
   session read-only: read the screen through the Konsole adapter, find the
   root cause, add a fixture transcribed from that screen, then fix.
@@ -126,10 +130,29 @@ The maintainer's standing requests, collected from their sessions:
 - Dashboard automation switches are separate toggles with their own hotkeys,
   always visible with their state in the header: `A` auto-resume on limit and
   `y` auto-yes on permission prompts.
+- Work directly on the repository's current default branch (`master`) for
+  maintainer-directed end-to-end work. When the maintainer explicitly requests
+  continuous pushes, push every atomic green commit to `origin/master`; never
+  force-push or rewrite published history.
+- Document every reusable script: its purpose, normal invocation, inputs,
+  outputs and safety limitations.
 
 ## Required verification
 
-Before every commit:
+Before every commit and push, run the canonical pipeline:
+
+```bash
+./localPipeline.sh --noRun
+```
+
+It must include licensing, linting, formatting, shell checks, dedicated static
+type checking, unit/integration/pseudo-terminal end-to-end tests, at least 95%
+combined coverage (this repository enforces 98%), all safety simulations,
+source and wheel builds, isolated installation smoke tests, SBOM validation and,
+once Docker support exists, a container build and smoke test. GitHub Actions
+must call the same pipeline instead of maintaining a weaker duplicate.
+
+The fast constituent checks remain useful while developing:
 
 ```bash
 ruff check .
@@ -139,7 +162,7 @@ python3 -m pytest -q
 git --no-pager diff --check
 ```
 
-Before pushing or tagging:
+Before tagging, and as final release diagnostics:
 
 ```bash
 ./localPipeline.sh
@@ -159,13 +182,37 @@ Build a wheel and install it into an isolated environment before a release.
 Confirm that installed `agent-while-true --version`, `doctor`, `quota`, and
 `simulate --all` work without `PYTHONPATH`.
 
+## Container boundary
+
+- A published container is a packaging and deterministic-test environment, not
+  authorization to control host Konsole. Do not mount host D-Bus, host `/proc`,
+  provider credentials or terminal sockets merely to make automation appear
+  functional.
+- Run the image as a non-root user. Its smoke test must prove at least
+  `--version`, `--help` and `simulate --all`; `doctor` must truthfully report
+  that host terminal automation is unavailable.
+- Publish verified images to GHCR only through the documented GitHub workflow,
+  with immutable version tags.
+
+## Documentation and completion
+
+- README delivery changes keep badges, local installation, pipeline, Docker,
+  GHCR, testing and usage instructions current and include a current,
+  privacy-redacted real Konsole screenshot.
+- Before declaring a feature complete, run `/reviewBranch` against the commit
+  immediately preceding the feature, fix every finding, then run `/githubAbout`.
+- Final delivery requires the complete local pipeline, green GitHub Actions, a
+  working container smoke test, all intended commits pushed and a clean
+  worktree.
+
 ## Release procedure
 
 1. Ensure the worktree contains only intended changes.
 2. Run `./localPipeline.sh`; it includes the package smoke tests.
 3. Point the `pipx install` command in `README.md` at the new tag in the same
    commit that is tagged; intermediate versioned commits leave it alone.
-4. Push the atomic commits to `origin/master` only when requested.
+4. Push the atomic commits to `origin/master` only when requested; when the
+   current task requests continuous pushes, push each green commit.
 5. Create an annotated `agentwhiletrue-vX.Y.Z` tag only for a fully verified
    version and push that tag to trigger the release workflow.
 6. Verify the GitHub Actions quality, security and release results.
