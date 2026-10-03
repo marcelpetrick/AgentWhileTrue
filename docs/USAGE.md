@@ -34,6 +34,14 @@ both `Konsole input OK` and `Auto mode OK`. Agent While True cannot bypass this
 Konsole boundary and intentionally does not kill or replace existing terminal
 sessions.
 
+`doctor` also identifies whether the distribution is in the validated Arch
+family, probes `codex app-server --help` as the preferred future Codex
+integration, and checks the Claude status-line quota bridge without executing
+its configured command. These capability rows are advisory: an unsupported
+app-server or an absent Claude bridge warns for that provider but does not
+disable safe operation of the other provider. Malformed bridge settings and
+private command contents are never printed.
+
 ## 2. See what is running
 
 ```bash

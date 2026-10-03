@@ -13,6 +13,7 @@ has.
 
 from __future__ import annotations
 
+import json
 import os
 import platform
 import re
@@ -98,6 +99,22 @@ def check_platform() -> Check:
     return Check("Linux", Status.OK, platform.release())
 
 
+def check_distribution() -> Check:
+    """Report the tested Arch-family target without rejecting other Linuxes."""
+    try:
+        release = platform.freedesktop_os_release()
+    except OSError:
+        release = {}
+    distro = release.get("ID", "").lower()
+    relatives = release.get("ID_LIKE", "").lower().split()
+    label = release.get("PRETTY_NAME") or distro
+    if distro in {"arch", "manjaro"} or "arch" in relatives:
+        return Check("Distribution", Status.OK, label or "Arch family")
+    if label:
+        return Check("Distribution", Status.WARN, f"{label}; not validated")
+    return Check("Distribution", Status.WARN, "release information unavailable")
+
+
 def check_desktop() -> Check:
     desktop = os.environ.get("XDG_CURRENT_DESKTOP", "")
     session = os.environ.get("XDG_SESSION_TYPE", "")
@@ -179,6 +196,66 @@ def check_agent(name: str, *args: str, adapter: ProviderAdapter | None = None) -
     return Check(name.title(), Status.OK, version)
 
 
+def check_codex_app_server() -> Check:
+    """Probe the preferred future Codex interface without starting an agent."""
+    path = shutil.which("codex")
+    if path is None:
+        return Check("Codex app-server", Status.WARN, "Codex not installed")
+    try:
+        completed = subprocess.run(
+            [path, "app-server", "--help"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=_VERSION_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return Check("Codex app-server", Status.WARN, "capability probe failed")
+    if completed.returncode != 0:
+        return Check("Codex app-server", Status.WARN, "not supported")
+    return Check("Codex app-server", Status.OK, "supported")
+
+
+def check_claude_bridge(
+    settings_path: Path | None = None,
+    target_path: Path | None = None,
+) -> Check:
+    """Validate the passive Claude quota bridge without executing its command."""
+    settings = (
+        settings_path
+        or Path(os.environ.get("CLAUDE_SETTINGS_FILE", "~/.claude/settings.json")).expanduser()
+    )
+    target = target_path or (
+        Path(os.environ.get("XDG_DATA_HOME", "~/.local/share")).expanduser()
+        / "agent-while-true"
+        / "claude-statusline-proxy.sh"
+    )
+    try:
+        document = json.loads(settings.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return Check("Claude quota bridge", Status.WARN, "not configured")
+    except (OSError, json.JSONDecodeError):
+        return Check("Claude quota bridge", Status.WARN, "settings unreadable or malformed")
+    if not isinstance(document, dict):
+        return Check("Claude quota bridge", Status.WARN, "settings are not an object")
+    status_line = document.get("statusLine")
+    if not isinstance(status_line, dict) or status_line.get("type") != "command":
+        return Check("Claude quota bridge", Status.WARN, "status line is not the quota bridge")
+    command = status_line.get("command")
+    if not isinstance(command, str) or str(target) not in command:
+        return Check("Claude quota bridge", Status.WARN, "proxy command is not configured")
+    if "AGENT_WHILE_TRUE_CLAUDE_PID=$PPID" not in command:
+        return Check("Claude quota bridge", Status.WARN, "process binding is missing")
+    refresh = status_line.get("refreshInterval")
+    if type(refresh) is not int or not 1 <= refresh <= 60:
+        return Check("Claude quota bridge", Status.WARN, "refresh interval must be 1-60 seconds")
+    if not target.is_file():
+        return Check("Claude quota bridge", Status.WARN, "proxy is not installed")
+    if not os.access(target, os.X_OK):
+        return Check("Claude quota bridge", Status.WARN, "proxy is not executable")
+    return Check("Claude quota bridge", Status.OK, "configured and process-bound")
+
+
 def _pattern_drift(version: str, adapter: ProviderAdapter | None) -> str | None:
     """Warn when the installed provider is newer than the patterns were read against.
 
@@ -225,6 +302,7 @@ def run(
     konsole_bus, konsole_sessions, konsole_input = check_konsole(adapter)
     checks = [
         check_platform(),
+        check_distribution(),
         check_desktop(),
         check_privileges(),
         check_qdbus(),
@@ -232,7 +310,9 @@ def run(
         konsole_sessions,
         konsole_input,
         check_agent("codex", "--version", adapter=CODEX),
+        check_codex_app_server(),
         check_agent("claude", "--version", adapter=CLAUDE),
+        check_claude_bridge(),
         check_optional("fzf"),
         check_optional("jq"),
         _writable_dir("State dir", config.resolved_state_dir()),

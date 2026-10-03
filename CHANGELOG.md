@@ -13,6 +13,17 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.61.0] - 2026-10-03
+
+### Added
+
+- `doctor` now reports whether the host distribution is in the validated Arch
+  family, whether Codex exposes its app-server interface, and whether Claude's
+  passive quota bridge is installed, executable, process-bound and refreshing
+  safely. These read-only capability probes never expose configured command
+  contents, and their warnings stay provider-local instead of disabling safe
+  operation of another provider.
+
 ## [0.60.1] - 2026-10-03
 
 ### Changed

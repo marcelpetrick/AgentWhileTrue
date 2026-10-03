@@ -6,7 +6,10 @@
 
 from __future__ import annotations
 
+import json
+import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -23,13 +26,33 @@ def _config(tmp_path: Path) -> Config:
     return Config(state_dir=tmp_path / "state", runtime_dir=tmp_path / "run")
 
 
+def _stub_provider_capabilities(monkeypatch) -> None:
+    monkeypatch.setattr(
+        doctor, "check_codex_app_server", lambda: Check("Codex app-server", Status.OK)
+    )
+    monkeypatch.setattr(
+        doctor, "check_claude_bridge", lambda: Check("Claude quota bridge", Status.OK)
+    )
+
+
 def test_doctor_runs_end_to_end_without_kde(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.delenv("XDG_CURRENT_DESKTOP", raising=False)
+    _stub_provider_capabilities(monkeypatch)
     checks = doctor.run(
         _config(tmp_path), adapter_factory=lambda: StubbedKonsole(qdbus="/bin/true")
     )
     names = {check.name for check in checks}
-    assert {"Linux", "KDE Plasma", "qdbus", "Konsole D-Bus", "Konsole input", "Auto mode"} <= names
+    assert {
+        "Linux",
+        "Distribution",
+        "KDE Plasma",
+        "qdbus",
+        "Konsole D-Bus",
+        "Konsole input",
+        "Codex app-server",
+        "Claude quota bridge",
+        "Auto mode",
+    } <= names
     # The three directories can resolve to the same path; the rows must still
     # say which is which.
     assert {"State dir", "Runtime dir", "Log dir"} <= names
@@ -37,6 +60,7 @@ def test_doctor_runs_end_to_end_without_kde(tmp_path: Path, monkeypatch) -> None
 
 def test_missing_qdbus_fails_and_blocks_auto_mode(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(doctor, "find_qdbus", lambda: None)
+    _stub_provider_capabilities(monkeypatch)
     checks = doctor.run(_config(tmp_path), adapter_factory=lambda: StubbedKonsole(qdbus=None))
     by_name = {check.name: check for check in checks}
     assert by_name["qdbus"].status is Status.FAIL
@@ -54,6 +78,7 @@ def test_policy_disabled_downgrades_auto_mode(tmp_path: Path, monkeypatch) -> No
     # This test isolates the policy verdict from whether the host running the
     # suite happens to have KDE's qdbus executable installed.
     monkeypatch.setattr(doctor, "find_qdbus", lambda: "/bin/true")
+    _stub_provider_capabilities(monkeypatch)
     config = Config(
         state_dir=tmp_path / "state",
         runtime_dir=tmp_path / "run",
@@ -142,6 +167,157 @@ def test_pattern_drift_never_blocks_automatic_mode(monkeypatch) -> None:
     verdict = doctor._auto_mode_verdict([drift], Config())
 
     assert verdict.status is Status.OK
+
+
+@pytest.mark.parametrize(
+    ("release", "status"),
+    [
+        ({"ID": "manjaro", "PRETTY_NAME": "Manjaro Linux"}, Status.OK),
+        ({"ID": "endeavouros", "ID_LIKE": "arch", "PRETTY_NAME": "EndeavourOS"}, Status.OK),
+        ({"ID": "ubuntu", "PRETTY_NAME": "Ubuntu"}, Status.WARN),
+        ({}, Status.WARN),
+    ],
+)
+def test_distribution_reports_the_validated_arch_family(monkeypatch, release, status) -> None:
+    monkeypatch.setattr(doctor_module.platform, "freedesktop_os_release", lambda: release)
+    check = doctor_module.check_distribution()
+    assert check.status is status
+
+
+def test_unreadable_distribution_is_a_warning(monkeypatch) -> None:
+    def unreadable():
+        raise OSError("missing")
+
+    monkeypatch.setattr(doctor_module.platform, "freedesktop_os_release", unreadable)
+    assert doctor_module.check_distribution().status is Status.WARN
+
+
+@pytest.mark.parametrize("returncode", [0, 2])
+def test_codex_app_server_probe_uses_only_the_help_command(monkeypatch, returncode: int) -> None:
+    calls: list[list[str]] = []
+
+    def run(argv, **kwargs):
+        calls.append(argv)
+        assert kwargs["stdout"] is subprocess.DEVNULL
+        assert kwargs["stderr"] is subprocess.DEVNULL
+        return SimpleNamespace(returncode=returncode)
+
+    monkeypatch.setattr(doctor_module.shutil, "which", lambda name: "/usr/bin/codex")
+    monkeypatch.setattr(doctor_module.subprocess, "run", run)
+
+    check = doctor_module.check_codex_app_server()
+
+    assert calls == [["/usr/bin/codex", "app-server", "--help"]]
+    assert check.status is (Status.OK if returncode == 0 else Status.WARN)
+
+
+def test_codex_app_server_probe_degrades_without_running_plain_codex(monkeypatch) -> None:
+    monkeypatch.setattr(doctor_module.shutil, "which", lambda name: None)
+    assert doctor_module.check_codex_app_server().status is Status.WARN
+
+    monkeypatch.setattr(doctor_module.shutil, "which", lambda name: "/usr/bin/codex")
+    for error in (OSError("broken"), subprocess.TimeoutExpired("codex", 15)):
+
+        def fail(*args, error=error, **kwargs):
+            raise error
+
+        monkeypatch.setattr(doctor_module.subprocess, "run", fail)
+        check = doctor_module.check_codex_app_server()
+        assert check.status is Status.WARN
+        assert "broken" not in check.detail
+
+
+def _bridge_settings(target: Path, **updates) -> dict[str, object]:
+    status_line: dict[str, object] = {
+        "type": "command",
+        "command": f"AGENT_WHILE_TRUE_CLAUDE_PID=$PPID {target}",
+        "refreshInterval": 60,
+    }
+    status_line.update(updates)
+    return {"statusLine": status_line}
+
+
+def test_claude_bridge_accepts_only_an_installed_process_bound_proxy(tmp_path: Path) -> None:
+    settings = tmp_path / "settings.json"
+    target = tmp_path / "claude-statusline-proxy.sh"
+    target.write_text("#!/bin/sh\n", encoding="utf-8")
+    target.chmod(0o700)
+    settings.write_text(json.dumps(_bridge_settings(target)), encoding="utf-8")
+
+    check = doctor_module.check_claude_bridge(settings, target)
+
+    assert check == Check("Claude quota bridge", Status.OK, "configured and process-bound")
+
+
+def test_claude_bridge_reports_missing_settings(tmp_path: Path) -> None:
+    check = doctor_module.check_claude_bridge(
+        tmp_path / "missing-settings.json", tmp_path / "proxy"
+    )
+
+    assert check == Check("Claude quota bridge", Status.WARN, "not configured")
+
+
+@pytest.mark.parametrize(
+    ("document", "detail"),
+    [
+        ("not-json", "malformed"),
+        (json.dumps([]), "not an object"),
+        (json.dumps({"statusLine": "echo x"}), "not the quota bridge"),
+    ],
+)
+def test_claude_bridge_rejects_malformed_settings(
+    tmp_path: Path, document: str, detail: str
+) -> None:
+    settings = tmp_path / "settings.json"
+    settings.write_text(document, encoding="utf-8")
+    check = doctor_module.check_claude_bridge(settings, tmp_path / "proxy")
+    assert check.status is Status.WARN
+    assert detail in check.detail
+
+
+@pytest.mark.parametrize(
+    ("updates", "detail"),
+    [
+        ({"command": "echo sentinel-secret"}, "proxy command"),
+        ({"command": "{target}"}, "process binding"),
+        ({"refreshInterval": 61}, "refresh interval"),
+    ],
+)
+def test_claude_bridge_rejects_incomplete_configuration_without_echoing_it(
+    tmp_path: Path, updates: dict[str, object], detail: str
+) -> None:
+    settings = tmp_path / "settings.json"
+    target = tmp_path / "proxy"
+    updates = {
+        key: (str(value).format(target=target) if isinstance(value, str) else value)
+        for key, value in updates.items()
+    }
+    settings.write_text(json.dumps(_bridge_settings(target, **updates)), encoding="utf-8")
+
+    check = doctor_module.check_claude_bridge(settings, target)
+
+    assert check.status is Status.WARN
+    assert detail in check.detail
+    assert "sentinel-secret" not in check.detail
+
+
+def test_claude_bridge_reports_missing_and_non_executable_proxy(tmp_path: Path) -> None:
+    settings = tmp_path / "settings.json"
+    target = tmp_path / "proxy"
+    settings.write_text(json.dumps(_bridge_settings(target)), encoding="utf-8")
+    assert "not installed" in doctor_module.check_claude_bridge(settings, target).detail
+
+    target.write_text("#!/bin/sh\n", encoding="utf-8")
+    target.chmod(0o600)
+    assert "not executable" in doctor_module.check_claude_bridge(settings, target).detail
+
+
+def test_optional_provider_capability_warnings_do_not_block_auto_mode() -> None:
+    checks = [
+        Check("Codex app-server", Status.WARN),
+        Check("Claude quota bridge", Status.WARN),
+    ]
+    assert doctor_module._auto_mode_verdict(checks, Config()).status is Status.OK
 
 
 # -- failure rows: a broken environment is reported, never raised -----------

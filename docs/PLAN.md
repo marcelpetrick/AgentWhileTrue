@@ -49,6 +49,9 @@ The requested implementation is complete:
   dashboard exits.
 - Deterministic simulations, package smoke tests, and a live read-only Konsole
   adapter test are part of the release gate.
+- `doctor` reports the validated Linux distribution family, the optional Codex
+  app-server capability and the passive Claude quota bridge; optional provider
+  warnings stay isolated and do not globally disable the other provider.
 - Resume explanations, saved presentation preferences, day/week operational
   summaries, and a responsive scrolling dashboard are implemented; the ordered
   feature plan and validation notes are in [history/nextFeatures.md](history/nextFeatures.md).
