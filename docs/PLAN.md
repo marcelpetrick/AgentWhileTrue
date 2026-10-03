@@ -49,6 +49,9 @@ The requested implementation is complete:
   dashboard exits.
 - Deterministic simulations, package smoke tests, and a live read-only Konsole
   adapter test are part of the release gate.
+- All 18 cases named in vision section 40 map permanently to registered
+  simulations, including the 30-second reset, 90-second delay, revalidation
+  races, lifecycle failures and every prohibited choice.
 - `doctor` reports the validated Linux distribution family, the optional Codex
   app-server capability and the passive Claude quota bridge; optional provider
   warnings stay isolated and do not globally disable the other provider.

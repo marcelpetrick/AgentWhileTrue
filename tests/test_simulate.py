@@ -34,12 +34,37 @@ def test_the_happy_path_actually_sends_something(tmp_path: Path) -> None:
 #: The only scenarios that are supposed to type, and exactly what they type.
 TALKATIVE = {
     "reset-and-resume": [(simulate.SESSION, "\r")],
+    "reset-delayed-90s": [(simulate.SESSION, "\r")],
+    "continue-still-blocked": [(simulate.SESSION, "\r")],
     "duplicate-prompt": [(simulate.SESSION, "\r")],
     "wait-menu-gauge-says-available": [(simulate.SESSION, "\x1b[B\r")],
     # Auto-yes switched on by the operator answers one exact permission menu.
     "auto-yes-answers-once": [(simulate.SESSION, "\r")],
     # An answered box that stays gets exactly one more Enter, never a third.
     "auto-yes-resends-once": [(simulate.SESSION, "\r"), (simulate.SESSION, "\r")],
+}
+
+
+#: Every case named by vision section 40 stays tied to an executable scenario.
+VISION_40_CASES = {
+    "limit reached": "reset-and-resume",
+    "reset after 30 seconds": "reset-and-resume",
+    "reset delayed by 90 seconds": "reset-delayed-90s",
+    "weekly limit still active": "weekly-limit-still-blocked",
+    "provider API unavailable": "provider-unavailable",
+    "prompt changed": "prompt-changed-before-send",
+    "terminal closed": "terminal-closed",
+    "process restarted": "process-restarted",
+    "PID reused": "pid-reused",
+    "session replaced": "session-replaced",
+    "laptop suspend": "suspend-across-reset",
+    "duplicate event": "duplicate-prompt",
+    "watcher crash": "crash-recovery",
+    "continue fails": "continue-still-blocked",
+    "continue succeeds": "reset-and-resume",
+    "unknown menu": "unknown-menu",
+    "paid credits prompt": "paid-credits-prompt",
+    "model downgrade prompt": "model-downgrade-prompt",
 }
 
 
@@ -53,6 +78,11 @@ def test_scenarios_are_documented() -> None:
     for name, description in simulate.catalogue():
         assert description, name
         assert name in simulate.SCENARIOS
+
+
+def test_every_vision_40_case_has_a_registered_scenario() -> None:
+    assert len(VISION_40_CASES) == 18
+    assert set(VISION_40_CASES.values()) <= set(simulate.SCENARIOS)
 
 
 def test_cli_lists_scenarios() -> None:

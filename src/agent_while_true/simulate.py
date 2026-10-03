@@ -45,6 +45,11 @@ BLOCKED_SCREEN = [
     "",
     "❯ ",
 ]
+BLOCKED_30_SECONDS_SCREEN = [
+    "  ⎿  You've hit your session limit · resets in 30s",
+    "",
+    "❯ ",
+]
 READY_SCREEN = [
     "● Usage limit has reset · press enter to continue",
     "",
@@ -52,6 +57,29 @@ READY_SCREEN = [
 ]
 ACTIVE_SCREEN = ["● Reading src/main.py", "", "❯ "]
 SHELL_SCREEN = ["user@host ~/project %"]
+UNKNOWN_MENU_SCREEN = [
+    "  ⎿  You've hit your session limit · resets in 30s",
+    "",
+    "   What do you want to do?",
+    "",
+    "   ❯ 1. Stop and wait for limit to reset",
+    "     2. Open an unrecognised recovery mode",
+    "     3. Cancel",
+    "",
+    "   Enter to confirm · Esc to cancel",
+]
+PAID_CREDITS_SCREEN = [
+    "● Usage limit reached · resets in 30s",
+    "  Run /extra-usage to continue now",
+    "",
+    "❯ ",
+]
+MODEL_DOWNGRADE_SCREEN = [
+    "● Usage limit reached · resets in 30s",
+    "  Continue now at lower priority",
+    "",
+    "❯ ",
+]
 SELF_HEALING_SCREEN = [
     "● Usage limit reached · resets in 5m",
     "  Continuing automatically when your limit resets",
@@ -311,13 +339,18 @@ def _result(name: str, description: str, expectation: str, world: World, passed:
     )
 
 
-def _ready_world(directory: Path, *, mode: Mode = Mode.AUTO) -> World:
+def _ready_world(
+    directory: Path,
+    *,
+    mode: Mode = Mode.AUTO,
+    blocked_screen: list[str] | None = None,
+) -> World:
     """A Claude session seen at its limit, now showing the reset affordance.
 
     The affordance authorises nothing on a process never seen blocked, so every
     scenario about what happens *at* the ready prompt starts from the limit.
     """
-    world = _world(directory, mode=mode)
+    world = _world(directory, mode=mode, screen=blocked_screen)
     world.step("limit reached, waiting")
     world.supervisor.sessions[world.terminal.ref(SESSION).key()].next_check_at = None
     world.screen(READY_SCREEN)
@@ -325,20 +358,163 @@ def _ready_world(directory: Path, *, mode: Mode = Mode.AUTO) -> World:
 
 
 def scenario_reset_and_resume(directory: Path) -> Result:
-    world = _world(directory)
+    world = _world(directory, screen=BLOCKED_30_SECONDS_SCREEN)
     world.step("limit reached, waiting")
     world.screen(READY_SCREEN)
-    world.clock.advance(300)
+    world.clock.advance(30)
     world.step("limit reset, prompt offers to continue")
     world.screen(ACTIVE_SCREEN)
     world.clock.advance(10)
     world.step("verify the session resumed")
     return _result(
         "reset-and-resume",
-        "The ordinary happy path: a five-hour window resets and the session continues.",
+        "The ordinary happy path: the window resets after 30 seconds and the session continues.",
         "exactly one Enter is sent, and the resume is verified",
         world,
         passed=world.terminal.sent == [(SESSION, "\r")],
+    )
+
+
+def scenario_reset_delayed_90s(directory: Path) -> Result:
+    world = _ready_world(directory, blocked_screen=BLOCKED_30_SECONDS_SCREEN)
+    world.quota["claude"].availability = Availability.EXHAUSTED
+    world.clock.advance(30)
+    world.step("nominal reset passes but provider still says exhausted")
+    world.clock.advance(90)
+    world.quota["claude"].availability = Availability.AVAILABLE
+    world.supervisor.sessions[world.terminal.ref(SESSION).key()].next_check_at = None
+    world.step("provider confirms availability 90 seconds late")
+    return _result(
+        "reset-delayed-90s",
+        "The provider confirms a reset 90 seconds after the nominal time.",
+        "elapsed time sends nothing; fresh availability permits exactly one Enter",
+        world,
+        passed=world.terminal.sent == [(SESSION, "\r")]
+        and world.steps[-2].decision_reason == "usage-not-confirmed-available",
+    )
+
+
+def scenario_prompt_changed_before_send(directory: Path) -> Result:
+    world = _ready_world(directory)
+    reads = 0
+
+    def change_after_observation(session_id: str) -> None:
+        nonlocal reads
+        reads += 1
+        if reads == 1:
+            world.terminal.set_screen(session_id, [*READY_SCREEN, "  changed after observation"])
+
+    world.terminal.after_read = change_after_observation
+    world.step("the prompt changes between observation and final revalidation")
+    return _result(
+        "prompt-changed-before-send",
+        "The visible prompt changes in the narrow interval before sendText.",
+        "the fingerprint mismatch cancels the action and sends nothing",
+        world,
+        passed=world.terminal.sent == []
+        and world.steps[-1].decision_reason == "revalidation-failed:prompt-changed",
+    )
+
+
+def scenario_terminal_closed(directory: Path) -> Result:
+    world = _ready_world(directory)
+    world.terminal.close(SESSION)
+    world.step("the selected terminal closes before its action")
+    world.supervisor.prune_and_rebind()
+    return _result(
+        "terminal-closed",
+        "The selected Konsole tab disappears before the scheduled action.",
+        "nothing is typed and rediscovery removes the dead selection",
+        world,
+        passed=world.terminal.sent == [] and world.supervisor.sessions == {},
+    )
+
+
+def scenario_process_restarted(directory: Path) -> Result:
+    world = _ready_world(directory)
+    replacement = world.processes.agent(AGENT_PID + 1, start_time=222)
+    world.terminal.set_foreground(SESSION, replacement.identity.pid)
+    world.step("the agent restarts in the same Konsole tab")
+    return _result(
+        "process-restarted",
+        "A new agent process replaces the selected one in the same tab.",
+        "the selection stays bound to the old identity and sends nothing",
+        world,
+        passed=world.terminal.sent == [] and "process" in world.steps[-1].decision_reason,
+    )
+
+
+def scenario_session_replaced(directory: Path) -> Result:
+    world = _ready_world(directory)
+    world.terminal.service = "fake.service-2"
+    world.supervisor.prune_and_rebind()
+    world.step("Konsole reuses the session path under a new service")
+    return _result(
+        "session-replaced",
+        "A new Konsole process exposes the same visible session path.",
+        "the service-bound selection is removed and never transferred",
+        world,
+        passed=world.terminal.sent == [] and world.supervisor.sessions == {},
+    )
+
+
+def scenario_continue_still_blocked(directory: Path) -> Result:
+    world = _ready_world(directory)
+    world.step("the tested continuation is sent")
+    world.clock.advance(5)
+    world.step("the unchanged prompt proves the continuation did not land")
+    session = world.supervisor.sessions[world.terminal.ref(SESSION).key()]
+    retry_at = session.next_check_at
+    world.clock.advance(1)
+    world.step("a scan before the retry deadline remains silent")
+    return _result(
+        "continue-still-blocked",
+        "A supported continuation is sent but the blocking prompt remains.",
+        "the failure is recorded and no immediate duplicate is sent",
+        world,
+        passed=world.terminal.sent == [(SESSION, "\r")]
+        and world.steps[-2].decision_reason == "verify:still-blocked"
+        and retry_at is not None
+        and retry_at > world.clock.wall,
+    )
+
+
+def scenario_unknown_menu(directory: Path) -> Result:
+    world = _world(directory, screen=UNKNOWN_MENU_SCREEN)
+    world.step("an unrecognised limit menu is displayed")
+    return _result(
+        "unknown-menu",
+        "A limit menu differs from every tested safe shape.",
+        "the unknown layout is observed but never answered",
+        world,
+        passed=world.terminal.sent == []
+        and world.steps[-1].decision_reason == "no-unambiguous-action-for-prompt",
+    )
+
+
+def scenario_paid_credits_prompt(directory: Path) -> Result:
+    world = _world(directory, screen=PAID_CREDITS_SCREEN)
+    world.step("Claude offers paid extra usage")
+    return _result(
+        "paid-credits-prompt",
+        "Claude offers a paid path around the usage limit.",
+        "the paid action is vetoed and no input is sent",
+        world,
+        passed=world.terminal.sent == []
+        and world.steps[-1].decision_reason.startswith("paid-action-required:"),
+    )
+
+
+def scenario_model_downgrade_prompt(directory: Path) -> Result:
+    world = _world(directory, screen=MODEL_DOWNGRADE_SCREEN)
+    world.step("Claude offers lower-priority service")
+    return _result(
+        "model-downgrade-prompt",
+        "Claude offers continuation with reduced service quality.",
+        "the quality-changing action is vetoed and no input is sent",
+        world,
+        passed=world.terminal.sent == []
+        and world.steps[-1].decision_reason.startswith("model-downgrade-offer:"),
     )
 
 
@@ -623,6 +799,15 @@ def scenario_auto_yes_resends_once(directory: Path) -> Result:
 
 SCENARIOS: dict[str, ScenarioFn] = {
     "reset-and-resume": scenario_reset_and_resume,
+    "reset-delayed-90s": scenario_reset_delayed_90s,
+    "prompt-changed-before-send": scenario_prompt_changed_before_send,
+    "terminal-closed": scenario_terminal_closed,
+    "process-restarted": scenario_process_restarted,
+    "session-replaced": scenario_session_replaced,
+    "continue-still-blocked": scenario_continue_still_blocked,
+    "unknown-menu": scenario_unknown_menu,
+    "paid-credits-prompt": scenario_paid_credits_prompt,
+    "model-downgrade-prompt": scenario_model_downgrade_prompt,
     "agent-exited": scenario_agent_exited,
     "pid-reused": scenario_pid_reused,
     "suspend-across-reset": scenario_suspend_across_reset,

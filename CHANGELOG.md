@@ -13,6 +13,17 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.62.0] - 2026-10-03
+
+### Added
+
+- The simulation catalogue now explicitly covers every vision section 40 case:
+  a 30-second reset, a reset delayed by 90 seconds, prompt changes during final
+  revalidation, closed and replaced terminals, restarted processes, a failed
+  continuation with bounded retry, unknown menus, paid-credit prompts and
+  model downgrades. A permanent test maps all 18 named requirements to their
+  executable scenario.
+
 ## [0.61.0] - 2026-10-03
 
 ### Added

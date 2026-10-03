@@ -85,6 +85,12 @@ agent-while-true run --once            # one tick, plain text, exit (for scripts
 agent-while-true simulate --all        # exercise the built-in danger scenarios
 ```
 
+`simulate --all` names and executes every safety case required by vision
+section 40, including delayed resets, provider failure, prompt and process
+replacement races, crash recovery, duplicate events, unknown menus, paid
+credits and quality-changing offers. It uses an in-memory terminal and clock,
+so it never touches a live session.
+
 Without `--all` a picker lists every Konsole session; only sessions positively
 classified as Codex or Claude can be selected, and a plain shell is never
 preselected. `fzf` is used when installed (`--no-fzf` disables it). With `--all`
