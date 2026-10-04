@@ -249,6 +249,33 @@ def test_claude_bridge_accepts_only_an_installed_process_bound_proxy(tmp_path: P
     assert check == Check("Claude quota bridge", Status.OK, "configured and process-bound")
 
 
+def test_claude_bridge_accepts_the_documented_home_relative_proxy(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    settings = tmp_path / "settings.json"
+    target = tmp_path / ".local/share/agent-while-true/claude-statusline-proxy.sh"
+    target.parent.mkdir(parents=True)
+    target.write_text("#!/bin/sh\n", encoding="utf-8")
+    target.chmod(0o700)
+    settings.write_text(
+        json.dumps(
+            _bridge_settings(
+                target,
+                command=(
+                    "AGENT_WHILE_TRUE_CLAUDE_PID=$PPID "
+                    "~/.local/share/agent-while-true/claude-statusline-proxy.sh"
+                ),
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    check = doctor_module.check_claude_bridge(settings, target)
+
+    assert check == Check("Claude quota bridge", Status.OK, "configured and process-bound")
+
+
 def test_claude_bridge_reports_missing_settings(tmp_path: Path) -> None:
     check = doctor_module.check_claude_bridge(
         tmp_path / "missing-settings.json", tmp_path / "proxy"
@@ -299,6 +326,33 @@ def test_claude_bridge_rejects_incomplete_configuration_without_echoing_it(
     assert check.status is Status.WARN
     assert detail in check.detail
     assert "sentinel-secret" not in check.detail
+
+
+@pytest.mark.parametrize(
+    ("command", "detail"),
+    [
+        ("AGENT_WHILE_TRUE_CLAUDE_PID=$PPID {target}.bak", "proxy command"),
+        ("AGENT_WHILE_TRUE_CLAUDE_PID=$PPID {target} ignored-argument", "proxy command"),
+        ("RETIRED_AGENT_WHILE_TRUE_CLAUDE_PID=$PPID {target}", "process binding"),
+        ('AGENT_WHILE_TRUE_CLAUDE_PID=$PPID "{target}', "malformed"),
+    ],
+)
+def test_claude_bridge_requires_exact_well_formed_shell_words(
+    tmp_path: Path, command: str, detail: str
+) -> None:
+    settings = tmp_path / "settings.json"
+    target = tmp_path / "proxy"
+    target.write_text("#!/bin/sh\n", encoding="utf-8")
+    target.chmod(0o700)
+    settings.write_text(
+        json.dumps(_bridge_settings(target, command=command.format(target=target))),
+        encoding="utf-8",
+    )
+
+    check = doctor_module.check_claude_bridge(settings, target)
+
+    assert check.status is Status.WARN
+    assert detail in check.detail
 
 
 def test_claude_bridge_reports_missing_and_non_executable_proxy(tmp_path: Path) -> None:

@@ -13,6 +13,17 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.64.1] - 2026-10-04
+
+### Fixed
+
+- `doctor` now validates the Claude quota bridge executable and process-binding
+  assignment as exact, well-formed shell words. A similarly prefixed variable,
+  a backup executable whose path merely started with the expected path, or an
+  unterminated quoted command can no longer be reported as a working bridge;
+  the documented home-relative path remains valid. The terminal-closed safety
+  simulation now also proves the explicit `process-gone` refusal.
+
 ## [0.64.0] - 2026-10-04
 
 ### Added

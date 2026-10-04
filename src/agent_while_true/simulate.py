@@ -426,7 +426,9 @@ def scenario_terminal_closed(directory: Path) -> Result:
         "The selected Konsole tab disappears before the scheduled action.",
         "nothing is typed and rediscovery removes the dead selection",
         world,
-        passed=world.terminal.sent == [] and world.supervisor.sessions == {},
+        passed=world.terminal.sent == []
+        and world.steps[-1].decision_reason == "process-gone"
+        and world.supervisor.sessions == {},
     )
 
 

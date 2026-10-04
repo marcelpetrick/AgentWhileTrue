@@ -17,6 +17,7 @@ import json
 import os
 import platform
 import re
+import shlex
 import shutil
 import subprocess
 from collections.abc import Callable
@@ -242,9 +243,15 @@ def check_claude_bridge(
     if not isinstance(status_line, dict) or status_line.get("type") != "command":
         return Check("Claude quota bridge", Status.WARN, "status line is not the quota bridge")
     command = status_line.get("command")
-    if not isinstance(command, str) or str(target) not in command:
+    if not isinstance(command, str):
         return Check("Claude quota bridge", Status.WARN, "proxy command is not configured")
-    if "AGENT_WHILE_TRUE_CLAUDE_PID=$PPID" not in command:
+    try:
+        command_words = shlex.split(command)
+    except ValueError:
+        return Check("Claude quota bridge", Status.WARN, "proxy command is malformed")
+    if not command_words or Path(command_words[-1]).expanduser() != target.expanduser():
+        return Check("Claude quota bridge", Status.WARN, "proxy command is not configured")
+    if "AGENT_WHILE_TRUE_CLAUDE_PID=$PPID" not in command_words:
         return Check("Claude quota bridge", Status.WARN, "process binding is missing")
     refresh = status_line.get("refreshInterval")
     if type(refresh) is not int or not 1 <= refresh <= 60:
