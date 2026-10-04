@@ -18,7 +18,7 @@ from collections.abc import Collection
 from contextlib import suppress
 from fcntl import LOCK_EX, flock
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 from agent_while_true.tui import HISTORY_LENGTHS, THEMES, DashboardState
 
@@ -38,11 +38,19 @@ _PREFERENCE_KEYS = frozenset(
 _PREFERENCE_FIELDS = _PREFERENCE_KEYS - {"version"}
 
 
+class _ValidatedPreferences(TypedDict):
+    theme: str
+    history_length: int
+    show_events: bool
+    details_visible: bool
+    help_visible: bool
+
+
 def _is_bool(value: Any) -> bool:
     return isinstance(value, bool)
 
 
-def _validated_values(document: Any) -> dict[str, object] | None:
+def _validated_values(document: Any) -> _ValidatedPreferences | None:
     if not isinstance(document, dict) or set(document) != _PREFERENCE_KEYS:
         return None
 
@@ -62,10 +70,18 @@ def _validated_values(document: Any) -> dict[str, object] | None:
     ):
         return None
 
-    booleans = {key: document[key] for key in ("show_events", "details_visible", "help_visible")}
-    if not all(_is_bool(value) for value in booleans.values()):
+    show_events = document["show_events"]
+    details_visible = document["details_visible"]
+    help_visible = document["help_visible"]
+    if not all(_is_bool(value) for value in (show_events, details_visible, help_visible)):
         return None
-    return {"theme": theme, "history_length": history_length, **booleans}
+    return {
+        "theme": theme,
+        "history_length": history_length,
+        "show_events": show_events,
+        "details_visible": details_visible,
+        "help_visible": help_visible,
+    }
 
 
 def load_preferences(path: Path, state: DashboardState) -> None:

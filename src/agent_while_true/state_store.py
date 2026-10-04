@@ -448,33 +448,38 @@ def _parse_episode(raw: object) -> RetryEpisode | None:
     if not isinstance(raw, dict):
         return None
     try:
-        episode = RetryEpisode(**raw)
-        if not all(
-            isinstance(value, str) and value
-            for value in (
-                episode.key,
-                episode.provider,
-                episode.session,
-                episode.process,
-            )
-        ):
+        required_strings = tuple(
+            raw.get(field_name) for field_name in ("key", "provider", "session", "process")
+        )
+        if not all(isinstance(value, str) and value for value in required_strings):
             return None
+        prompt_key = raw.get("prompt_key")
         if not (
-            isinstance(episode.prompt_key, str)
-            and len(episode.prompt_key) == 64
-            and all(character in "0123456789abcdef" for character in episode.prompt_key)
+            isinstance(prompt_key, str)
+            and len(prompt_key) == 64
+            and all(character in "0123456789abcdef" for character in prompt_key)
         ):
             return None
-        _timestamp(episode.reset_at)
-        _timestamp(episode.first_seen_at)
-        if episode.next_retry_at:
-            _timestamp(episode.next_retry_at)
-        if type(episode.attempts) is not int or episode.attempts < 0:
+        reset_at = raw.get("reset_at")
+        first_seen_at = raw.get("first_seen_at")
+        if not isinstance(reset_at, str) or not isinstance(first_seen_at, str):
             return None
-        if type(episode.completed) is not bool or type(episode.exhausted) is not bool:
+        _timestamp(reset_at)
+        _timestamp(first_seen_at)
+        next_retry_at = raw.get("next_retry_at", "")
+        pending_key = raw.get("pending_key", "")
+        if not isinstance(next_retry_at, str) or not isinstance(pending_key, str):
             return None
-        if not isinstance(episode.next_retry_at, str) or not isinstance(episode.pending_key, str):
+        if next_retry_at:
+            _timestamp(next_retry_at)
+        attempts = raw.get("attempts", 0)
+        completed = raw.get("completed", False)
+        exhausted = raw.get("exhausted", False)
+        if type(attempts) is not int or attempts < 0:
             return None
+        if type(completed) is not bool or type(exhausted) is not bool:
+            return None
+        episode = RetryEpisode(**raw)
     except (TypeError, ValueError, OverflowError):
         return None
     return episode

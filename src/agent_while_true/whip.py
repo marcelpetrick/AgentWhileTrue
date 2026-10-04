@@ -209,7 +209,7 @@ def _lash(grid: _Grid, progress: float, handle_row: int) -> tuple[int, int]:
     start = len(HANDLE)
     reach = max(1, width - start - 4)
     length = max(1, round(reach * progress**0.8))
-    amplitude = max(1, handle_row - 1) * (1 - progress) ** 1.2
+    amplitude = float(max(1, handle_row - 1) * (1 - progress) ** 1.2)
     phase = progress * 2 * math.pi
 
     def height_at(step: int) -> float:

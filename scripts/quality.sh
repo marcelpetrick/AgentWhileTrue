@@ -79,6 +79,9 @@ else
     run_tool ruff format --check . || fail "ruff format --check"
 fi
 
+step "mypy (strict)"
+run_tool mypy || fail "mypy"
+
 step "shellcheck"
 if command -v shellcheck > /dev/null 2>&1; then
     # Every tracked shell script, including this one. `git ls-files` rather than

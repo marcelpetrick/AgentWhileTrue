@@ -315,6 +315,7 @@ def test_canonical_pipeline_covers_required_release_smokes() -> None:
         assert command in pipeline
     assert 'agent-while-true" --version' in pipeline
     assert "git --no-pager diff --check" in quality
+    assert 'run_tool mypy || fail "mypy"' in quality
     assert 'fail "shellcheck (not installed)"' in quality
 
 
@@ -337,7 +338,14 @@ def test_canonical_pipeline_provisions_the_pinned_toolchain_before_checking() ->
     assert pipeline.index("\nensure_toolchain\n") < pipeline.index("\nscripts/quality.sh\n")
     # pyproject.toml holds the pins; a second copy here could drift from CI.
     assert "optional-dependencies" in pipeline
-    for pin in ("ruff==", "reuse==", "pytest==", "spdx-tools==", "cyclonedx-python-lib"):
+    for pin in (
+        "ruff==",
+        "mypy==",
+        "reuse==",
+        "pytest==",
+        "spdx-tools==",
+        "cyclonedx-python-lib",
+    ):
         assert pin not in pipeline
 
 

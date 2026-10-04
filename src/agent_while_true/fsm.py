@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
@@ -225,18 +226,12 @@ class Supervisor:
     inspector: ProcessInspector = field(default_factory=SystemInspector)
     confirm: ConfirmCallback | None = None
     now_fn: Callable[[], datetime] = lambda: datetime.now(UTC)
-    monotonic_fn: Callable[[], float] = None  # type: ignore[assignment]
+    monotonic_fn: Callable[[], float] = time.monotonic
     verify_delay: float = DEFAULT_VERIFY_DELAY_SECONDS
 
     sessions: dict[str, SupervisedSession] = field(default_factory=dict)
     _last_wall: datetime | None = None
     _last_monotonic: float | None = None
-
-    def __post_init__(self) -> None:
-        if self.monotonic_fn is None:
-            import time
-
-            self.monotonic_fn = time.monotonic
 
     # -- selection ---------------------------------------------------------
 

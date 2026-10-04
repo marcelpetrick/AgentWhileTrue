@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.63.0] - 2026-10-04
+
+### Added
+
+- The canonical quality gate now runs mypy 2.4.0 in strict mode, including
+  unreachable-code checks, over the complete runtime package. JSON and
+  persistence boundaries now narrow untrusted values explicitly, callable and
+  stream contracts are fully typed, and the pinned-toolchain verifier rejects
+  a mismatched mypy executable just like Ruff, pytest and REUSE.
+
 ## [0.62.0] - 2026-10-03
 
 ### Added

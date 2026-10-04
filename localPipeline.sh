@@ -18,7 +18,7 @@ Usage: ./localPipeline.sh [--noRun]
 
 Runs the same complete gate used by GitHub Actions:
   1. Verify Python 3.12+ and the pinned quality toolchain
-  2. Ruff lint and format check, ShellCheck, tests and coverage
+  2. Ruff lint/format, strict mypy, ShellCheck, tests and coverage
   3. Run every safety simulation
   4. Build the source distribution and wheel
   5. Install the wheel in an isolated environment
@@ -160,7 +160,7 @@ PIPELINE_RESULTS+=("Python baseline  : PASS (3.12+)")
 ensure_toolchain
 
 scripts/quality.sh
-PIPELINE_RESULTS+=("Quality gate     : PASS (Ruff, format, ShellCheck, pytest coverage)")
+PIPELINE_RESULTS+=("Quality gate     : PASS (Ruff, mypy, ShellCheck, pytest coverage)")
 
 PYTHONPATH=src "$PYTHON_BIN" -m agent_while_true.cli simulate --all
 PIPELINE_RESULTS+=("Safety scenarios : PASS (all)")

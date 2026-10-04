@@ -39,6 +39,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import cast
 
 from agent_while_true.identity import codex_account_key
 from agent_while_true.proc import PROC, ProcessGoneError, read_start_time
@@ -149,7 +150,7 @@ def _percent(value: object) -> float | None:
         return None
     if type(value) not in {int, float}:
         raise ValueError("invalid quota percentage")
-    percent = float(value)
+    percent = float(cast(int | float, value))
     if not math.isfinite(percent) or percent < 0:
         raise ValueError("invalid quota percentage")
     return percent
@@ -266,7 +267,8 @@ def find_codex_rollout(pid: int) -> Path | None:
     return max(by_mtime, default=(0, None), key=lambda item: (item[0], str(item[1])))[1]
 
 
-_RateLimits = tuple[dict, datetime | None] | None
+_JsonObject = dict[str, object]
+_RateLimits = tuple[_JsonObject, datetime | None] | None
 
 #: Parsed tails keyed by file identity and version. A tick used to parse every
 #: rollout tail at least four times; an unchanged file is now parsed once.
@@ -301,8 +303,8 @@ def _last_rate_limits(path: Path) -> _RateLimits:
 
 def _parse_rate_limits(tail: bytes) -> _RateLimits:
     """Return the newest usable ``rate_limits`` object in a rollout tail."""
-    fallback: tuple[dict, None] | None = None
-    newest: tuple[dict, datetime] | None = None
+    fallback: tuple[_JsonObject, None] | None = None
+    newest: tuple[_JsonObject, datetime] | None = None
     # A partial first line is expected after seeking; it simply fails to parse.
     for raw in reversed(tail.split(b"\n")):
         if b"rate_limits" not in raw:
@@ -329,7 +331,7 @@ def _parse_rate_limits(tail: bytes) -> _RateLimits:
     return newest or fallback
 
 
-def _codex_windows(limits: dict) -> list[QuotaWindow]:
+def _codex_windows(limits: _JsonObject) -> list[QuotaWindow]:
     windows: list[QuotaWindow] = []
     for key, default_scope in (("primary", "session"), ("secondary", "weekly")):
         entry = limits.get(key)

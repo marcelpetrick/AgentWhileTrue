@@ -27,10 +27,12 @@ import shutil
 import signal
 import sys
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
+from types import FrameType
+from typing import TextIO
 
 from agent_while_true import doctor as doctor_module
 from agent_while_true import whip
@@ -49,7 +51,13 @@ from agent_while_true.control import (
     ControlServer,
     request_yield_input,
 )
-from agent_while_true.fsm import Observation, Supervisor, SystemInspector
+from agent_while_true.fsm import (
+    ConfirmCallback,
+    Observation,
+    SupervisedSession,
+    Supervisor,
+    SystemInspector,
+)
 from agent_while_true.identity import session_account
 from agent_while_true.lock import LockHeldError, SingleInstanceLock
 from agent_while_true.logging_setup import read_history, setup
@@ -193,7 +201,7 @@ def _overrides(args: argparse.Namespace) -> dict[str, str]:
     return overrides
 
 
-def _check_privileges(config: Config, stream) -> bool:
+def _check_privileges(config: Config, stream: TextIO) -> bool:
     if os.geteuid() != 0 or config.allow_root:
         return True
     stream.write(ROOT_WARNING)
@@ -205,7 +213,7 @@ def _select_sessions(
     candidates: list[Candidate],
     *,
     watch_all: bool,
-    stream,
+    stream: TextIO,
     reader: Callable[[str], str],
 ) -> list[Candidate] | None:
     if watch_all:
@@ -214,11 +222,15 @@ def _select_sessions(
         chosen = pick_with_fzf(candidates)
         if chosen is not None:
             return chosen
-    picker = NumberedPicker(read=reader, write=lambda text: stream.write(text + "\n"))
+
+    def write_line(text: str) -> None:
+        stream.write(text + "\n")
+
+    picker = NumberedPicker(read=reader, write=write_line)
     return picker.run(candidates)
 
 
-def _confirmer(stream, reader):
+def _confirmer(stream: TextIO, reader: Callable[[str], str]) -> ConfirmCallback:
     def confirm(observation: Observation, decision: Decision) -> bool:
         action = decision.action
         keys = action.kind.value if action else "?"
@@ -238,7 +250,12 @@ def _confirmer(stream, reader):
     return confirm
 
 
-def _build_supervisor(config: Config, args: argparse.Namespace, stream, reader) -> Supervisor:
+def _build_supervisor(
+    config: Config,
+    args: argparse.Namespace,
+    stream: TextIO,
+    reader: Callable[[str], str],
+) -> Supervisor:
     log = setup(config.resolved_log_file(), to_stderr=args.verbose)
     return Supervisor(
         terminal=KonsoleAdapter(),
@@ -252,7 +269,10 @@ def _build_supervisor(config: Config, args: argparse.Namespace, stream, reader) 
 
 
 def command_run(
-    config: Config, args: argparse.Namespace, stream, reader: Callable[[str], str]
+    config: Config,
+    args: argparse.Namespace,
+    stream: TextIO,
+    reader: Callable[[str], str],
 ) -> int:
     if not _check_privileges(config, stream):
         return EXIT_ERROR
@@ -526,7 +546,7 @@ def _crack_whip(
     supervisor: Supervisor,
     lock: SingleInstanceLock,
     counter: whip.WhipCounter,
-    stream,
+    stream: TextIO,
     *,
     paused: bool = False,
     color: bool = False,
@@ -625,13 +645,15 @@ def _loop(
     supervisor: Supervisor,
     config: Config,
     args: argparse.Namespace,
-    stream,
+    stream: TextIO,
     lock: SingleInstanceLock,
     deferred: Config | None = None,
 ) -> int:
     stop = {"requested": False}
 
-    def request_stop(signum, frame) -> None:  # pragma: no cover - signal path
+    def request_stop(  # pragma: no cover - signal path
+        signum: int, frame: FrameType | None
+    ) -> None:
         stop["requested"] = True
 
     for received in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
@@ -872,14 +894,14 @@ def _sync_all_sessions(supervisor: Supervisor, *, show_accounts: bool = False) -
         )
 
 
-def _summarise(sessions, decisions: Sequence[Decision]) -> str:
+def _summarise(sessions: Iterable[SupervisedSession], decisions: Sequence[Decision]) -> str:
     for session, decision in zip(sessions, decisions, strict=False):
         if decision.allowed:
             return f"{session.provider_name} {session.ref.session_id}: {decision.reason}"
     return ""
 
 
-def command_status(config: Config, stream) -> int:
+def command_status(config: Config, stream: TextIO) -> int:
     adapter = KonsoleAdapter()
     if not adapter.is_available():
         stream.write("Konsole D-Bus is not reachable. Run 'agent-while-true doctor'.\n")
@@ -897,7 +919,7 @@ def command_status(config: Config, stream) -> int:
     return EXIT_OK
 
 
-def command_quota(config: Config, stream) -> int:
+def command_quota(config: Config, stream: TextIO) -> int:
     """Query live quota sources for every detected agent session."""
     adapter = KonsoleAdapter()
     if not adapter.is_available():
@@ -926,7 +948,7 @@ def command_quota(config: Config, stream) -> int:
     return EXIT_OK
 
 
-def command_doctor(config: Config, stream) -> int:
+def command_doctor(config: Config, stream: TextIO) -> int:
     checks = doctor_module.run(config)
     stream.write(doctor_module.render(checks) + "\n")
     return doctor_module.exit_code(checks)
@@ -974,7 +996,7 @@ ALLOW_CODEX_AUTO_RESUME=false
 """
 
 
-def command_init(config: Config, args: argparse.Namespace, stream) -> int:
+def command_init(config: Config, args: argparse.Namespace, stream: TextIO) -> int:
     path = args.config or default_config_path()
     if path.exists():
         stream.write(f"{path} already exists; leaving it alone.\n")
@@ -985,13 +1007,13 @@ def command_init(config: Config, args: argparse.Namespace, stream) -> int:
     return EXIT_OK
 
 
-def command_config(config: Config, stream) -> int:
+def command_config(config: Config, stream: TextIO) -> int:
     for key, value in describe(config):
         stream.write(f"{key:<31} {value}\n")
     return EXIT_OK
 
 
-def command_simulate(args: argparse.Namespace, stream) -> int:
+def command_simulate(args: argparse.Namespace, stream: TextIO) -> int:
     """Run the safety scenarios.
 
     This is the honest way to gain confidence in a tool that types into
@@ -1018,7 +1040,7 @@ def command_simulate(args: argparse.Namespace, stream) -> int:
     return EXIT_OK if result.passed else EXIT_ERROR
 
 
-def command_logs(config: Config, args: argparse.Namespace, stream) -> int:
+def command_logs(config: Config, args: argparse.Namespace, stream: TextIO) -> int:
     path = config.resolved_log_file()
     if not path.is_file():
         stream.write(f"No log at {path} yet.\n")
@@ -1032,7 +1054,7 @@ def command_logs(config: Config, args: argparse.Namespace, stream) -> int:
 def main(
     argv: Sequence[str] | None = None,
     *,
-    stream=None,
+    stream: TextIO | None = None,
     reader: Callable[[str], str] = input,
 ) -> int:
     parser = build_parser()

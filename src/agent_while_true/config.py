@@ -204,7 +204,7 @@ _KEYS: dict[str, tuple[str, str]] = {
 }
 
 
-def _coerce(kind: str, raw: str, key: str):
+def _coerce(kind: str, raw: str, key: str) -> float | tuple[float, ...] | bool | int | Path | Mode:
     if kind == "duration":
         return parse_duration(raw, field_name=key)
     if kind == "durations":

@@ -27,7 +27,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 #: Commands the gate runs from PATH, and the distribution that provides each.
-COMMANDS = {"ruff": "ruff", "pytest": "pytest", "reuse": "reuse"}
+COMMANDS = {"ruff": "ruff", "mypy": "mypy", "pytest": "pytest", "reuse": "reuse"}
 _PIN = re.compile(r"^\s*(?P<name>[A-Za-z0-9_.-]+)(?:\[[^\]]*\])?\s*==\s*(?P<version>[^\s;]+)")
 
 

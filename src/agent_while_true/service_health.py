@@ -161,6 +161,9 @@ class StatusPageClient:
 
     def _persistent_response(self, headers: dict[str, str]) -> http.client.HTTPResponse:
         parsed = urlsplit(STATUS_URLS[self.provider])
+        hostname = parsed.hostname
+        if hostname is None:  # pragma: no cover - fixed constants above
+            raise ValueError("status URL has no hostname")
         path = parsed.path or "/"
         if parsed.query:
             path = f"{path}?{parsed.query}"
@@ -175,7 +178,7 @@ class StatusPageClient:
                 # Reconnect once; a failure on the fresh socket is real.
                 self.close()
         self._connection = http.client.HTTPSConnection(
-            parsed.hostname,
+            hostname,
             parsed.port,
             timeout=REQUEST_TIMEOUT_SECONDS,
         )

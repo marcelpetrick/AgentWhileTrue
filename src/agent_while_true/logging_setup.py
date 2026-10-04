@@ -21,8 +21,9 @@ import os
 import re
 from collections.abc import Mapping
 from datetime import datetime
+from io import TextIOWrapper
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 LOGGER_NAME = "agent_while_true"
 
@@ -45,16 +46,19 @@ class OwnerOnlyRotatingFileHandler(logging.handlers.RotatingFileHandler):
     permission has to be a property of how the file is opened, not a one-off.
     """
 
-    def _open(self):
+    def _open(self) -> TextIOWrapper:
         def opener(path: str, flags: int) -> int:
             return os.open(path, flags, LOG_FILE_MODE)
 
-        return open(
-            self.baseFilename,
-            self.mode,
-            encoding=self.encoding,
-            errors=self.errors,
-            opener=opener,
+        return cast(
+            TextIOWrapper,
+            open(
+                self.baseFilename,
+                self.mode,
+                encoding=self.encoding,
+                errors=self.errors,
+                opener=opener,
+            ),
         )
 
 

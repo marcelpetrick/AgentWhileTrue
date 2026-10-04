@@ -287,19 +287,19 @@ class ProviderAdapter(ABC):
                 continue
             line, context = _matched_text(live, pattern)
             matches.append(PromptMatch(pattern=pattern, line=line, context=context))
-        matches = tuple(matches)
+        matched = tuple(matches)
         return Recognition(
             provider=self.name,
-            state=self._derive_state(matches),
-            matches=matches,
-            reset_at=self._derive_reset(matches, now=now),
+            state=self._derive_state(matched),
+            matches=matched,
+            reset_at=self._derive_reset(matched, now=now),
             screen_fingerprint=fingerprint(live),
             blocked_scopes=frozenset(
                 match.pattern.scope
-                for match in matches
+                for match in matched
                 if match.pattern.kind is PromptKind.LIMIT_BLOCKED
             ),
-            vetoes=self._derive_vetoes(matches),
+            vetoes=self._derive_vetoes(matched),
         )
 
     @staticmethod

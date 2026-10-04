@@ -22,8 +22,19 @@ assert _spec.loader is not None
 check_toolchain = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(check_toolchain)
 
-WANTED = {"ruff": "0.16.9", "pytest": "9.1.1", "reuse": "6.2.0", "build": "1.6.1"}
-EXACT = {"ruff": "ruff 0.16.9", "pytest": "pytest 9.1.1", "reuse": "reuse, version 6.2.0"}
+WANTED = {
+    "ruff": "0.16.9",
+    "mypy": "2.4.0",
+    "pytest": "9.1.1",
+    "reuse": "6.2.0",
+    "build": "1.6.1",
+}
+EXACT = {
+    "ruff": "ruff 0.16.9",
+    "mypy": "mypy 2.4.0 (compiled: yes)",
+    "pytest": "pytest 9.1.1",
+    "reuse": "reuse, version 6.2.0",
+}
 
 
 def _problems(installed: dict[str, str | None], commands: dict[str, str | None]) -> list[str]:
@@ -33,7 +44,7 @@ def _problems(installed: dict[str, str | None], commands: dict[str, str | None])
 def test_the_repositorys_own_pins_are_all_exact() -> None:
     pins = check_toolchain.pins(ROOT / "pyproject.toml")
 
-    assert {"ruff", "pytest", "reuse", "cyclonedx-python-lib", "spdx-tools"} <= set(pins)
+    assert {"ruff", "mypy", "pytest", "reuse", "cyclonedx-python-lib", "spdx-tools"} <= set(pins)
     assert all(version[0].isdigit() for version in pins.values())
 
 
