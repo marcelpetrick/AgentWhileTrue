@@ -9,6 +9,8 @@ set -euo pipefail
 PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PYTHON_BIN="${PYTHON:-python3}"
 TOOLCHAIN_VENV="${AGENT_WHILE_TRUE_TOOLCHAIN_VENV:-$PROJECT_ROOT/.venv}"
+CONTAINER_MODE="${AGENT_WHILE_TRUE_CONTAINER:-auto}"
+CONTAINER_ENGINE="${AGENT_WHILE_TRUE_CONTAINER_ENGINE:-docker}"
 declare -a PIPELINE_RESULTS=()
 TEMP_ROOT=""
 
@@ -21,14 +23,19 @@ Runs the same complete gate used by GitHub Actions:
   2. Ruff lint/format, strict mypy, ShellCheck, tests and coverage
   3. Run every safety simulation
   4. Build the source distribution and wheel
-  5. Install the wheel in an isolated environment
-  6. Smoke-test the canonical command, doctor, status, quota, and all simulations
+  5. Build and smoke the offline container image when Docker is available
+  6. Install the wheel in an isolated environment
+  7. Smoke-test the canonical command, doctor, status, quota, and all simulations
 
 A fresh clone has none of the pinned tools, so step 1 provisions them once in
 .venv (override with AGENT_WHILE_TRUE_TOOLCHAIN_VENV). An environment that
 already provides exactly the pinned versions, such as CI after
 `pip install .[dev]`, is used unchanged; any other version of a tool, on PATH
 or installed, is reported and the pinned .venv is used instead.
+
+AGENT_WHILE_TRUE_CONTAINER controls the image gate: auto (the default) runs it
+when the configured engine is reachable, require fails when it is not, and
+skip omits it. AGENT_WHILE_TRUE_CONTAINER_ENGINE defaults to docker.
 
 --noRun is accepted for consistency with this repository's other local
 pipelines. Agent While True has no final interactive launch, so it is a no-op.
@@ -49,6 +56,15 @@ for argument in "$@"; do
             ;;
     esac
 done
+
+case "$CONTAINER_MODE" in
+    auto | require | skip) ;;
+    *)
+        printf 'AGENT_WHILE_TRUE_CONTAINER must be auto, require, or skip; got %s\n' \
+            "$CONTAINER_MODE" >&2
+        exit 2
+        ;;
+esac
 
 cleanup() {
     if [[ -n "$TEMP_ROOT" && -d "$TEMP_ROOT" ]]; then
@@ -175,6 +191,20 @@ ARTIFACT_DIR="$TEMP_ROOT/dist"
 mkdir -p dist
 cp -- "$ARTIFACT_DIR"/* dist/
 PIPELINE_RESULTS+=("Package build    : PASS (sdist and wheel)")
+
+if [[ "$CONTAINER_MODE" == "skip" ]]; then
+    PIPELINE_RESULTS+=("Container image  : SKIP (disabled)")
+elif command -v "$CONTAINER_ENGINE" > /dev/null 2>&1 \
+    && "$CONTAINER_ENGINE" info > /dev/null 2>&1; then
+    AGENT_WHILE_TRUE_CONTAINER_ENGINE="$CONTAINER_ENGINE" \
+        PYTHON="$PYTHON_BIN" scripts/container-smoke.sh
+    PIPELINE_RESULTS+=("Container image  : PASS (non-root offline simulator)")
+elif [[ "$CONTAINER_MODE" == "require" ]]; then
+    printf '[ERROR] required container engine is unavailable: %s\n' "$CONTAINER_ENGINE" >&2
+    exit 1
+else
+    PIPELINE_RESULTS+=("Container image  : SKIP ($CONTAINER_ENGINE unavailable)")
+fi
 
 # Prove the shipped source, tests, scripts and licensing are usable without Git
 # or files accidentally borrowed from the checkout.

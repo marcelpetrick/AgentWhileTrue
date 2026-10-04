@@ -47,12 +47,31 @@ Actions runs on Python 3.12, 3.13 and 3.14. It checks, in order:
 3. Every built-in safety simulation (`simulate --all`).
 4. A synthetic application profile, retained under `artifacts/`.
 5. sdist and wheel construction; the wheel is built from the sdist.
-6. The extracted source archive running its own quality gate outside Git.
-7. SPDX 2.3 and CycloneDX 1.6 SBOM generation from the actual wheel and sdist,
+6. A native container build from that exact wheel and a hardened smoke run when
+   Docker is reachable (required in the Python 3.12 CI and release jobs).
+7. The extracted source archive running its own quality gate outside Git.
+8. SPDX 2.3 and CycloneDX 1.6 SBOM generation from the actual wheel and sdist,
    validated with maintained standards validators, retained in `dist/sbom/`.
-8. The wheel installed into a fresh virtual environment, with `PYTHONPATH`
+9. The wheel installed into a fresh virtual environment, with `PYTHONPATH`
    removed, exercising `--version`, `doctor`, `status`, `quota`, `summary` and
    `simulate --all`.
+
+### Container gate and publication
+
+`AGENT_WHILE_TRUE_CONTAINER` controls the local image step: `auto` (default)
+runs it when Docker is reachable, `require` fails if it cannot run, and `skip`
+omits it. `AGENT_WHILE_TRUE_CONTAINER_ENGINE` selects another compatible
+engine. The reusable `scripts/container-smoke.sh` builds from the exact
+versioned wheel in `dist/`, then proves the image is non-root, has no qdbus,
+runs every scenario offline and refuses an operational `run` command.
+
+The official image is a simulation artifact, not a containerized supervisor.
+Release tags alone publish `linux/amd64` and `linux/arm64` manifests to
+`ghcr.io/marcelpetrick/agent-while-true`, tagged with the full version, minor
+version, `latest`, and a 12-character commit SHA. The workflow generates
+BuildKit SBOM and maximal provenance attestations, then signs an additional
+registry attestation. Action versions and the multi-architecture Python base
+image are pinned to immutable hashes.
 
 ### Coverage
 
@@ -150,9 +169,9 @@ python3 -m pip_audit --progress-spinner off
 
 | Workflow | Trigger | Does |
 | --- | --- | --- |
-| `quality.yml` | push/PR to `master` | `./localPipeline.sh --noRun` on 3.12/3.13/3.14; uploads dist, coverage and profile |
+| `quality.yml` | push/PR to `master` | Pipeline on 3.12/3.13/3.14; requires container smoke on 3.12; uploads dist, coverage and profile |
 | `security.yml` | push/PR, weekly | `pip-audit` over the installed development/build tooling |
-| `release.yml` | tag `agentwhiletrue-vX.Y.Z` | verifies tag = `__version__` = newest changelog entry, reruns the pipeline, publishes wheel, sdist and SBOMs as a GitHub release |
+| `release.yml` | tag `agentwhiletrue-vX.Y.Z` | Verifies the version, reruns the pipeline, and publishes distributions, SBOMs and the attested multi-architecture GHCR image |
 
 ## Versioning
 

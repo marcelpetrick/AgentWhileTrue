@@ -1,7 +1,8 @@
 # SPDX-FileCopyrightText: 2026 Marcel Petrick
 # SPDX-License-Identifier: GPL-3.0-or-later
-include *.md *.sh *.license
+include *.md *.sh *.license Dockerfile .dockerignore
 include REUSE.toml .gitignore
+recursive-include .github/workflows *.yml
 recursive-include docs *.md
 recursive-include LICENSES *.txt
 recursive-include scripts *.py *.sh

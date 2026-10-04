@@ -17,6 +17,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [![Lint and format: ruff](https://img.shields.io/badge/lint%20%26%20format-ruff-261230.svg)](https://docs.astral.sh/ruff/)
 [![REUSE compliant](https://img.shields.io/badge/REUSE-compliant-green.svg)](https://reuse.software/)
 [![SBOM: SPDX and CycloneDX](https://img.shields.io/badge/SBOM-SPDX%20%2B%20CycloneDX-4a4a4a.svg)](https://github.com/marcelpetrick/AgentWhileTrue/releases/latest)
+[![Container: GHCR](https://img.shields.io/badge/container-GHCR-2496ED?logo=docker&logoColor=white)](https://github.com/marcelpetrick/AgentWhileTrue/pkgs/container/agent-while-true)
 [![Agents: Codex CLI and Claude Code](https://img.shields.io/badge/agents-Codex%20CLI%20%C2%B7%20Claude%20Code-6e40c9.svg)](docs/USAGE.md)
 [![Platform: KDE Konsole on Linux](https://img.shields.io/badge/platform-KDE%20Konsole%20on%20Linux-1d99f3.svg)](docs/USAGE.md)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-FE5196.svg)](https://www.conventionalcommits.org/en/v1.0.0/)
@@ -38,6 +39,14 @@ session is waiting, and switch automation on when you trust it.
 the first limit warning through the reset to a verified resume. The frames come from
 the real renderer — `scripts/record_demo.py` feeds fabricated sessions to the same
 `render_status` the tool uses — so the layout is genuine and the data is fiction.*
+
+### Live dashboard
+
+![Agent While True v0.33.0 running in KDE Konsole](media/agentWhileTrue_v0.33.0.png)
+
+*A real KDE Konsole capture of the v0.33.0 dashboard, with project details
+manually redacted. The current interface has since gained the additional
+controls shown in the scripted demonstrations.*
 
 ## What it does
 
@@ -151,6 +160,24 @@ quit and reopen the dashboard, and run
 `systemctl --user restart agent-while-true.service` if the
 [background service](docs/USAGE.md#9-background-service) is installed.
 
+### Container image
+
+Release tags publish a signed, multi-architecture image to
+[GitHub Container Registry](https://github.com/marcelpetrick/AgentWhileTrue/pkgs/container/agent-while-true):
+
+```bash
+IMAGE=ghcr.io/marcelpetrick/agent-while-true:X.Y.Z
+docker pull "$IMAGE"
+docker run --rm "$IMAGE" --version
+docker run --rm "$IMAGE" simulate --all
+```
+
+The image is deliberately an **offline safety simulator, not a deployment
+method**. Its non-root entrypoint refuses `run`, `status`, `quota`, `doctor`
+and every other host-facing command. Real supervision must be installed on the
+KDE host: crossing a container boundary invalidates the D-Bus, PID, process
+start-time and TTY identity that make terminal input safe.
+
 ## Quick start
 
 ```bash
@@ -183,6 +210,33 @@ The background user service, the Claude quota bridge, configuration
 keys, Codex timed retries and the full dashboard reference are all in
 [docs/USAGE.md](docs/USAGE.md).
 
+## Testing and local pipeline
+
+From a source checkout, run the same canonical gate used by GitHub Actions:
+
+```bash
+git clone https://github.com/marcelpetrick/AgentWhileTrue.git
+cd AgentWhileTrue
+./localPipeline.sh
+```
+
+It runs REUSE licensing checks, Ruff, strict mypy, ShellCheck, unit and
+integration tests, pseudo-terminal end-to-end tests, the 98% coverage floor,
+all deterministic safety simulations, source and wheel builds, SBOM validation,
+isolated installed-package checks, and a hardened container build/smoke test.
+Useful focused commands are:
+
+```bash
+python3 -m pytest -q
+python3 -m pytest -q -m e2e
+PYTHONPATH=src python3 -m agent_while_true.cli simulate --all
+AGENT_WHILE_TRUE_LIVE_KONSOLE=1 python3 -m pytest -q -m konsole
+```
+
+The live Konsole test is opt-in and read-only. Toolchain pins, coverage policy,
+pipeline artifacts and workflow triggers are documented in
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
 ## Safety in brief
 
 Immediately before any input, Agent While True re-reads and verifies the
@@ -211,7 +265,7 @@ Unknown or stale quota never means available. The reasoning is in
 | [docs/PLAN.md](docs/PLAN.md) | What is implemented, the remaining acceptance gate, and the maintenance plan |
 | [docs/OPEN_ISSUES.md](docs/OPEN_ISSUES.md) | The single authoritative list of open acceptance and maintenance work |
 | [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Measured workload, network traffic and profiling evidence |
-| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | The quality gate, CI workflows, SBOMs, versioning and release artifacts |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | The local/CI pipeline, testing, coverage, container build, GHCR publishing, SBOMs, versioning and release artifacts |
 | [AGENTS.md](AGENTS.md) | Contributor rules: commit style, required verification, release procedure |
 | [CHANGELOG.md](CHANGELOG.md) | Every release, newest first |
 

@@ -1,0 +1,8 @@
+**
+!Dockerfile
+!dist/
+!dist/*.whl
+!scripts/
+scripts/*
+!scripts/container-entrypoint.sh
+!scripts/container-simulate.py

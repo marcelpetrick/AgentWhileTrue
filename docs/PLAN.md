@@ -54,6 +54,9 @@ The requested implementation is complete:
   races, lifecycle failures and every prohibited choice.
 - The canonical local and CI gate runs strict mypy over the complete runtime
   package in addition to Ruff, ShellCheck and the test/coverage suite.
+- The release pipeline publishes a non-root, multi-architecture GHCR safety
+  simulator with SBOM and provenance attestations. Its entrypoint exposes only
+  offline simulations/help/version and refuses every host-facing command.
 - `doctor` reports the validated Linux distribution family, the optional Codex
   app-server capability and the passive Claude quota bridge; optional provider
   warnings stay isolated and do not globally disable the other provider.

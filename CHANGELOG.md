@@ -13,6 +13,19 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.64.0] - 2026-10-04
+
+### Added
+
+- Releases now build and publish a non-root `linux/amd64` and `linux/arm64`
+  safety-simulator image to GHCR from the exact verified wheel, with BuildKit
+  SBOM/provenance and a signed registry attestation. The restrictive entrypoint
+  runs the 26 offline fake-terminal scenarios by default and refuses every
+  host-facing command; the local/CI pipeline builds and smoke-tests it without
+  network, capabilities or a writable root filesystem. README and operator,
+  architecture and development documentation define this boundary and include
+  a genuine KDE Konsole dashboard capture.
+
 ## [0.63.0] - 2026-10-04
 
 ### Added

@@ -660,3 +660,20 @@ composer continuation; paid, upgrade, reset-credit and model-downgrade actions
 remain forbidden. If another input-capable watcher already owns the lock it
 stays in control and the launcher opens an observe-only dashboard instead, where
 `Shift+A` asks that watcher to hand input control over.
+
+## 11. Official container image
+
+Release tags publish `ghcr.io/marcelpetrick/agent-while-true` for `linux/amd64`
+and `linux/arm64`. It runs all deterministic fake-terminal simulations by
+default and also permits `simulate`, `--version` and `--help` explicitly.
+
+The image is not a way to supervise host sessions. Its entrypoint refuses every
+host-facing command with exit 64, it runs as numeric UID/GID `10001:10001`, and
+the pipeline exercises it with no network, a read-only root filesystem, no
+capabilities and `no-new-privileges`. Install the wheel on the KDE host for real
+operation.
+
+Never try to make container supervision work by mounting the session D-Bus,
+host `/proc`, `/run/user`, provider credentials, the Docker socket or the host
+PID namespace. Those mounts would cross the service/session/PID/start-time/TTY
+trust boundary that the input gate is designed to protect.

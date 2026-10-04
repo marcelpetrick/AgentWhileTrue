@@ -80,6 +80,14 @@ flowchart TB
 The runtime package has no third-party dependencies. Shell is limited to the
 Claude bridge, installation helpers, and quality/release integration.
 
+The published GHCR image sits outside this runtime trust boundary. It contains
+the verified wheel but exposes only the deterministic simulation, version and
+help commands through a restrictive non-root entrypoint. It has no qdbus,
+provider CLI, host namespace, socket or credential integration, and therefore
+has no path to `KonsoleAdapter.send_text`. Container classification remains the
+second fail-closed boundary if an operator overrides the entrypoint. Real
+supervision runs only as the desktop user on the KDE host.
+
 Presentation preferences live in a separate, versioned owner-only file and
 can restore only theme, history length and panel visibility. The detail panel
 reads cached decision/observation metadata; it never evaluates authorization.

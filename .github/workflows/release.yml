@@ -8,10 +8,17 @@ on:
   push:
     tags:
       - "agentwhiletrue-v*"
-  workflow_dispatch:
 
 permissions:
   contents: write
+  packages: write
+  attestations: write
+  id-token: write
+  artifact-metadata: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: marcelpetrick/agent-while-true
 
 concurrency:
   group: release-${{ github.ref }}
@@ -23,29 +30,87 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Check out repository
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up Python 3.12
-        uses: actions/setup-python@v7.0.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: pyproject.toml
       - name: Verify release tag
+        id: version
         run: |
           set -euo pipefail
           project_version="$(PYTHONPATH=src python -c 'from agent_while_true.version import __version__; print(__version__)')"
           tag_version="${GITHUB_REF_NAME#agentwhiletrue-v}"
           test "$tag_version" = "$project_version"
           grep -Fq "## [${project_version}]" CHANGELOG.md
+          printf 'version=%s\n' "$project_version" >> "$GITHUB_OUTPUT"
+          printf 'minor=%s\n' "${project_version%.*}" >> "$GITHUB_OUTPUT"
+          printf 'created=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
       - name: Install quality tooling
         run: |
           sudo apt-get update
           sudo apt-get install --yes --no-install-recommends shellcheck
           python -m pip install --disable-pip-version-check '.[dev]'
       - name: Run canonical local pipeline
+        env:
+          AGENT_WHILE_TRUE_CONTAINER: require
         run: ./localPipeline.sh --noRun
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate container metadata
+        id: metadata
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        env:
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
+          DOCKER_METADATA_SHORT_SHA_LENGTH: 12
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=${{ steps.version.outputs.minor }}
+            type=raw,value=latest
+            type=sha,prefix=sha-
+          labels: |
+            org.opencontainers.image.title=Agent While True safety simulator
+            org.opencontainers.image.description=Offline safety simulations only; container terminal automation is unsupported
+            org.opencontainers.image.licenses=GPL-3.0-or-later
+      - name: Build and publish container image
+        id: container
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            REVISION=${{ github.sha }}
+            CREATED=${{ steps.version.outputs.created }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          annotations: ${{ steps.metadata.outputs.annotations }}
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Attest container provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.container.outputs.digest }}
+          push-to-registry: true
       - name: Publish GitHub release
-        uses: softprops/action-gh-release@v3.0.3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           generate_release_notes: true
           files: |
