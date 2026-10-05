@@ -91,7 +91,7 @@ def discover(terminal: TerminalAdapter, inspector: ProcessInspector) -> list[Can
             continue
         try:
             classification = classify(info)
-        except (OSError, ProcessGoneError):
+        except OSError, ProcessGoneError:
             # A process can lose a thread or exit midway through classification.
             # Other Konsole sessions remain useful and must still be discovered.
             continue

@@ -153,12 +153,12 @@ def _serve_one(connection: socket.socket, handler: Handler) -> bool:
     """Read one request line, hand it to ``handler`` and write the reply."""
     try:
         line = _read_line(connection)
-    except (OSError, ControlError):
+    except OSError, ControlError:
         return False
     try:
         request = json.loads(line)
         op = str(request["op"])
-    except (ValueError, KeyError, TypeError):
+    except ValueError, KeyError, TypeError:
         _send(connection, {"ok": False, "reason": "malformed-request"})
         return False
     reply = handler(op)

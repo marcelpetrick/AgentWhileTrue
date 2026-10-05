@@ -13,10 +13,11 @@ remaining machine-level validation is detailed in [OPEN_ISSUES.md](OPEN_ISSUES.m
 
 ## Current status
 
-Agent While True is a working standalone Python 3.12+ package for KDE Konsole on
-Linux. It has no third-party runtime dependencies. The repository is released
-through an atomic, versioned commit history and a GitHub quality matrix covering
-Python 3.12, 3.13, and 3.14.
+Agent While True is a working standalone Python 3.14.x package for KDE Konsole
+on Linux. It has no third-party runtime dependencies. The package, local gate,
+GitHub quality job, release workflow and container intentionally share that one
+runtime; older and unreviewed future Python minors are outside the support
+contract.
 
 The requested implementation is complete:
 

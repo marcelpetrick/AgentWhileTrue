@@ -302,7 +302,7 @@ def test_full_auto_launcher_orders_checks_before_auto_mode() -> None:
 
     assert setup < pipeline < doctor < status < quota < auto
     assert "AGENT_WHILE_TRUE_ALLOW_CODEX_AUTO_RESUME=true" in script
-    assert 'UV_VENV_CLEAR=1 pipx install --force "$wheel"' in script
+    assert 'pipx install --force --python "$SYSTEM_PYTHON" "$wheel"' in script
     assert "run --observe --all --no-fzf" in script
     assert "systemctl --user stop" not in script
 
@@ -317,6 +317,14 @@ def test_canonical_pipeline_covers_required_release_smokes() -> None:
     assert "git --no-pager diff --check" in quality
     assert 'run_tool mypy || fail "mypy"' in quality
     assert 'fail "shellcheck (not installed)"' in quality
+
+
+def test_every_direct_gate_requires_exactly_python_3_14() -> None:
+    exact_check = "sys.version_info[:2] != (3, 14)"
+
+    assert exact_check in LOCAL_PIPELINE.read_text(encoding="utf-8")
+    assert exact_check in FULL_AUTO.read_text(encoding="utf-8")
+    assert exact_check in QUALITY.read_text(encoding="utf-8")
 
 
 def test_quality_gate_never_starts_an_interactive_pager() -> None:

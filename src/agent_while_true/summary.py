@@ -56,7 +56,7 @@ def _local_stamp(raw: str, now: datetime) -> datetime | None:
         # Logging timestamps use the host's local wall clock. Extreme dates
         # can parse successfully but fail while converting the local offset.
         return parsed.astimezone(UTC).astimezone(now.tzinfo or UTC)
-    except (ValueError, OverflowError, OSError):
+    except ValueError, OverflowError, OSError:
         return None
 
 
@@ -82,7 +82,7 @@ def _events(path: Path, *, now: datetime, start: datetime) -> Iterator[_Event]:
                         continue
                     try:
                         tokens = shlex.split(match.group("body").decode("utf-8"), comments=False)
-                    except (UnicodeDecodeError, ValueError):
+                    except UnicodeDecodeError, ValueError:
                         continue
                     if not tokens or "=" not in tokens[0]:
                         continue
@@ -122,7 +122,7 @@ def _interval_measure(
     try:
         start = datetime.fromisoformat(item.fields["start"])
         end = datetime.fromisoformat(item.fields["end"])
-    except (KeyError, TypeError, ValueError):
+    except KeyError, TypeError, ValueError:
         return None
     if (
         start.tzinfo is None

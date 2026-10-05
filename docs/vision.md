@@ -1540,56 +1540,18 @@ The standalone CLI must remain usable without systemd.
 
 ---
 
-## 39. First Implementation Language
+## 39. Implementation Language
 
-### MVP
+The production implementation uses CPython 3.14.x and its standard library.
+That single minor version is deliberate: the target is a rolling-release
+Arch/Manjaro desktop, and keeping local execution, static analysis, CI, release
+artifacts and the simulation container on one interpreter makes their evidence
+directly comparable. Older Python compatibility is not a goal. A future Python
+minor is adopted only after an explicit migration and full validation; it is
+not accepted implicitly.
 
-A Bash script is acceptable.
-
-Advantages:
-
-```text
-fast prototype
-easy process inspection
-easy qdbus integration
-easy deployment
-simple iteration
-```
-
-The supervised shell may still be Zsh.
-
----
-
-### Production
-
-Rust is the preferred long-term implementation.
-
-Potential components:
-
-```text
-tokio
-zbus
-serde
-toml
-regex
-tracing
-tracing-appender
-procfs or direct /proc parsing
-```
-
-Reasons:
-
-```text
-single binary
-low idle overhead
-strong state modeling
-reliable async timers
-D-Bus integration
-JSON-RPC integration
-better long-running daemon behavior
-```
-
-Python is a reasonable intermediate prototype if Bash becomes too complex.
+Shell remains limited to deployment and integration work. The supervised shell
+may still be Zsh.
 
 ---
 

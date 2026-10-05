@@ -92,7 +92,7 @@ class KonsoleAdapter(TerminalAdapter):
                 timeout=_CALL_TIMEOUT_SECONDS,
                 check=False,
             )
-        except (OSError, subprocess.TimeoutExpired):
+        except OSError, subprocess.TimeoutExpired:
             return None
         if completed.returncode != 0:
             return None

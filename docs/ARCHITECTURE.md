@@ -80,6 +80,16 @@ flowchart TB
 The runtime package has no third-party dependencies. Shell is limited to the
 Claude bridge, installation helpers, and quality/release integration.
 
+### Python runtime decision
+
+CPython 3.14.x is the sole supported runtime. This is an intentional product
+decision for the rolling-release Arch/Manjaro target, not an accidental minimum:
+package metadata accepts `>=3.14,<3.15`, direct source imports reject every
+other minor, and Ruff, mypy, local checks, GitHub Actions, release builds and the
+container all use 3.14. Supporting another Python minor requires a deliberate
+decision and its own verified migration; compatibility branches and a legacy CI
+matrix are not carried in the meantime.
+
 The published GHCR image sits outside this runtime trust boundary. It contains
 the verified wheel but exposes only the deterministic simulation, version and
 help commands through a restrictive non-root entrypoint. It has no qdbus,

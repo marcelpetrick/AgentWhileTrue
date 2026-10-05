@@ -29,16 +29,16 @@ environment that already has exactly the pinned tools, such as CI after
 `pip install .[dev]`, is used unchanged. Set `AGENT_WHILE_TRUE_TOOLCHAIN_VENV`
 to put that environment elsewhere.
 
-Runtime code uses only the Python 3.12+ standard library; the `dev` extra pins
+Runtime code uses only the Python 3.14 standard library; the `dev` extra pins
 exact versions of the test, lint, strict type-checking, build, licensing and
 SBOM tooling.
 
 ## The gate
 
 `./localPipeline.sh` is the canonical release gate and the same script GitHub
-Actions runs on Python 3.12, 3.13 and 3.14. It checks, in order:
+Actions runs on Python 3.14. It checks, in order:
 
-1. Python 3.12+, and the pinned toolchain at exactly its pinned versions,
+1. Python 3.14.x, and the pinned toolchain at exactly its pinned versions,
    provisioned if anything is missing or differs.
 2. `scripts/quality.sh`: REUSE SPDX licensing, Ruff lint and format, strict
    mypy checking of the complete runtime package, ShellCheck on every tracked
@@ -48,7 +48,7 @@ Actions runs on Python 3.12, 3.13 and 3.14. It checks, in order:
 4. A synthetic application profile, retained under `artifacts/`.
 5. sdist and wheel construction; the wheel is built from the sdist.
 6. A native container build from that exact wheel and a hardened smoke run when
-   Docker is reachable (required in the Python 3.12 CI and release jobs).
+   Docker is reachable (required in the Python 3.14 CI and release jobs).
 7. The extracted source archive running its own quality gate outside Git.
 8. SPDX 2.3 and CycloneDX 1.6 SBOM generation from the actual wheel and sdist,
    validated with maintained standards validators, retained in `dist/sbom/`.
@@ -169,7 +169,7 @@ python3 -m pip_audit --progress-spinner off
 
 | Workflow | Trigger | Does |
 | --- | --- | --- |
-| `quality.yml` | push/PR to `master` | Pipeline on 3.12/3.13/3.14; requires container smoke on 3.12; uploads dist, coverage and profile |
+| `quality.yml` | push/PR to `master` | Complete Python 3.14 pipeline, including required container smoke; uploads dist, coverage and profile |
 | `security.yml` | push/PR, weekly | `pip-audit` over the installed development/build tooling |
 | `release.yml` | tag `agentwhiletrue-vX.Y.Z` | Verifies the version, reruns the pipeline, and publishes distributions, SBOMs and the attested multi-architecture GHCR image |
 

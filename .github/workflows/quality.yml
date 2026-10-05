@@ -20,26 +20,16 @@ concurrency:
 
 jobs:
   pipeline:
-    name: Python ${{ matrix.python }}
+    name: Python 3.14
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - python: "3.12"
-            container: require
-          - python: "3.13"
-            container: skip
-          - python: "3.14"
-            container: skip
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: ${{ matrix.python }}
+          python-version: "3.14"
           cache: pip
           cache-dependency-path: pyproject.toml
       - name: Install quality tooling
@@ -49,10 +39,10 @@ jobs:
           python -m pip install --disable-pip-version-check '.[dev]'
       - name: Run canonical local pipeline
         env:
-          AGENT_WHILE_TRUE_CONTAINER: ${{ matrix.container }}
+          AGENT_WHILE_TRUE_CONTAINER: require
         run: ./localPipeline.sh --noRun
       - name: Upload distributions and coverage
-        if: always() && matrix.python == '3.12'
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: agent-while-true-${{ github.sha }}

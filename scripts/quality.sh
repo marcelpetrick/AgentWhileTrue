@@ -17,6 +17,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname -- "$SCRIPT_DIR")"
+PYTHON_BIN="${PYTHON:-python3}"
 cd -- "$PROJECT_ROOT"
 
 FIX=0
@@ -36,6 +37,17 @@ for argument in "$@"; do
     esac
 done
 
+if ! command -v "$PYTHON_BIN" > /dev/null 2>&1; then
+    printf 'missing Python executable: %s\n' "$PYTHON_BIN" >&2
+    exit 1
+fi
+"$PYTHON_BIN" - <<'PY'
+import sys
+
+if sys.version_info[:2] != (3, 14):
+    raise SystemExit(f"Python 3.14 required, found {sys.version.split()[0]}")
+PY
+
 failures=0
 
 step() {
@@ -54,8 +66,8 @@ run_tool() {
     shift
     if command -v "$tool" > /dev/null 2>&1; then
         "$tool" "$@"
-    elif python3 -c "import $tool" > /dev/null 2>&1; then
-        python3 -m "$tool" "$@"
+    elif "$PYTHON_BIN" -c "import $tool" > /dev/null 2>&1; then
+        "$PYTHON_BIN" -m "$tool" "$@"
     else
         printf 'missing tool: %s\n' "$tool" >&2
         return 127

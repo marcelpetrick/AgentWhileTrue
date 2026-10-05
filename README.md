@@ -11,7 +11,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [![Dependency audit](https://github.com/marcelpetrick/AgentWhileTrue/actions/workflows/security.yml/badge.svg?branch=master)](https://github.com/marcelpetrick/AgentWhileTrue/actions/workflows/security.yml)
 [![Latest release](https://img.shields.io/github/v/release/marcelpetrick/AgentWhileTrue?sort=semver&label=release)](https://github.com/marcelpetrick/AgentWhileTrue/releases/latest)
 [![License: GPL v3 or later](https://img.shields.io/badge/license-GPLv3%20or%20later-blue.svg)](LICENSE)
-[![Python 3.12 | 3.13 | 3.14](https://img.shields.io/badge/Python-3.12%20%7C%203.13%20%7C%203.14-3776ab.svg)](https://www.python.org/)
+[![Python 3.14 only](https://img.shields.io/badge/Python-3.14%20only-3776ab.svg)](https://www.python.org/)
 [![Runtime dependencies: 0](https://img.shields.io/badge/runtime%20dependencies-0-2ea043.svg)](pyproject.toml)
 [![Coverage >= 98%](https://img.shields.io/badge/coverage-%E2%89%A598%25-brightgreen.svg)](scripts/quality.sh)
 [![Lint and format: ruff](https://img.shields.io/badge/lint%20%26%20format-ruff-261230.svg)](https://docs.astral.sh/ruff/)
@@ -75,7 +75,9 @@ controls shown in the scripted demonstrations.*
   whip crack, holding identifiers and pattern IDs only, never terminal text.
 
 Target platform: Manjaro/Arch Linux, KDE Plasma, Konsole (Wayland or X11),
-Python 3.12+, `qdbus6`. The runtime has no third-party dependencies.
+Python 3.14.x, `qdbus6`. The runtime has no third-party dependencies. Older
+Python versions and unreviewed future minor versions are intentionally rejected
+so local checks, CI, release builds and the container all exercise one runtime.
 
 ## The whip
 

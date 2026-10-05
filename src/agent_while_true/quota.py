@@ -234,7 +234,7 @@ def _find_codex_rollouts(pid: int) -> tuple[Path, ...]:
         children = PROC / str(current) / "task" / str(current) / "children"
         try:
             pending.extend(int(value) for value in children.read_text().split())
-        except (OSError, ValueError):
+        except OSError, ValueError:
             continue
     return tuple(found)
 
@@ -311,7 +311,7 @@ def _parse_rate_limits(tail: bytes) -> _RateLimits:
             continue
         try:
             event = json.loads(raw.decode("utf-8", errors="replace"))
-        except (ValueError, UnicodeDecodeError):
+        except ValueError, UnicodeDecodeError:
             continue
         if not isinstance(event, dict):
             continue
@@ -452,7 +452,7 @@ class ClaudeStatuslineSource(QuotaSource):
                     if candidate.stat().st_size > 64 * 1024:
                         continue
                     document = json.loads(candidate.read_text(encoding="utf-8"))
-                except (OSError, json.JSONDecodeError):
+                except OSError, json.JSONDecodeError:
                     continue
                 if not isinstance(document, dict) or document.get("source") != "claude":
                     continue

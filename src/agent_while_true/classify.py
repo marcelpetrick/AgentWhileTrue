@@ -182,13 +182,13 @@ def _codex_signals(info: ProcessInfo, child_comms: tuple[str, ...]) -> list[str]
 def _child_comms(pid: int) -> tuple[str, ...]:
     try:
         kids = proc.children(pid)
-    except (OSError, proc.ProcessGoneError):
+    except OSError, proc.ProcessGoneError:
         return ()
     found = []
     for kid in kids:
         try:
             found.append(proc.read_comm(kid))
-        except (OSError, proc.ProcessGoneError):
+        except OSError, proc.ProcessGoneError:
             continue
     return tuple(found)
 
@@ -219,7 +219,7 @@ def _ancestor_blocker(info: ProcessInfo) -> str | None:
             if comm == "konsole":
                 return None
             pid = proc.read_ppid(pid)
-        except (OSError, LookupError, ValueError):
+        except OSError, LookupError, ValueError:
             return "ancestor-unreadable"
     return None
 

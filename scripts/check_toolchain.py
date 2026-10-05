@@ -63,7 +63,7 @@ def _command_version(command: str) -> str | None:
         result = subprocess.run(
             [path, "--version"], capture_output=True, text=True, timeout=30, check=False
         )
-    except (OSError, subprocess.SubprocessError):
+    except OSError, subprocess.SubprocessError:
         return ""
     return f"{result.stdout}\n{result.stderr}"
 

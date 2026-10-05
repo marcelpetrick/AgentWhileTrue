@@ -58,7 +58,7 @@ def _decode_jwt_payload(token: object) -> dict[str, object] | None:
         encoded = token.split(".", 2)[1]
         encoded += "=" * (-len(encoded) % 4)
         payload = json.loads(base64.urlsafe_b64decode(encoded))
-    except (ValueError, TypeError, binascii.Error, json.JSONDecodeError):
+    except ValueError, TypeError, binascii.Error, json.JSONDecodeError:
         return None
     return payload if isinstance(payload, dict) else None
 
@@ -71,7 +71,7 @@ def _codex_auth(auth_file: Path | None = None) -> dict[str, object] | None:
         if stat.st_uid != os.getuid() or stat.st_mode & 0o077 or stat.st_size > _MAX_AUTH_BYTES:
             return None
         document = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+    except OSError, ValueError, TypeError, json.JSONDecodeError:
         return None
     if not isinstance(document, dict):
         return None
@@ -206,7 +206,7 @@ def claude_email(*, config_dir: Path | None = None) -> str | None:
             env=environment,
         )
         document = json.loads(completed.stdout) if completed.returncode == 0 else None
-    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
+    except OSError, subprocess.TimeoutExpired, json.JSONDecodeError:
         return None
     if not isinstance(document, dict) or document.get("loggedIn") is not True:
         return None

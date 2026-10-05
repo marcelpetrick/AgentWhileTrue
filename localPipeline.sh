@@ -19,7 +19,7 @@ usage() {
 Usage: ./localPipeline.sh [--noRun]
 
 Runs the same complete gate used by GitHub Actions:
-  1. Verify Python 3.12+ and the pinned quality toolchain
+  1. Require Python 3.14 and verify the pinned quality toolchain
   2. Ruff lint/format, strict mypy, ShellCheck, tests and coverage
   3. Run every safety simulation
   4. Build the source distribution and wheel
@@ -106,7 +106,17 @@ ensure_toolchain() {
     [[ "${#requirements[@]}" -gt 0 ]]
 
     printf '[INFO] Provisioning the pinned quality toolchain in %s\n' "$TOOLCHAIN_VENV"
-    if [[ ! -x "$TOOLCHAIN_VENV/bin/python" ]]; then
+    if [[ -x "$TOOLCHAIN_VENV/bin/python" ]] \
+        && ! "$TOOLCHAIN_VENV/bin/python" -c \
+            'import sys; raise SystemExit(sys.version_info[:2] != (3, 14))'; then
+        if [[ -n "${AGENT_WHILE_TRUE_TOOLCHAIN_VENV:-}" ]]; then
+            printf '[ERROR] custom toolchain venv must use Python 3.14: %s\n' \
+                "$TOOLCHAIN_VENV" >&2
+            return 1
+        fi
+        printf '[INFO] Recreating managed toolchain venv with Python 3.14\n'
+        "$PYTHON_BIN" -m venv --clear "$TOOLCHAIN_VENV"
+    elif [[ ! -x "$TOOLCHAIN_VENV/bin/python" ]]; then
         "$PYTHON_BIN" -m venv "$TOOLCHAIN_VENV"
     fi
     local stamp="$TOOLCHAIN_VENV/.toolchain-requirements"
@@ -167,11 +177,11 @@ printf '[INFO] Project root: %s\n' "$PROJECT_ROOT"
 "$PYTHON_BIN" - <<'PY'
 import sys
 
-if sys.version_info < (3, 12):
-    raise SystemExit(f"Python 3.12+ required, found {sys.version.split()[0]}")
+if sys.version_info[:2] != (3, 14):
+    raise SystemExit(f"Python 3.14 required, found {sys.version.split()[0]}")
 print(f"[INFO] Python {sys.version.split()[0]}")
 PY
-PIPELINE_RESULTS+=("Python baseline  : PASS (3.12+)")
+PIPELINE_RESULTS+=("Python baseline  : PASS (3.14 only)")
 
 ensure_toolchain
 

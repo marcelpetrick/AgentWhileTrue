@@ -111,13 +111,13 @@ class SystemInspector:
     def inspect(self, pid: int) -> ProcessInfo | None:
         try:
             return proc_inspect(pid)
-        except (ProcessGoneError, OSError):
+        except ProcessGoneError, OSError:
             return None
 
     def identify(self, pid: int) -> ProcessIdentity | None:
         try:
             return proc_identify(pid)
-        except (ProcessGoneError, OSError):
+        except ProcessGoneError, OSError:
             return None
 
 
@@ -883,7 +883,7 @@ class Supervisor:
         """Re-read the foreground process last; name any drift, or return ''."""
         try:
             live = self.inspector.inspect(self.terminal.foreground_pid(session.ref))
-        except (TerminalError, OSError):
+        except TerminalError, OSError:
             live = None
         if live is None or live.identity != session.identity:
             return "process-identity-changed"

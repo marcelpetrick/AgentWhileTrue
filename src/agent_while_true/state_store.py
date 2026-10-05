@@ -102,7 +102,7 @@ class StateStore:
             self.episodes = {}
             self.retry_state_valid = True
             return self
-        except (OSError, ValueError):
+        except OSError, ValueError:
             self.records = {}
             self.episodes = {}
             self.retry_state_valid = False
@@ -127,7 +127,7 @@ class StateStore:
         for raw in raw_actions:
             try:
                 record = ActionRecord(**{**raw, "state": ActionState(raw["state"])})
-            except (TypeError, ValueError, KeyError):
+            except TypeError, ValueError, KeyError:
                 actions_valid = False
                 continue
             if (
@@ -480,6 +480,6 @@ def _parse_episode(raw: object) -> RetryEpisode | None:
         if type(completed) is not bool or type(exhausted) is not bool:
             return None
         episode = RetryEpisode(**raw)
-    except (TypeError, ValueError, OverflowError):
+    except TypeError, ValueError, OverflowError:
         return None
     return episode

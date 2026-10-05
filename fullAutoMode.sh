@@ -15,7 +15,7 @@ usage() {
 Usage: ./fullAutoMode.sh [--noRun]
 
 Builds and launches a verified Agent While True installation:
-  1. Require the normal desktop user, Python 3.12+, and pipx
+  1. Require the normal desktop user, Python 3.14, and pipx
   2. Prepare isolated development tools in .venv
   3. Run the complete local release pipeline
   4. Install the newly built wheel with pipx
@@ -66,12 +66,12 @@ cd -- "$PROJECT_ROOT"
 "$SYSTEM_PYTHON" - <<'PY'
 import sys
 
-if sys.version_info < (3, 12):
-    raise SystemExit(f"Python 3.12+ required, found {sys.version.split()[0]}")
+if sys.version_info[:2] != (3, 14):
+    raise SystemExit(f"Python 3.14 required, found {sys.version.split()[0]}")
 PY
 
 printf '%s\n' '[1/6] Preparing isolated development tools'
-"$SYSTEM_PYTHON" -m venv "$PROJECT_ROOT/.venv"
+"$SYSTEM_PYTHON" -m venv --clear "$PROJECT_ROOT/.venv"
 VENV_PYTHON="$PROJECT_ROOT/.venv/bin/python"
 "$VENV_PYTHON" -m pip install --disable-pip-version-check -e '.[dev]'
 
@@ -89,7 +89,7 @@ fi
 printf '\n%s\n' '[3/6] Installing the verified wheel with pipx'
 # pipx's uv backend otherwise refuses to replace its own existing environment.
 # This affects only the named Agent While True venv created by pipx.
-UV_VENV_CLEAR=1 pipx install --force "$wheel"
+UV_VENV_CLEAR=1 pipx install --force --python "$SYSTEM_PYTHON" "$wheel"
 
 pipx_bin_dir="${PIPX_BIN_DIR:-${XDG_BIN_HOME:-$HOME/.local/bin}}"
 cli="$pipx_bin_dir/agent-while-true"

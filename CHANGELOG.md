@@ -13,6 +13,19 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.65.0] - 2026-10-05
+
+### Changed
+
+- Python 3.14 is now the sole supported runtime. Package metadata rejects older
+  interpreters and unreviewed Python 3.15+, the launchers enforce the same
+  boundary, and Ruff, mypy, GitHub Actions, release jobs and the pinned
+  multi-architecture container base all use 3.14. The former three-version CI
+  matrix is one complete 3.14 pipeline by deliberate maintainer decision.
+  Direct source imports and standalone quality runs enforce the same boundary;
+  managed stale toolchain environments are rebuilt, while custom ones fail
+  clearly instead of silently switching the gate back to an older interpreter.
+
 ## [0.64.1] - 2026-10-04
 
 ### Fixed

@@ -20,13 +20,14 @@ SMOKE = ROOT / "scripts/container-smoke.sh"
 PIPELINE = ROOT / "localPipeline.sh"
 QUALITY_WORKFLOW = ROOT / ".github/workflows/quality.yml"
 RELEASE_WORKFLOW = ROOT / ".github/workflows/release.yml"
+SECURITY_WORKFLOW = ROOT / ".github/workflows/security.yml"
 
 
 def test_image_is_a_pinned_non_root_exact_wheel_simulator() -> None:
     dockerfile = DOCKERFILE.read_text(encoding="utf-8")
 
     assert (
-        "python:3.12-slim@sha256:dddfd7e07f9d15aeeca61529320492139d21cac7f0070c00609243e51e4e0016"
+        "python:3.14-slim@sha256:c3e521df8b2b498a7a682e7e18676771cb80c6b75b8699af886b2d554ce40151"
     ) in dockerfile
     assert "COPY dist/agent_while_true-${VERSION}-py3-none-any.whl /tmp/" in dockerfile
     assert "COPY dist/*.whl" not in dockerfile
@@ -132,12 +133,21 @@ def test_container_sources_ship_in_the_source_archive() -> None:
     assert "recursive-include scripts *.py *.sh" in manifest
 
 
-def test_quality_requires_the_image_only_on_python_3_12() -> None:
+def test_quality_uses_only_python_3_14_and_requires_the_image() -> None:
     workflow = QUALITY_WORKFLOW.read_text(encoding="utf-8")
 
-    assert '- python: "3.12"\n            container: require' in workflow
-    assert workflow.count("container: skip") == 2
-    assert "AGENT_WHILE_TRUE_CONTAINER: ${{ matrix.container }}" in workflow
+    assert 'python-version: "3.14"' in workflow
+    assert "matrix.python" not in workflow
+    assert "container: skip" not in workflow
+    assert "AGENT_WHILE_TRUE_CONTAINER: require" in workflow
+
+
+def test_every_workflow_uses_python_3_14() -> None:
+    for path in (QUALITY_WORKFLOW, RELEASE_WORKFLOW, SECURITY_WORKFLOW):
+        workflow = path.read_text(encoding="utf-8")
+        assert 'python-version: "3.14"' in workflow
+        assert 'python-version: "3.12"' not in workflow
+        assert 'python-version: "3.13"' not in workflow
 
 
 def test_release_is_tag_only_multiarch_and_attested() -> None:

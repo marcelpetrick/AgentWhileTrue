@@ -11,6 +11,7 @@ promise honest is to fail the build when the changelog forgets.
 from __future__ import annotations
 
 import re
+import tomllib
 from pathlib import Path
 
 import agent_while_true
@@ -37,6 +38,15 @@ def test_changelog_documents_current_version() -> None:
 def test_pyproject_takes_version_from_the_package() -> None:
     pyproject = (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     assert 'version = { attr = "agent_while_true.version.__version__" }' in pyproject
+
+
+def test_distribution_supports_exactly_python_3_14() -> None:
+    project = tomllib.loads((PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+
+    assert project["project"]["requires-python"] == ">=3.14,<3.15"
+    assert "Programming Language :: Python :: 3.14" in project["project"]["classifiers"]
+    assert project["tool"]["ruff"]["target-version"] == "py314"
+    assert project["tool"]["mypy"]["python_version"] == "3.14"
 
 
 def test_distribution_declares_and_ships_gplv3_or_later() -> None:

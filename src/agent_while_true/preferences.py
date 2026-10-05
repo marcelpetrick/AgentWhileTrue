@@ -97,7 +97,7 @@ def load_preferences(path: Path, state: DashboardState) -> None:
             return
         document = json.loads(payload.decode("utf-8"))
         values = _validated_values(document)
-    except (OSError, ValueError, RecursionError):
+    except OSError, ValueError, RecursionError:
         return
     if values is None:
         return
@@ -127,7 +127,7 @@ def _current_document(path: Path) -> dict[str, object] | None:
         if len(payload) > MAX_PREFERENCES_BYTES:
             return None
         document = json.loads(payload.decode("utf-8"))
-    except (OSError, ValueError, RecursionError):
+    except OSError, ValueError, RecursionError:
         return None
     return document if _validated_values(document) is not None else None
 
@@ -169,7 +169,7 @@ def save_preferences(
             Path(temporary).replace(path)
             temporary = None
         return True
-    except (OSError, TypeError, ValueError):
+    except OSError, TypeError, ValueError:
         return False
     finally:
         if temporary is not None:

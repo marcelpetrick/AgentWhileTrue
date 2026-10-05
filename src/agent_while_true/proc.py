@@ -75,7 +75,7 @@ def _read_text(path: Path) -> str:
         return path.read_text(encoding="utf-8", errors="replace")
     except FileNotFoundError as exc:
         raise ProcessGoneError(str(path)) from exc
-    except (PermissionError, ProcessLookupError, OSError):
+    except PermissionError, ProcessLookupError, OSError:
         # A process owned by another user, or one that exited mid-read. Either
         # way the supervisor must not act on it, so treat it as absent.
         return ""
@@ -86,7 +86,7 @@ def _read_link(path: Path) -> str:
         return str(path.readlink())
     except FileNotFoundError as exc:
         raise ProcessGoneError(str(path)) from exc
-    except (PermissionError, OSError):
+    except PermissionError, OSError:
         return ""
 
 

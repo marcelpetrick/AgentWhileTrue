@@ -7,7 +7,7 @@
 # The published image is intentionally an offline simulation artifact. It does
 # not contain qdbus or either provider CLI, and its entrypoint refuses every
 # command that could inspect or control a host terminal.
-ARG PYTHON_IMAGE=python:3.12-slim@sha256:dddfd7e07f9d15aeeca61529320492139d21cac7f0070c00609243e51e4e0016
+ARG PYTHON_IMAGE=python:3.14-slim@sha256:c3e521df8b2b498a7a682e7e18676771cb80c6b75b8699af886b2d554ce40151
 FROM ${PYTHON_IMAGE}
 
 ARG VERSION

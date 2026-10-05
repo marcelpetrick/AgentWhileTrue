@@ -103,7 +103,7 @@ def _local_zone() -> ZoneInfo | None:
         parts = target.parts
         marker = parts.index("zoneinfo")
         return ZoneInfo("/".join(parts[marker + 1 :]))
-    except (OSError, ValueError, ZoneInfoNotFoundError):
+    except OSError, ValueError, ZoneInfoNotFoundError:
         return None
 
 
@@ -116,7 +116,7 @@ def _zone(name: str | None, fallback: datetime) -> ZoneInfo | None:
         return fallback.tzinfo if isinstance(fallback.tzinfo, ZoneInfo) else _local_zone()
     try:
         return ZoneInfo(name)
-    except (ZoneInfoNotFoundError, ValueError):
+    except ZoneInfoNotFoundError, ValueError:
         return None
 
 
@@ -174,7 +174,7 @@ def _parse_explicit_date(text: str, now: datetime) -> tuple[bool, datetime | Non
             minute,
             tzinfo=effective_zone,
         )
-    except (KeyError, ValueError):
+    except KeyError, ValueError:
         return True, None
     return True, candidate.astimezone(now.tzinfo)
 

@@ -93,7 +93,8 @@ quality-changing choice as a test.
 - Do not amend or rewrite commits that are not yours.
 - Preserve uncommitted user work and inspect the worktree before staging.
 - Keep runtime dependencies empty unless there is a compelling documented
-  reason; Python 3.12+ standard library is the baseline.
+  reason; CPython 3.14.x standard library is the sole baseline. Do not add
+  compatibility code or CI jobs for older or unreviewed future Python minors.
 - Keep shell limited to deployment/integration jobs and ShellCheck-clean.
 - Prefer deterministic fake-terminal tests over waiting for a real quota reset.
 - When a bug is found from a live prompt, add a regression fixture before the

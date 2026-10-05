@@ -63,7 +63,7 @@ def _tool_version(executable: str, *args: str) -> str | None:
             timeout=_VERSION_TIMEOUT_SECONDS,
             check=False,
         )
-    except (OSError, subprocess.TimeoutExpired):
+    except OSError, subprocess.TimeoutExpired:
         return ""
     return completed.stdout.strip().splitlines()[0] if completed.stdout.strip() else ""
 
@@ -210,7 +210,7 @@ def check_codex_app_server() -> Check:
             timeout=_VERSION_TIMEOUT_SECONDS,
             check=False,
         )
-    except (OSError, subprocess.TimeoutExpired):
+    except OSError, subprocess.TimeoutExpired:
         return Check("Codex app-server", Status.WARN, "capability probe failed")
     if completed.returncode != 0:
         return Check("Codex app-server", Status.WARN, "not supported")
@@ -235,7 +235,7 @@ def check_claude_bridge(
         document = json.loads(settings.read_text(encoding="utf-8"))
     except FileNotFoundError:
         return Check("Claude quota bridge", Status.WARN, "not configured")
-    except (OSError, json.JSONDecodeError):
+    except OSError, json.JSONDecodeError:
         return Check("Claude quota bridge", Status.WARN, "settings unreadable or malformed")
     if not isinstance(document, dict):
         return Check("Claude quota bridge", Status.WARN, "settings are not an object")

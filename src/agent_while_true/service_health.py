@@ -170,7 +170,7 @@ class StatusPageClient:
         if self._connection is not None:
             try:
                 return self._request(path, headers)
-            except (OSError, http.client.HTTPException):
+            except OSError, http.client.HTTPException:
                 # A kept-alive socket the server closed while it sat idle. At a
                 # five-minute fetch interval that is the normal case, not an
                 # outage: the status page's keep-alive timeout is far shorter.
