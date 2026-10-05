@@ -4,8 +4,6 @@
 
 """The dashboard's whip key: animation, counter, cooldown and delivery wiring."""
 
-from __future__ import annotations
-
 import io
 import os
 import random

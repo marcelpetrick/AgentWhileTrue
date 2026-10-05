@@ -10,8 +10,6 @@ provides a fake terminal, a fake process table and a controllable clock, and is
 shared by the FSM tests and the ``simulate`` command.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path

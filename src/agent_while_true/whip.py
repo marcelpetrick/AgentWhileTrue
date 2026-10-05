@@ -13,8 +13,6 @@ actually be typed anywhere is decided by :meth:`Supervisor.whip
 any other input.
 """
 
-from __future__ import annotations
-
 import math
 import random
 import time

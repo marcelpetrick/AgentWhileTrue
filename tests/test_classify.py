@@ -9,8 +9,6 @@ runs as a native binary under ``~/.local/share/claude/versions/``, while Codex
 CLI 0.153.2 is a Node shim that execs a native child.
 """
 
-from __future__ import annotations
-
 import pytest
 
 from agent_while_true import classify as classify_module

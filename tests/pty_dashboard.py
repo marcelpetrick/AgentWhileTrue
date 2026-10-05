@@ -14,8 +14,6 @@ provider status poll is pointed at a closed local proxy, so no test reaches
 the network.
 """
 
-from __future__ import annotations
-
 import contextlib
 import fcntl
 import os

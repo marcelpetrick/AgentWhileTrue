@@ -15,8 +15,6 @@ more expensive. And the single-instance lock is taken only by the modes that
 can send input, so a read-only watcher can always be started alongside.
 """
 
-from __future__ import annotations
-
 import argparse
 import collections
 import contextlib

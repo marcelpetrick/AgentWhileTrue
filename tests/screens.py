@@ -11,8 +11,6 @@ inside the Claude Code 2.1.261/2.1.270 and Codex CLI 0.153.2 binaries. Keeping
 them here, verbatim, is what makes the recognizer tests meaningful.
 """
 
-from __future__ import annotations
-
 CLAUDE_SESSION_LIMIT = [
     "  ⎿  You've hit your session limit · resets 8:10pm (Europe/Berlin)",
     "     /upgrade or /usage-credits to finish what you're working on.",

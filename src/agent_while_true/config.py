@@ -11,8 +11,6 @@ write it, which is not a trade worth making for a tool whose whole job is to
 type into terminals.
 """
 
-from __future__ import annotations
-
 import math
 import os
 import re

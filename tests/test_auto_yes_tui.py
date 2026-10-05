@@ -4,8 +4,6 @@
 
 """The y key: an auto-yes toggle that is visible, off at start, and gated like input."""
 
-from __future__ import annotations
-
 import io
 import os
 from datetime import UTC, datetime

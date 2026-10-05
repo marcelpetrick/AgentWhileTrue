@@ -13,8 +13,6 @@ runtime directories live under pytest's temporary directory, and the provider
 status poll is pointed at a closed local proxy, so no test reaches the network.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest

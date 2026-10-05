@@ -4,8 +4,6 @@
 
 """Run the fake-world CLI surfaces without inheriting the image environment."""
 
-from __future__ import annotations
-
 import sys
 
 from agent_while_true import classify

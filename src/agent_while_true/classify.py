@@ -16,8 +16,6 @@ binary is a child process. A verdict of CODEX or CLAUDE therefore requires at
 least two independent corroborating signals before it is considered actionable.
 """
 
-from __future__ import annotations
-
 import enum
 from dataclasses import dataclass, field
 from pathlib import Path

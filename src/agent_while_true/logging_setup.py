@@ -11,8 +11,6 @@ event is a set of key/value fields, and the helper that turns screen text into a
 loggable value returns a SHA-256 fingerprint, never the text.
 """
 
-from __future__ import annotations
-
 import contextlib
 import hashlib
 import logging

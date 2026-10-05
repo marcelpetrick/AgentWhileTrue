@@ -4,8 +4,6 @@
 
 """Recognizer tests, driven by verbatim screens from the real CLIs."""
 
-from __future__ import annotations
-
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 

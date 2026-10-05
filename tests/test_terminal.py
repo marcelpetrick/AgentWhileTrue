@@ -8,8 +8,6 @@ The Konsole adapter is tested against a stubbed ``qdbus`` so the suite runs in
 CI, where no KDE session exists. A separate opt-in test exercises the real bus.
 """
 
-from __future__ import annotations
-
 import os
 from datetime import UTC, datetime
 

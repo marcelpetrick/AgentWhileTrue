@@ -14,8 +14,6 @@ Manjaro/KDE Plasma with ``XDG_SESSION_TYPE=wayland``:
     ``getAllDisplayedTextList``, ``sendText``, ``title``.
 """
 
-from __future__ import annotations
-
 import re
 import shutil
 import subprocess

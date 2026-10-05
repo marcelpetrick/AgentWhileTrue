@@ -9,8 +9,6 @@ future Kitty or WezTerm adapter can be added without touching the state machine,
 and so tests can drive the whole system through :class:`FakeAdapter`.
 """
 
-from __future__ import annotations
-
 from agent_while_true.terminal.base import (
     SessionRef,
     TerminalAdapter,

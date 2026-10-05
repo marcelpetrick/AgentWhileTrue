@@ -8,8 +8,6 @@ Plain text, no curses. Optional ANSI styling is applied as complete themed
 panels, while plain output stays pipe-able, greppable and readable in tests.
 """
 
-from __future__ import annotations
-
 import math
 import re
 import unicodedata

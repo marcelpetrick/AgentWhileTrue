@@ -4,8 +4,6 @@
 
 """Tests for ``/proc`` inspection and the PID-reuse-proof identity."""
 
-from __future__ import annotations
-
 import os
 
 import pytest

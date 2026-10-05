@@ -4,8 +4,6 @@
 
 """Safety and release-contract tests for the offline container artifact."""
 
-from __future__ import annotations
-
 import os
 import re
 import subprocess

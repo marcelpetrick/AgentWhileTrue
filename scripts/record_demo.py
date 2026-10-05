@@ -21,8 +21,6 @@ Usage::
     python3 scripts/record_demo.py media/agentWhileTrue_demo.gif
 """
 
-from __future__ import annotations
-
 import re
 import shutil
 import subprocess

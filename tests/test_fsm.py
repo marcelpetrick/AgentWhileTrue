@@ -4,8 +4,6 @@
 
 """End-to-end tests of the supervisor loop, driven entirely by fakes."""
 
-from __future__ import annotations
-
 from dataclasses import replace
 from datetime import timedelta
 from pathlib import Path

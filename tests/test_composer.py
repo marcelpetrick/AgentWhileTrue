@@ -4,8 +4,6 @@
 
 """Only a visibly empty provider composer counts as a place to type a message."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime
 
 import pytest

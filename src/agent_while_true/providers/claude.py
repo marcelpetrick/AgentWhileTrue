@@ -19,8 +19,6 @@ also states explicitly: a reset more than 24 hours out, or a session that was
 moved to the background, will *not* resume on its own.
 """
 
-from __future__ import annotations
-
 import re
 from dataclasses import replace
 from datetime import datetime

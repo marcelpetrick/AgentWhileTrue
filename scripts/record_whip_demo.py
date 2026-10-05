@@ -24,8 +24,6 @@ animated GIF in a post: under 5 MB and under 400 frames (uploaded through the
 photo button; larger files are frozen on their first frame).
 """
 
-from __future__ import annotations
-
 import re
 import sys
 import tempfile

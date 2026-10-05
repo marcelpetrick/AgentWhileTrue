@@ -13,8 +13,6 @@ The interactive loop is kept separate from the pure parts - discovery, toggling
 and rendering - so the decision logic is testable without a terminal.
 """
 
-from __future__ import annotations
-
 import shutil
 import subprocess
 from collections.abc import Callable, Iterable, Sequence

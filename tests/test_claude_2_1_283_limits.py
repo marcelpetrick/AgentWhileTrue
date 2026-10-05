@@ -4,8 +4,6 @@
 
 """Claude Code 2.1.283's new limit headlines: waits that end, and caps that do not."""
 
-from __future__ import annotations
-
 from datetime import datetime
 from zoneinfo import ZoneInfo
 

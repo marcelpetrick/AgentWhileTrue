@@ -16,8 +16,6 @@ Two rules from the vision are structural here:
 * unknown layouts produce no action at all rather than a guessed one.
 """
 
-from __future__ import annotations
-
 import enum
 import re
 from abc import ABC, abstractmethod

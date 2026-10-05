@@ -4,8 +4,6 @@
 
 """Tests for the session picker."""
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from agent_while_true.picker import (

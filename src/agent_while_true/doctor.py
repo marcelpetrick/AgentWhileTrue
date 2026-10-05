@@ -11,8 +11,6 @@ automatic mode is currently safe, since that is the question the user actually
 has.
 """
 
-from __future__ import annotations
-
 import json
 import os
 import platform

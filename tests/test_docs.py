@@ -4,8 +4,6 @@
 
 """Documentation links must stay valid in the standalone repository layout."""
 
-from __future__ import annotations
-
 import re
 from pathlib import Path
 from urllib.parse import unquote, urlsplit

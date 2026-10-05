@@ -4,8 +4,6 @@
 
 """Provider status-page parsing, transport, and background-cache tests."""
 
-from __future__ import annotations
-
 import gzip
 import http.client
 import io

@@ -4,8 +4,6 @@
 
 """Integration tests for the small deployment shell scripts."""
 
-from __future__ import annotations
-
 import json
 import os
 import shutil

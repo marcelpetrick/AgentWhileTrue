@@ -9,8 +9,6 @@ fakes, so the wiring - selection, locking, mode handling, the tick - is covered
 without a desktop session.
 """
 
-from __future__ import annotations
-
 import io
 import signal
 from dataclasses import replace

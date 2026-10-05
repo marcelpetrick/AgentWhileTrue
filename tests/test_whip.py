@@ -4,8 +4,6 @@
 
 """The whip's phrases, counter, cooldown and ASCII animation."""
 
-from __future__ import annotations
-
 import io
 import random
 

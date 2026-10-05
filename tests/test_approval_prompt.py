@@ -4,8 +4,6 @@
 
 """Claude Code's tool-permission prompt is recognised, shown and never resumed."""
 
-from __future__ import annotations
-
 from datetime import UTC, datetime
 from pathlib import Path
 

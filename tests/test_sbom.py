@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Tests for release SBOM generation and consistency validation."""
 
-from __future__ import annotations
-
 import importlib.util
 import io
 import json

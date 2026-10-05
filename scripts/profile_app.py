@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Reproducible, privacy-safe profile of representative application work."""
 
-from __future__ import annotations
-
 import argparse
 import cProfile
 import json

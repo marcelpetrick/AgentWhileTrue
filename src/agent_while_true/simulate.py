@@ -17,8 +17,6 @@ supervisor made, which is a far better way to gain confidence in a tool that
 types into terminals than reading its source.
 """
 
-from __future__ import annotations
-
 import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass, field

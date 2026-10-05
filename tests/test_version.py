@@ -8,8 +8,6 @@ Every commit in this project bumps the version, so the cheapest way to keep that
 promise honest is to fail the build when the changelog forgets.
 """
 
-from __future__ import annotations
-
 import re
 import tomllib
 from pathlib import Path

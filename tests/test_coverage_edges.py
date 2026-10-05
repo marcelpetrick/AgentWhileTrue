@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Failure-path coverage for process, identity, diagnostics, and status I/O."""
 
-from __future__ import annotations
-
 import json
 import subprocess
 import time

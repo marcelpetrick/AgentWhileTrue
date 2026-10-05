@@ -4,8 +4,6 @@
 
 """Memory-only provider health from public, component-specific status APIs."""
 
-from __future__ import annotations
-
 import enum
 import gzip
 import http.client

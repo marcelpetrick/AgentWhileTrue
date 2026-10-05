@@ -11,8 +11,6 @@ any moment, and an action already in flight is never split from its
 verification.
 """
 
-from __future__ import annotations
-
 import contextlib
 import socket
 import threading

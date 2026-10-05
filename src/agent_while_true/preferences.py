@@ -9,8 +9,6 @@ state.  They can change how the dashboard is displayed, but never what the
 supervisor is allowed to do or which session it may operate on.
 """
 
-from __future__ import annotations
-
 import json
 import os
 import tempfile

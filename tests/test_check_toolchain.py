@@ -4,8 +4,6 @@
 
 """The pipeline accepts a toolchain only when every tool is exactly the pinned one."""
 
-from __future__ import annotations
-
 import importlib.util
 import os
 import subprocess

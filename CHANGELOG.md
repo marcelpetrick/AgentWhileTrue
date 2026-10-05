@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.65.1] - 2026-10-05
+
+### Changed
+
+- Removed all 88 obsolete future-annotations compatibility directives now that
+  Python 3.14 provides native deferred annotations, and use its native ISO-8601
+  `Z` timestamp parsing. The release install example now points at 0.65.1.
+
 ## [0.65.0] - 2026-10-05
 
 ### Changed

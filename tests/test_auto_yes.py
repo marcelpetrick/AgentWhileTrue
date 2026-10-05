@@ -4,8 +4,6 @@
 
 """Auto-yes answers only the exact, revalidated Claude Code permission menu, once."""
 
-from __future__ import annotations
-
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path

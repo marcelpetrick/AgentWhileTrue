@@ -9,8 +9,6 @@ as written by Codex CLI 0.153.2, and the status-line payload Claude Code hands
 its status-line command.
 """
 
-from __future__ import annotations
-
 import json
 import os
 from datetime import UTC, datetime, timedelta

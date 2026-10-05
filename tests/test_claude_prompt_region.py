@@ -4,8 +4,6 @@
 
 """Claude paid-choice recognition stays tied to its documented limit block."""
 
-from __future__ import annotations
-
 from datetime import datetime
 from zoneinfo import ZoneInfo
 

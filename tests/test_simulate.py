@@ -8,8 +8,6 @@ Section 40 of the vision lists the situations that must be exercised; this test
 fails the build if any of them stops holding.
 """
 
-from __future__ import annotations
-
 import io
 from pathlib import Path
 

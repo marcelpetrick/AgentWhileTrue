@@ -13,8 +13,6 @@ It also records everything sent, which is how the idempotency guarantees are
 asserted rather than assumed.
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from dataclasses import dataclass, field
 

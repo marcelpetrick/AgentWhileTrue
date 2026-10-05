@@ -4,8 +4,6 @@
 
 """Tests for status rendering."""
 
-from __future__ import annotations
-
 import re
 import unicodedata
 from dataclasses import replace

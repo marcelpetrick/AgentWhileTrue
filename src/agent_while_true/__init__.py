@@ -10,8 +10,6 @@ blocked session only once every safety precondition holds. See ``docs/PLAN.md``
 for the design and ``docs/vision.md`` for the product intent.
 """
 
-from __future__ import annotations
-
 import sys
 
 if sys.version_info[:2] != (3, 14):  # pragma: no cover - this suite itself requires 3.14

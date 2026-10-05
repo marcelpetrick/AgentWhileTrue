@@ -9,8 +9,6 @@ enough to classify events and measure supervision intervals; no original line,
 session identifier, account label, or terminal-derived value is returned.
 """
 
-from __future__ import annotations
-
 import re
 import shlex
 from collections import Counter

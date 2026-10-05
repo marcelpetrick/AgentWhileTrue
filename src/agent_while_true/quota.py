@@ -29,8 +29,6 @@ Claude Code
     module reads.
 """
 
-from __future__ import annotations
-
 import enum
 import json
 import math
@@ -138,7 +136,7 @@ def _timestamp(value: object) -> datetime | None:
         return datetime.fromtimestamp(float(value), tz=UTC)
     if isinstance(value, str) and value:
         try:
-            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            parsed = datetime.fromisoformat(value)
         except ValueError:
             return None
         return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)

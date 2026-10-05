@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Safety boundaries for persistent, bounded Codex timed retries."""
 
-from __future__ import annotations
-
 from agent_while_true.config import Config, Mode, Policy
 from agent_while_true.quota import Availability
 from agent_while_true.states import ActionState, SessionState

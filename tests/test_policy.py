@@ -9,8 +9,6 @@ from section 17 of the vision, or one of the numbered dangers, to a refusal
 reason that a log reader can act on.
 """
 
-from __future__ import annotations
-
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 

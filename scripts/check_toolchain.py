@@ -14,8 +14,6 @@ means the toolchain is exactly the pinned one; 1 means the pipeline must
 provision its own.
 """
 
-from __future__ import annotations
-
 import re
 import shutil
 import subprocess

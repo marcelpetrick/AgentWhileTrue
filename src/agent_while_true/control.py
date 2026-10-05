@@ -21,8 +21,6 @@ only the mode, this process's id, and the version - because a control reply is
 just as readable as a log line.
 """
 
-from __future__ import annotations
-
 import contextlib
 import json
 import socket

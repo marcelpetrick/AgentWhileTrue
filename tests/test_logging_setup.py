@@ -8,8 +8,6 @@ The central property is negative: terminal content must not be able to reach the
 log file, no matter what the screen contained.
 """
 
-from __future__ import annotations
-
 import logging
 import os
 from pathlib import Path

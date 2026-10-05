@@ -4,8 +4,6 @@
 
 """Interactive terminal controls for the Agent While True dashboard."""
 
-from __future__ import annotations
-
 import os
 import select
 import sys

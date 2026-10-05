@@ -4,8 +4,6 @@
 
 """The version bump helper edits the version and changelog together or not at all."""
 
-from __future__ import annotations
-
 import importlib.util
 import io
 import sys

@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Operation-count regressions for hot display-width paths."""
 
-from __future__ import annotations
-
 from agent_while_true import ui
 
 

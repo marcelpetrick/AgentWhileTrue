@@ -11,8 +11,6 @@ world at exactly one of those reads and checks that nothing is typed and that
 the persisted intent is settled rather than left dangling.
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from pathlib import Path

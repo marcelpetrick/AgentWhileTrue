@@ -10,8 +10,6 @@ anything it cannot parse with confidence returns ``None``, and a ``None`` reset
 time means the supervisor waits for a provider signal instead of guessing.
 """
 
-from __future__ import annotations
-
 import re
 from datetime import datetime, timedelta
 from pathlib import Path

@@ -16,8 +16,6 @@ Removed, Fixed, Security). The new version must be strictly greater than the
 current one; nothing is written when any check fails.
 """
 
-from __future__ import annotations
-
 import argparse
 import re
 import sys

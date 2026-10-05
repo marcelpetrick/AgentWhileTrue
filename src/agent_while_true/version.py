@@ -9,8 +9,6 @@ test asserts that the newest ``CHANGELOG.md`` heading matches it. Bumping this
 string is therefore the only edit a release needs.
 """
 
-from __future__ import annotations
-
-__version__ = "0.65.0"
+__version__ = "0.65.1"
 
 __all__ = ["__version__"]

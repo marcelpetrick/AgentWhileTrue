@@ -15,8 +15,6 @@ A half-written state file is worse than none, because it would be read back as
 "nothing has been done yet".
 """
 
-from __future__ import annotations
-
 import json
 import math
 import os

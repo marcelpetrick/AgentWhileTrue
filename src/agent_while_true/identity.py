@@ -10,8 +10,6 @@ event logger or state store. Failure to identify an account is rendered as
 unavailable; identity is never inferred from quota or process state.
 """
 
-from __future__ import annotations
-
 import base64
 import binascii
 import hashlib

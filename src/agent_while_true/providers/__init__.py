@@ -4,8 +4,6 @@
 
 """Provider adapters and the registry that maps a process class to one."""
 
-from __future__ import annotations
-
 from agent_while_true.classify import ProcessClass
 from agent_while_true.providers.base import (
     ActionKind,

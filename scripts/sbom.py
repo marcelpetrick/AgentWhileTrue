@@ -7,8 +7,6 @@ The inventory covers the installable project's runtime dependency graph and the
 two release artifacts. Build and development environments are outside its scope.
 """
 
-from __future__ import annotations
-
 import argparse
 import hashlib
 import json

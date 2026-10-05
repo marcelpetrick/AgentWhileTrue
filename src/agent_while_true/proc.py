@@ -12,8 +12,6 @@ controlling TTY and the executable. The start time is the decisive field: it is
 assigned by the kernel at ``fork`` and a recycled PID gets a different one.
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from pathlib import Path
 

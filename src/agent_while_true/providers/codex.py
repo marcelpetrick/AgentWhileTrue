@@ -16,8 +16,6 @@ therefore gated behind its own policy flag and stays off in auto mode until the
 user opts in, even though the rest of the machinery is identical.
 """
 
-from __future__ import annotations
-
 import re
 from dataclasses import replace
 from datetime import datetime

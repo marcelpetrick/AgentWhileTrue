@@ -11,8 +11,6 @@ interface - the vision forbids retaining it, and an adapter that cannot offer it
 is therefore not a limited adapter but a correct one.
 """
 
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 

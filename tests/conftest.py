@@ -9,8 +9,6 @@ real Manjaro/KDE machine, so the classifier tests exercise the shapes that
 actually occur rather than idealised ones.
 """
 
-from __future__ import annotations
-
 import pytest
 
 from agent_while_true.proc import ProcessIdentity, ProcessInfo

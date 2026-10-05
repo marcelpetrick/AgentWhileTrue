@@ -13,8 +13,6 @@ The lock is held only by the modes that can send input. Observe mode does not
 take it, so a read-only watcher can run alongside an automatic one.
 """
 
-from __future__ import annotations
-
 import fcntl
 import os
 from dataclasses import dataclass

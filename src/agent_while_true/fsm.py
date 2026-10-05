@@ -27,8 +27,6 @@ corrected; every pending schedule is discarded and every session is
 revalidated from scratch (DANGER 9 and 10).
 """
 
-from __future__ import annotations
-
 import hashlib
 import json
 import time
