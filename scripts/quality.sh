@@ -59,17 +59,16 @@ fail() {
     failures=$((failures + 1))
 }
 
-# Prefer the tools from an active virtualenv, then the user's PATH. Falling
-# back to `python -m` keeps this working where only the module is installed.
+# Run every Python quality tool through the interpreter whose 3.14 version was
+# validated above. A same-named executable elsewhere on PATH may belong to a
+# different Python and must not silently weaken the release boundary.
 run_tool() {
     local tool="$1"
     shift
-    if command -v "$tool" > /dev/null 2>&1; then
-        "$tool" "$@"
-    elif "$PYTHON_BIN" -c "import $tool" > /dev/null 2>&1; then
+    if "$PYTHON_BIN" -c "import $tool" > /dev/null 2>&1; then
         "$PYTHON_BIN" -m "$tool" "$@"
     else
-        printf 'missing tool: %s\n' "$tool" >&2
+        printf 'missing tool for %s: %s\n' "$PYTHON_BIN" "$tool" >&2
         return 127
     fi
 }
@@ -133,7 +132,7 @@ else
 fi
 
 step "version consistency"
-python3 - <<'PY' || fail "version consistency"
+"$PYTHON_BIN" - <<'PY' || fail "version consistency"
 import pathlib
 import re
 import sys

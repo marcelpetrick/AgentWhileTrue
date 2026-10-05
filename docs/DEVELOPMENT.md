@@ -21,13 +21,13 @@ cd AgentWhileTrue
 The gate provisions what it needs: when any pinned tool is missing or at
 another version it installs the `dev` extra into `.venv` once and uses it, so a
 fresh clone runs its own gate with no setup step. `scripts/check_toolchain.py`
-decides: every `dev` distribution installed for the interpreter, and the
-version printed by each `ruff`, `mypy`, `pytest` and `reuse` on `PATH`, must equal its
-pin, and each difference is printed as `[INFO] toolchain: ...`. A stray
-`~/.local/bin/ruff` of another version therefore no longer lints the run. An
-environment that already has exactly the pinned tools, such as CI after
-`pip install .[dev]`, is used unchanged. Set `AGENT_WHILE_TRUE_TOOLCHAIN_VENV`
-to put that environment elsewhere.
+decides: every `dev` distribution installed for the validated Python 3.14
+interpreter must equal its pin, and each difference is printed as
+`[INFO] toolchain: ...`. The quality gate invokes those tools through that exact
+interpreter, so an unrelated `ruff`, `mypy`, `pytest` or `reuse` on `PATH` cannot
+participate. An environment that already has exactly the pinned tools, such as
+CI after `pip install .[dev]`, is used unchanged. Set
+`AGENT_WHILE_TRUE_TOOLCHAIN_VENV` to put that environment elsewhere.
 
 Runtime code uses only the Python 3.14 standard library; the `dev` extra pins
 exact versions of the test, lint, strict type-checking, build, licensing and

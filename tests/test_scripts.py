@@ -317,6 +317,9 @@ def test_canonical_pipeline_covers_required_release_smokes() -> None:
     assert 'agent-while-true" --version' in pipeline
     assert "git --no-pager diff --check" in quality
     assert 'run_tool mypy || fail "mypy"' in quality
+    assert '"$PYTHON_BIN" -m "$tool"' in quality
+    assert 'command -v "$tool"' not in quality
+    assert '"$PYTHON_BIN" - <<\'PY\' || fail "version consistency"' in quality
     assert 'fail "shellcheck (not installed)"' in quality
 
 

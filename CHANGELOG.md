@@ -13,6 +13,18 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.65.3] - 2026-10-05
+
+### Fixed
+
+- Public pipx installation and upgrade commands now select `python3.14`
+  explicitly and recreate an older managed environment, so the documented path
+  cannot silently retain another Python minor. The quality gate likewise invokes
+  every Python-based tool and its version-consistency check through the exact
+  validated interpreter, and obsolete PATH-command probing has been removed.
+- The README now shows a current, privacy-safe KDE Konsole capture of the 0.65.3
+  dashboard rather than the obsolete 0.33.0 interface.
+
 ## [0.65.2] - 2026-10-05
 
 ### Fixed

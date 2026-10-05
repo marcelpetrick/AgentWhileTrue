@@ -73,3 +73,13 @@ def test_superseded_project_names_are_absent_from_the_shipped_tree() -> None:
     assert not offenders, "superseded project names remain in: " + ", ".join(offenders)
     assert not (PROJECT_ROOT / "src" / ("agent" + "_watch")).exists()
     assert not (PROJECT_ROOT / "systemd" / ("agent" + "-watch.service")).exists()
+
+
+def test_install_instructions_pin_python_3_14_and_recreate_old_pipx_environment() -> None:
+    readme = (PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
+    usage = (PROJECT_ROOT / "docs" / "USAGE.md").read_text(encoding="utf-8")
+
+    for document in (readme, usage):
+        assert "pipx uninstall agent-while-true" in document
+        assert "pipx install --python python3.14" in document
+        assert "pipx install --force" not in document

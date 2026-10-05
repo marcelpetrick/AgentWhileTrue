@@ -5,9 +5,6 @@
 """The pipeline accepts a toolchain only when every tool is exactly the pinned one."""
 
 import importlib.util
-import os
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -27,16 +24,10 @@ WANTED = {
     "reuse": "6.2.0",
     "build": "1.6.1",
 }
-EXACT = {
-    "ruff": "ruff 0.16.9",
-    "mypy": "mypy 2.4.0 (compiled: yes)",
-    "pytest": "pytest 9.1.1",
-    "reuse": "reuse, version 6.2.0",
-}
 
 
-def _problems(installed: dict[str, str | None], commands: dict[str, str | None]) -> list[str]:
-    return check_toolchain.mismatches(WANTED, installed=installed.get, command_version=commands.get)
+def _problems(installed: dict[str, str | None]) -> list[str]:
+    return check_toolchain.mismatches(WANTED, installed=installed.get)
 
 
 def test_the_repositorys_own_pins_are_all_exact() -> None:
@@ -69,51 +60,13 @@ def test_extras_and_markers_do_not_hide_the_version(tmp_path: Path) -> None:
 
 
 def test_the_exact_toolchain_passes() -> None:
-    assert _problems(dict(WANTED), dict(EXACT)) == []
-
-
-def test_a_stray_command_on_path_is_reported_even_when_the_package_matches() -> None:
-    """The 2026-09-29 case: ~/.local/bin/ruff 0.15.20 shadowed the pinned 0.16.9."""
-    problems = _problems(dict(WANTED), {**EXACT, "ruff": "ruff 0.15.20"})
-
-    assert problems == ["ruff on PATH reports 'ruff 0.15.20', pinned 0.16.9"]
+    assert _problems(dict(WANTED)) == []
 
 
 def test_a_wrong_or_missing_package_is_reported() -> None:
-    problems = _problems({**WANTED, "build": "1.5.0", "reuse": None}, dict(EXACT))
+    problems = _problems({**WANTED, "build": "1.5.0", "reuse": None})
 
     assert problems == [
         "build 1.5.0 is installed, pinned 1.6.1",
         "reuse 6.2.0 is not installed",
     ]
-
-
-def test_a_longer_version_is_not_mistaken_for_the_pin() -> None:
-    problems = _problems(dict(WANTED), {**EXACT, "ruff": "ruff 0.16.90"})
-
-    assert problems == ["ruff on PATH reports 'ruff 0.16.90', pinned 0.16.9"]
-
-
-def test_a_command_missing_from_path_falls_back_to_the_package_check() -> None:
-    assert _problems(dict(WANTED), {**EXACT, "reuse": None}) == []
-
-
-def test_the_script_names_a_stray_command_and_fails(tmp_path: Path) -> None:
-    """Run as the pipeline does, with a fake ruff first on PATH."""
-    fake = tmp_path / "bin" / "ruff"
-    fake.parent.mkdir()
-    fake.write_text("#!/bin/sh\necho 'ruff 0.0.1'\n")
-    fake.chmod(0o755)
-    environment = {**os.environ, "PATH": f"{fake.parent}{os.pathsep}{os.environ['PATH']}"}
-
-    result = subprocess.run(
-        [sys.executable, str(SCRIPT), str(ROOT / "pyproject.toml")],
-        capture_output=True,
-        text=True,
-        env=environment,
-        timeout=60,
-        check=False,
-    )
-
-    assert result.returncode == 1
-    assert "ruff on PATH reports 'ruff 0.0.1'" in result.stdout

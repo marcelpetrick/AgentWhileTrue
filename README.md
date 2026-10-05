@@ -42,11 +42,12 @@ the real renderer — `scripts/record_demo.py` feeds fabricated sessions to the 
 
 ### Live dashboard
 
-![Agent While True v0.33.0 running in KDE Konsole](media/agentWhileTrue_v0.33.0.png)
+![Agent While True 0.65.3 running in KDE Konsole](media/agentWhileTrue_v0.65.3.png)
 
-*A real KDE Konsole capture of the v0.33.0 dashboard, with project details
-manually redacted. The current interface has since gained the additional
-controls shown in the scripted demonstrations.*
+*A real KDE Konsole capture of the current 0.65.3 renderer, using invented
+sessions and `.invalid` accounts with screenshot redaction enabled. It shows
+the independent `A` auto-resume and `y` auto-yes controls without publishing
+live project, account or quota data.*
 
 ## What it does
 
@@ -138,7 +139,7 @@ in [docs/USAGE.md](docs/USAGE.md#the-whip).
 ## Install
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.65.2'
+pipx install --python python3.14 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.65.3'
 agent-while-true --version
 agent-while-true doctor
 ```
@@ -147,18 +148,21 @@ agent-while-true doctor
 Pick any tag from the [releases](https://github.com/marcelpetrick/AgentWhileTrue/releases);
 a development checkout is described in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
-To upgrade, reinstall with the newer tag and confirm the version:
+To upgrade, recreate this application's isolated environment with Python 3.14,
+then confirm the version:
 
 ```bash
-UV_VENV_CLEAR=1 pipx install --force 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-vX.Y.Z'
+pipx uninstall agent-while-true
+pipx install --python python3.14 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-vX.Y.Z'
 agent-while-true --version
 ```
 
-`UV_VENV_CLEAR=1` matters when pipx uses its uv backend: without it `--force`
-only warns that it will not remove the existing environment, exits
-successfully and leaves the old version installed. A running
-`agent-while-true` keeps the code it started with, so restart it afterwards:
-quit and reopen the dashboard, and run
+The explicit uninstall is required when migrating an existing pipx environment:
+pipx ignores `--python` when `install --force` reuses one, which could retain an
+older interpreter. Uninstalling the package does not stop an already-running
+`agent-while-true`; that process keeps the code and interpreter it started with.
+Restart it after the replacement is installed: quit and reopen the dashboard,
+and run
 `systemctl --user restart agent-while-true.service` if the
 [background service](docs/USAGE.md#9-background-service) is installed.
 

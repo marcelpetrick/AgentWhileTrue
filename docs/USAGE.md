@@ -610,15 +610,21 @@ future desktop logins. Running the installer without `--auto` restores the
 managed observe-only configuration; `--uninstall` removes the service and its
 drop-in.
 
-The service runs `~/.local/bin/agent-while-true` and keeps the code it started
-with. Install a newer version with `UV_VENV_CLEAR=1 pipx install --force ...`
-(see [Install](../README.md#install); without the variable pipx's uv backend
-keeps the old environment and reports success), check
-`agent-while-true --version`, then restart it:
+The service runs `~/.local/bin/agent-while-true` and keeps the code and
+interpreter it started with. Recreate the pipx environment explicitly so an
+upgrade cannot retain a pre-3.14 interpreter (see [Install](../README.md#install)):
 
 ```bash
+pipx uninstall agent-while-true
+pipx install --python python3.14 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-vX.Y.Z'
+agent-while-true --version
 systemctl --user restart agent-while-true.service
 ```
+
+Uninstalling the environment does not stop the running service process. Install
+the replacement before restarting it; a failed replacement therefore leaves
+the current process running for diagnosis, but it cannot restart until the
+Python 3.14 installation succeeds.
 
 ### Opening the dashboard while the service runs
 
