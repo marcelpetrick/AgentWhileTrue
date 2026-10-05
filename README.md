@@ -138,7 +138,7 @@ in [docs/USAGE.md](docs/USAGE.md#the-whip).
 ## Install
 
 ```bash
-pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.65.1'
+pipx install 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.65.2'
 agent-while-true --version
 agent-while-true doctor
 ```

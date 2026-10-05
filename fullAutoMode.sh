@@ -87,9 +87,13 @@ if [[ ! -f "$wheel" ]]; then
 fi
 
 printf '\n%s\n' '[3/6] Installing the verified wheel with pipx'
-# pipx's uv backend otherwise refuses to replace its own existing environment.
-# This affects only the named Agent While True venv created by pipx.
-UV_VENV_CLEAR=1 pipx install --force --python "$SYSTEM_PYTHON" "$wheel"
+# `pipx install --force --python` ignores --python for an existing environment.
+# Remove only this application's managed venv first so the validated 3.14
+# interpreter is authoritative for both upgrades and fresh installs.
+if pipx list --short | grep -Eq '^agent-while-true[[:space:]]'; then
+    pipx uninstall agent-while-true
+fi
+pipx install --python "$SYSTEM_PYTHON" "$wheel"
 
 pipx_bin_dir="${PIPX_BIN_DIR:-${XDG_BIN_HOME:-$HOME/.local/bin}}"
 cli="$pipx_bin_dir/agent-while-true"

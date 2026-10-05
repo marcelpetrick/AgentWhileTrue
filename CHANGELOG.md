@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.65.2] - 2026-10-05
+
+### Fixed
+
+- The full-auto installer now removes only an existing Agent While True pipx
+  environment before installing the verified wheel with the validated Python
+  3.14 executable. Current pipx ignores `--python` when combined with
+  `install --force`; the old form could therefore retain an older interpreter.
+
 ## [0.65.1] - 2026-10-05
 
 ### Changed

@@ -300,7 +300,10 @@ def test_full_auto_launcher_orders_checks_before_auto_mode() -> None:
 
     assert setup < pipeline < doctor < status < quota < auto
     assert "AGENT_WHILE_TRUE_ALLOW_CODEX_AUTO_RESUME=true" in script
-    assert 'pipx install --force --python "$SYSTEM_PYTHON" "$wheel"' in script
+    assert "pipx uninstall agent-while-true" in script
+    assert 'pipx install --python "$SYSTEM_PYTHON" "$wheel"' in script
+    commands = "\n".join(line for line in script.splitlines() if not line.startswith("#"))
+    assert "pipx install --force --python" not in commands
     assert "run --observe --all --no-fzf" in script
     assert "systemctl --user stop" not in script
 
