@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.65.7] - 2026-10-06
+
+### Changed
+
+- The contributor instructions record the maintainer's standing requests on the
+  Python 3.14-only baseline, what a dependency update covers, how a provider
+  release that changes a screen is debugged, and what deploying a new version
+  includes.
+
 ## [0.65.6] - 2026-10-06
 
 ### Changed

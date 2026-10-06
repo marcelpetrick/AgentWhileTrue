@@ -137,6 +137,20 @@ The maintainer's standing requests, collected from their sessions:
   force-push or rewrite published history.
 - Document every reusable script: its purpose, normal invocation, inputs,
   outputs and safety limitations.
+- Support only the most recent stable CPython minor (currently 3.14). Remove
+  code, configuration and documentation written for older minors instead of
+  keeping it; archived plans under `docs/history/` may keep past results.
+- "Update the dependencies" covers every exact pin: the dev extra and build
+  backend in `pyproject.toml`, the pinned GitHub Actions and the container base
+  image digest, each moved to its latest stable release through the pipeline.
+- A new Claude Code or Codex release that changes a screen (a new panel, footer
+  or status row) is the usual cause when a working feature stops working. Read
+  the live screen first, transcribe it into a fixture, and fail closed on any
+  row that was not observed.
+- "Deploy a new version" or "make a public release" means the whole release
+  procedure below: push, annotated tag, green release workflow, then
+  reinstall the tagged version with pipx and restart the user service
+  `agent-while-true.service` so the background watcher runs the new code.
 
 ## Required verification
 
