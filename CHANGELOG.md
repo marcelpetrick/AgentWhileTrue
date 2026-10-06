@@ -13,6 +13,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.65.8] - 2026-10-06
+
+### Changed
+
+- The README install command points at `agentwhiletrue-v0.65.8`, the release
+  that brings the whip back to Claude Code 2.1.292 tabs running subagents.
+
 ## [0.65.7] - 2026-10-06
 
 ### Changed
