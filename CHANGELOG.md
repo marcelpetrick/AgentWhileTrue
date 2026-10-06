@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.65.5] - 2026-10-06
+
+### Removed
+
+- The last documentation remnants of older Python minors are gone: the
+  performance notes drop a profile measured on Python 3.13, and the reusable
+  project material states the CPython 3.14-only baseline. Archived plans keep
+  their historical test results unchanged.
+
 ## [0.65.4] - 2026-10-06
 
 ### Fixed

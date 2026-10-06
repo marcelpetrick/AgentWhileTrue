@@ -151,7 +151,7 @@ window.
 - **Claude's "wait, then continue" menu** is only selected for the exact tested
   menu, with the cursor visibly on item 1, a safe item 2, fresh exhausted quota
   and an explicit config flag. Every variation fails closed.
-- **Zero runtime dependencies.** Python 3.12+ standard library only, on purpose:
+- **Zero runtime dependencies.** CPython 3.14 standard library only, on purpose:
   a supervisor with the right to type into your terminal should have the
   smallest possible supply chain.
 - **Testing what you cannot trigger on demand.** You cannot ask a provider to
@@ -171,7 +171,7 @@ window.
 | Production code | ~9,100 lines of Python |
 | Test code | ~7,830 lines of Python |
 | Runtime dependencies | 0 |
-| Python | 3.12 / 3.13 / 3.14 |
+| Python | 3.14 only |
 | Coverage gate | ≥ 91 % |
 | Platform | Manjaro/Arch, KDE Plasma, Konsole (Wayland or X11) |
 | Supported agents | OpenAI Codex CLI, Anthropic Claude Code |
