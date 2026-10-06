@@ -262,7 +262,10 @@ revalidated per session immediately before `sendText`:
 - The provider's own composer must be visibly empty. A draft (yours) or a
   placeholder suggestion skips the session rather than submitting it. For
   Claude, the empty cursor row must sit directly on the input box's closing
-  rule, so a multi-line draft begun with Shift+Enter is skipped as well.
+  rule, so a multi-line draft begun with Shift+Enter is skipped as well. The
+  background-agent panel listed under the status lines while subagents run
+  does not hide the composer; a row that panel does not draw still skips the
+  session.
 
 The dashboard's last-event line names how many sessions it reached and why the
 others were skipped. The log records the phrase number, never its text.

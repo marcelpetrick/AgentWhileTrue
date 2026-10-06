@@ -247,7 +247,10 @@ flowchart LR
 "Composer visibly empty" is provider-specific: Codex's composer row holds
 nothing but its placeholder and only its footer follows; Claude's empty cursor
 row must sit directly on its input box's closing rule, so a multi-line draft
-begun with Shift+Enter is skipped too. Quota is used the other way round from a
+begun with Shift+Enter is skipped too. The background-agent panel Claude Code
+2.1.292 draws under its status lines while subagents run (a `main` row, then
+one row per agent) is cut as chrome first; any other row there fails closed.
+Quota is used the other way round from a
 resume: exhausted quota blocks a crack, while unknown quota does not, because a
 reminder asks for no usage that is not already being spent. Each crack offers
 all fifty phrases in an order that puts recently delivered ones last, so every

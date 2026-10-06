@@ -13,6 +13,18 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.65.4] - 2026-10-06
+
+### Fixed
+
+- The whip reaches Claude Code tabs that run subagents again. Claude Code
+  2.1.292 lists running subagents in a background-agent panel under its status
+  lines, which pushed the composer out of the rows the empty-composer check
+  read, so every such tab was skipped as `composer-not-empty`. The exact panel
+  (a blank row, the `main` row, then one row per agent) is now cut as chrome
+  first; any other row there still fails closed. Regression fixtures are
+  transcribed from the live 2.1.292 screen.
+
 ## [0.65.3] - 2026-10-05
 
 ### Fixed

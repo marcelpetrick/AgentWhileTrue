@@ -28,6 +28,8 @@ def _empty(provider: str, lines: list[str]) -> bool:
         ("claude", screens.CLAUDE_IDLE_COMPOSER),
         ("claude", [*screens.CLAUDE_IDLE_COMPOSER, "", ""]),
         ("claude", ["● Done", "─" * 40, CURSOR, "─" * 40]),
+        ("claude", screens.CLAUDE_2_1_292_AGENT_PANEL),
+        ("claude", screens.CLAUDE_2_1_292_AGENT_PANEL_MANY),
         ("codex", screens.CODEX_ACTIVE),
         ("codex", screens.CODEX_IDLE_WITH_FOOTER),
         ("codex", screens.CODEX_USAGE_LIMIT_WITH_PURCHASE_LINKS),
@@ -57,6 +59,13 @@ def test_empty_composer_is_recognised(provider: str, lines: list[str]) -> None:
         ("claude", ["● Reading a file", "  still working"]),
         ("claude", [f"{CURSOR} ", *[f"  output {n}" for n in range(10)]]),
         ("claude", []),
+        # The agent panel never makes a draft above it empty.
+        ("claude", [*screens.CLAUDE_DRAFT, "", "  ● main", "  ◯ Explore  Searching"]),
+        ("claude", [*screens.CLAUDE_DRAFT_AFTER_NEWLINE, "", "  ● main"]),
+        # Agent rows without the main thread row are not the tested panel.
+        ("claude", [*screens.CLAUDE_IDLE_COMPOSER, "", *["  ◯ Explore  Searching"] * 4]),
+        # A row the panel does not draw ends the panel: fail closed.
+        ("claude", [*screens.CLAUDE_2_1_292_AGENT_PANEL, "  ✓ Explore  Searched"]),
         ("codex", screens.CODEX_DRAFT),
         ("codex", screens.CODEX_DRAFT_AFTER_NEWLINE),
         ("codex", screens.CODEX_DRAFT_AFTER_NEWLINE_WITH_DOT),

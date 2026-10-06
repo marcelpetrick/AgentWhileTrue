@@ -415,6 +415,32 @@ _COMPOSER_GLYPH = "\N{HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT}"
 CLAUDE_COMPOSER_ROWS: Final = 6
 #: The horizontal rule Claude draws above and below its input box.
 _RULE_ROW = re.compile(r"^\s*[\u2500\u2501\u2581\u2594]{8,}\s*$")
+#: Claude Code 2.1.292 lists running subagents under its status lines: the
+#: main thread row first, then one row per agent, the selected one filled.
+_AGENT_PANEL_MAIN = re.compile(r"^\s*[\u25cf\u25ef]\s+main\s*$")
+_AGENT_PANEL_ROW = re.compile(r"^\s*[\u25cf\u25ef]\s+\S")
+
+
+def _without_agent_panel(lines: list[str], end: int) -> int:
+    """The end of ``lines[:end]`` once a trailing background-agent panel is cut.
+
+    Only the exact tested shape is cut: a blank row, the ``main`` row, then
+    agent rows down to the bottom. Anything else leaves ``end`` unchanged, so
+    an unknown panel row keeps the composer out of reach and fails closed.
+    """
+    index = end
+    while (
+        index
+        and _AGENT_PANEL_ROW.match(lines[index - 1])
+        and not _AGENT_PANEL_MAIN.match(lines[index - 1])
+    ):
+        index -= 1
+    if index < 2 or not _AGENT_PANEL_MAIN.match(lines[index - 1]) or lines[index - 2].strip():
+        return end
+    index -= 2
+    while index and not lines[index - 1].strip():
+        index -= 1
+    return index
 
 
 def _composer_empty(lines: list[str]) -> bool:
@@ -425,11 +451,13 @@ def _composer_empty(lines: list[str]) -> bool:
     The row right below the cursor must be the input box's closing rule: a
     multi-line draft begun with Shift+Enter leaves the cursor row empty and puts
     its text on continuation rows, which only that rule tells apart from the
-    status line.
+    status line. A background-agent panel below the status lines is chrome
+    and is cut first.
     """
     end = len(lines)
     while end and not lines[end - 1].strip():
         end -= 1
+    end = _without_agent_panel(lines, end)
     for index in range(end - 1, max(0, end - CLAUDE_COMPOSER_ROWS) - 1, -1):
         stripped = lines[index].strip()
         if stripped.startswith(_COMPOSER_GLYPH):

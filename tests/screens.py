@@ -316,6 +316,32 @@ CLAUDE_IDLE_COMPOSER = [
     "  ⏵⏵ bypass permissions on · 2 shells",
 ]
 
+#: Claude Code 2.1.292 with subagents running: below the status lines it draws
+#: a background-agent panel, the main thread first and one row per subagent.
+#: Transcribed from a live Konsole tab (descriptions generalised). Each agent
+#: pushes the composer one row further up from the bottom of the screen.
+CLAUDE_2_1_292_AGENT_PANEL = [
+    "● Started the quality gate in a subagent.",
+    _RULE,
+    "❯\xa0",
+    _RULE,
+    "  Opus 5.5 ctx:20% 5h:1% reset:4h53m $10.059",
+    "  ⏵⏵ auto mode on · 1 shell · ← for agents",
+    "",
+    "  ● main",
+    "  ◯ general-purpose  Running tests with coverage gate",
+]
+
+#: The same panel with several subagents, one of them selected with ←.
+CLAUDE_2_1_292_AGENT_PANEL_MANY = [
+    *CLAUDE_2_1_292_AGENT_PANEL[:-2],
+    "  ◯ main",
+    "  ● general-purpose  Running tests with coverage gate",
+    "  ◯ Explore  Finding the composer recogniser",
+    "  ◯ general-purpose  Updating the usage documentation",
+    "  ◯ Plan  Designing the panel recognition",
+]
+
 #: A multi-line draft that starts with Shift+Enter: the cursor row itself is
 #: empty and the text sits on the continuation row inside the frame.
 CLAUDE_DRAFT_AFTER_NEWLINE = [
