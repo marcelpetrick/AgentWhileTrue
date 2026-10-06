@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.65.6] - 2026-10-06
+
+### Changed
+
+- Ruff 0.16.10 replaces 0.16.9 in the pinned development toolchain, and the
+  container base image moves to the current `python:3.14-slim` digest
+  (CPython 3.14.8). Every other pinned tool, the build backend and all pinned
+  GitHub Actions were already at their latest stable releases.
+
 ## [0.65.5] - 2026-10-06
 
 ### Removed
