@@ -5,10 +5,10 @@
 """Codex CLI prompt recognition.
 
 Patterns are checked against the strings shipped inside the latest Codex CLI
-binary and its live screens. Codex differs from Claude Code in one way that matters a great deal
-here: it offers no "press enter to continue" affordance. When a Codex turn is
-cut short by a usage limit the TUI returns to its composer, so resuming means
-*typing* rather than pressing a key.
+binary and its live screens. Codex differs from Claude Code in one way that
+matters a great deal here: it offers no "press enter to continue" affordance.
+When a Codex turn is cut short by a usage limit the TUI returns to its
+composer, so resuming means *typing* rather than pressing a key.
 
 Typing is strictly more dangerous than pressing Enter, because if the foreground
 process changed in the meantime the text lands in a shell. Codex resume is

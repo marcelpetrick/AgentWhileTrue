@@ -13,6 +13,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.65.12] - 2026-10-07
+
+### Changed
+
+- The Codex recogniser's module description is rewrapped to the project's line
+  width.
+
 ## [0.65.11] - 2026-10-07
 
 ### Changed
