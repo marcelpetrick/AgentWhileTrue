@@ -147,6 +147,13 @@ The maintainer's standing requests, collected from their sessions:
   or status row) is the usual cause when a working feature stops working. Read
   the live screen first, transcribe it into a fixture, and fail closed on any
   row that was not observed.
+- Support only the latest Claude Code and Codex CLI releases; the maintainer
+  updates both as soon as a new one ships, so older binaries do not matter.
+  Verify each new release from its live screen and its binary's strings,
+  record only that version in `VERIFIED_VERSIONS`, and keep no version history
+  in code comments or documentation. Never drop a refusal or veto pattern just
+  because its literal is missing from the binary: Codex and Claude assemble
+  some screen text at runtime.
 - "Deploy a new version" or "make a public release" means the whole release
   procedure below: push, annotated tag, green release workflow, then
   reinstall the tagged version with pipx and restart the user service
