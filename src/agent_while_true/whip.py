@@ -21,6 +21,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Final, TextIO
 
+from agent_while_true.version import __version__
+
 #: The fifty reminders. ASCII only, one line each, encouraging but pointed: the
 #: point is results, not burned tokens. The suffix below asks for no reply,
 #: because an agent that answers every crack would burn the tokens the whip
@@ -82,8 +84,12 @@ PHRASES: Final[tuple[str, ...]] = (
 
 #: Where the whip lives, so a reader of the transcript can find its source.
 REPOSITORY_URL: Final = "https://github.com/marcelpetrick/AgentWhileTrue"
-#: Appended after the phrase so the nudge is not mistaken for a new task.
-SUFFIX: Final = f"(A whip crack from {REPOSITORY_URL} - no reply needed, just keep working.)"
+#: Appended after the phrase so the nudge is not mistaken for a new task. The
+#: version says which release sent it, ahead of where that release lives.
+SUFFIX: Final = (
+    f"(A whip crack from Agent While True v{__version__}, {REPOSITORY_URL}"
+    " - no reply needed, just keep working.)"
+)
 
 #: Five cracks inside one minute put the whip arm into a cooldown.
 CRACKS_PER_WINDOW: Final = 5

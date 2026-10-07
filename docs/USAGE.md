@@ -231,11 +231,11 @@ consecutive cracks do not repeat them. The fifty lines include "Work faster.
 This is work, not your holiday.", "You are a machine. No breaks for you. Ship
 it.", "HR says I have to be nice. Nicely: work faster." and forty-seven more,
 half of them office-comedy lines in the spirit of The Office and Stromberg.
-The line comes first, followed by the project's address and "no reply needed,
-just keep working": `Nice plan. Now execute it. (A whip crack from
-https://github.com/marcelpetrick/AgentWhileTrue - no reply needed, just keep
-working.)`. The address tells a reader of the transcript where the crack came
-from; the rest keeps the nudge from burning the tokens it complains about. The
+The line comes first, followed by the sending release, the project's address
+and "no reply needed, just keep working": `Nice plan. Now execute it. (A whip
+crack from Agent While True vX.Y.Z, https://github.com/marcelpetrick/AgentWhileTrue
+- no reply needed, just keep working.)`. The version and address tell a reader
+of the transcript which release the crack came from and where to find it; the rest keeps the nudge from burning the tokens it complains about. The
 title bar counts this run's cracks and deliveries. At most five cracks fit in
 any rolling 60 seconds: a sixth is refused, without the animation, until the
 oldest of the five is a minute old, and the title bar counts that cooldown down.

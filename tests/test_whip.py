@@ -10,6 +10,7 @@ import random
 import pytest
 
 from agent_while_true import whip
+from agent_while_true.version import __version__
 
 
 def test_phrases_are_single_ascii_lines_and_messages_ask_for_no_reply() -> None:
@@ -25,7 +26,7 @@ def test_phrases_are_single_ascii_lines_and_messages_ask_for_no_reply() -> None:
         assert text.endswith(whip.SUFFIX)
     assert "no reply needed" in whip.SUFFIX
     assert whip.message(0) == (
-        f"{whip.PHRASES[0]} (A whip crack from "
+        f"{whip.PHRASES[0]} (A whip crack from Agent While True v{__version__}, "
         "https://github.com/marcelpetrick/AgentWhileTrue - no reply needed, just keep working.)"
     )
 

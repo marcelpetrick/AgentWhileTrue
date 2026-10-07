@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.65.15] - 2026-10-07
+
+### Changed
+
+- Every whip reminder now names the release that sent it, ahead of the
+  project's address: "(A whip crack from Agent While True v0.65.15,
+  https://github.com/marcelpetrick/AgentWhileTrue - no reply needed, just keep
+  working.)".
+
 ## [0.65.14] - 2026-10-07
 
 ### Fixed

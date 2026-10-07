@@ -114,9 +114,10 @@ Half of them come from the middle manager's handbook - office-comedy lines in
 the spirit of The Office and Stromberg, delivered with a perfectly straight
 face.
 
-The funny line comes first; after it, each reminder names where it came from,
-`https://github.com/marcelpetrick/AgentWhileTrue`, so anyone reading an agent's
-transcript can find the whip's source. It closes with *no reply needed, just
+The funny line comes first; after it, each reminder names the release that
+sent it and where it lives - `Agent While True vX.Y.Z,
+https://github.com/marcelpetrick/AgentWhileTrue` - so anyone reading an agent's
+transcript can find the whip's source and version. It closes with *no reply needed, just
 keep working*, because the kindest encouragement is the kind that does not cost
 another round of tokens. The title bar keeps score (`whip=5 sent=25`). The
 whip allows five cracks in any rolling minute; a sixth waits until the oldest
