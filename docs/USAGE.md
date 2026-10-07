@@ -374,18 +374,16 @@ followed by Enter in the same revalidated D-Bus write, so a genuine submit
 happens instead of leaving `continue` in the composer.
 
 An empty Codex composer is one that shows nothing after its `›` glyph or one
-of its placeholders - "Ask Codex to do anything" or, since 0.158, "Ask a
-follow-up question" - with only the status line (`Context 93% left`,
-`7% used`) and exact status chrome below it. That chrome includes the key hints
-(`? for shortcuts`, `tab to queue message`), Codex 0.160's warning counter
-(`⚠ 1 warning · f2 to view`) and its Plan-mode cycle hint. An unrecognised row
+of its placeholders - "Ask Codex to do anything" or "Ask a follow-up
+question" - with only the status line (`Context 93% left`, `7% used`) and
+exact status chrome below it. That chrome includes the key hints
+(`? for shortcuts`, `tab to queue message`), the warning counter
+(`⚠ 1 warning · f2 to view`) and the Plan-mode cycle hint. An unrecognised row
 still counts as a draft.
-Anything else is a draft, and the whip leaves it alone. Checked against Codex
-CLI 0.158.0 on 2026-09-28, 0.159.0 on 2026-09-29 and 0.160.0 on 2026-10-03:
-the limit, retry, credit and downgrade wording is unchanged. 0.159 replaced
-"Redeem usage limit reset" with a reset menu opened by `$` ("Usage limit
-resets", "Choose a different reset", "Resetting your usage..."); every part
-of it vetoes input, because a usage limit reset is finite and earned.
+Anything else is a draft, and the whip leaves it alone. The reset menu Codex
+opens with `$` ("Usage limit resets", "Choose a different reset", "Resetting
+your usage...") vetoes input in every part, because a usage limit reset is
+finite and earned.
 
 ### Timed retries
 

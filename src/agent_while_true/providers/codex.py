@@ -4,8 +4,8 @@
 
 """Codex CLI prompt recognition.
 
-Patterns were taken from the strings shipped inside the Codex CLI 0.153.2
-binary. Codex differs from Claude Code in one way that matters a great deal
+Patterns are checked against the strings shipped inside the latest Codex CLI
+binary and its live screens. Codex differs from Claude Code in one way that matters a great deal
 here: it offers no "press enter to continue" affordance. When a Codex turn is
 cut short by a usage limit the TUI returns to its composer, so resuming means
 *typing* rather than pressing a key.
@@ -33,19 +33,10 @@ from agent_while_true.providers.base import (
 
 NAME: Final = "codex"
 PATTERNS_VERSION: Final = "codex-0.160.x/9"
-#: Versions whose screens were actually read, oldest first.
-VERIFIED_VERSIONS: Final = (
-    "0.153.2",
-    "0.153.4",
-    "0.154.0",
-    "0.155.1",
-    "0.158.0",
-    "0.159.0",
-    "0.160.0",
-)
-VERIFIED_AGAINST: Final = (
-    f"Codex CLI {', '.join(VERIFIED_VERSIONS[:-1])} and {VERIFIED_VERSIONS[-1]}"
-)
+#: The latest release whose screens and strings were read. Only the newest
+#: Codex CLI release is supported; older ones are not tracked.
+VERIFIED_VERSIONS: Final = ("0.160.1",)
+VERIFIED_AGAINST: Final = f"Codex CLI {VERIFIED_VERSIONS[-1]}"
 
 # Codex's compact blocking composer fits inside eight rows, including the
 # wrapped purchase links seen in 0.153.4. A wider generic window retained the

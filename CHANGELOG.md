@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.65.10] - 2026-10-07
+
+### Changed
+
+- Codex CLI 0.160.1, the latest release, is verified and is now the only
+  version on record: every limit, retry, credit, reset, downgrade and composer
+  string the patterns rely on is identical to 0.160.0's. The usage guide no
+  longer carries a history of older Codex releases; every veto pattern stays,
+  because a missing literal string does not prove a screen can no longer appear.
+
 ## [0.65.9] - 2026-10-07
 
 ### Changed
