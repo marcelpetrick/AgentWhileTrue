@@ -13,6 +13,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.65.16] - 2026-10-07
+
+### Changed
+
+- The README install command points at `agentwhiletrue-v0.65.16`: auto-yes
+  past Claude Code's background-agent footer hint and versioned whip cracks.
+
 ## [0.65.15] - 2026-10-07
 
 ### Changed

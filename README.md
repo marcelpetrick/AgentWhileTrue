@@ -140,7 +140,7 @@ in [docs/USAGE.md](docs/USAGE.md#the-whip).
 ## Install
 
 ```bash
-pipx install --python python3.14 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.65.13'
+pipx install --python python3.14 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.65.16'
 agent-while-true --version
 agent-while-true doctor
 ```
