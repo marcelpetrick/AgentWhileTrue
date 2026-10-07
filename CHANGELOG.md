@@ -13,6 +13,18 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.65.14] - 2026-10-07
+
+### Fixed
+
+- Auto-yes answers Claude Code permission prompts again while background
+  agents run. Claude Code 2.1.292 then appends "ctrl+x ctrl+k twice to stop
+  background agents" to the prompt's footer, and the exact-footer check
+  refused the otherwise tested menu, so such prompts waited for the operator.
+  The hint is accepted with any key binding in its observed "twice" wording;
+  every other footer still fails closed. The regression fixture is transcribed
+  from the live screen.
+
 ## [0.65.13] - 2026-10-07
 
 ### Changed

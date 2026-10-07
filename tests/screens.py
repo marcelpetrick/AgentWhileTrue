@@ -561,6 +561,29 @@ CLAUDE_APPROVAL_STAYED_2_1_285 = [
     " Esc to cancel · Tab to amend",
 ]
 
+#: A permission box read live from Claude Code 2.1.292 over D-Bus on
+#: 2026-10-07 while background agents ran: the footer gains Claude's hint for
+#: stopping them. The command, its description and the preview are replaced;
+#: the row structure, rules and glyphs are verbatim.
+CLAUDE_APPROVAL_BACKGROUND_AGENTS_2_1_292 = [
+    "✻ Waiting for 2 background agents to finish",
+    "",
+    "─" * 110,
+    " Bash command · from the general-purpose agent",
+    "   Run shell command",
+    "╌" * 110,
+    "   │ cd /home/user/project",
+    "   │ ./run-tests.sh",
+    "╌" * 110,
+    "   │ runs the project's test suite",
+    "",
+    " Do you want to proceed?",
+    " ❯ 1. Yes",
+    "   2. No",
+    "",
+    " Esc to cancel · Tab to amend · ctrl+x ctrl+k twice to stop background agents",
+]
+
 #: File-edit prompts read live from Claude Code 2.1.283 on 2026-09-28. The
 #: question names the file, a dashed rule separates it from the preview, and
 #: item 2 is a session-scoped "Yes, and ...". File contents are shortened.

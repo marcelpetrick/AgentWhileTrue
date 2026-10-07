@@ -475,8 +475,16 @@ APPROVAL_MENU_ROWS: Final = 6
 #: a tool header, the command or diff, and a sentence or two; a rule further up
 #: belongs to something else, and then the shape is not the tested one.
 APPROVAL_BOX_ROWS: Final = 40
+#: While background agents run, 2.1.292 appends its stop-agents hint to the
+#: footer, e.g. "ctrl+x ctrl+k twice to stop background agents". The key chord
+#: is the user's binding; only the observed "twice" wording is accepted.
+_KEY_CHORD = r"(?:[a-z]+\+)+[a-z0-9]+"
+_FOOTER_DOT = r"\s*\N{MIDDLE DOT}\s*"
 _APPROVAL_FOOTER = re.compile(
-    r"^\s*Esc to cancel(?:\s*\N{MIDDLE DOT}\s*Tab to amend)?\s*$", re.IGNORECASE
+    r"^\s*Esc to cancel(?:" + _FOOTER_DOT + r"Tab to amend)?"
+    r"(?:" + _FOOTER_DOT + _KEY_CHORD + r"(?: " + _KEY_CHORD + r"){0,2}"
+    r" twice to stop background agents)?\s*$",
+    re.IGNORECASE,
 )
 _APPROVAL_YES = re.compile(rf"^\s*{_COMPOSER_GLYPH}\s*1\.\s*Yes\s*$")
 _APPROVAL_YES_AND = re.compile(r"^\s*2\.\s*Yes, and\s+\S")

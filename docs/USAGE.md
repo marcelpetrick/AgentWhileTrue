@@ -475,11 +475,13 @@ the prompt is an exact tested permission menu, at the bottom of the screen:
    2. Yes, and <a session or settings choice>      (optional)
    3. No[, and tell Claude what to do differently]  (2. No without item 2)
 
- Esc to cancel · Tab to amend
+ Esc to cancel · Tab to amend[ · <keys> twice to stop background agents]
 ```
 
 with the box's solid top rule above the question, or the dashed rule right
-above it when a file preview fills the window. A cursor anywhere but item 1, a
+above it when a file preview fills the window. The bracketed footer hint is the
+one Claude Code adds while background agents run, with the user's own key
+binding (`ctrl+x ctrl+k` by default); any other footer wording fails closed. A cursor anywhere but item 1, a
 fourth item, a reworded item, or text below the footer is an untested shape to
 answer in the tab itself. A permission prompt is never a resume prompt: no
 mode answers it on its own, and the command text is never logged.

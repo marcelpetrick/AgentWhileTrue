@@ -106,6 +106,32 @@ def test_every_variation_of_the_exact_shape_fails_closed(mutate) -> None:
     assert not _recognise(mutate(list(screens.CLAUDE_APPROVAL_YES_NO))).approval_prompt
 
 
+def test_the_background_agent_footer_hint_keeps_the_exact_shape() -> None:
+    """Regression: 2.1.292 appends its stop-agents hint while subagents run."""
+    recognition = _recognise(screens.CLAUDE_APPROVAL_BACKGROUND_AGENTS_2_1_292)
+
+    assert recognition.state is SessionState.APPROVAL_PENDING
+    assert recognition.approval_prompt
+    assert recognition.approval_fingerprint
+
+
+@pytest.mark.parametrize(
+    "footer",
+    [
+        " Esc to cancel · Tab to amend · ctrl+x ctrl+k again to stop background agents",
+        " Esc to cancel · Tab to amend · ctrl+x ctrl+k twice to stop all agents",
+        " Esc to cancel · Tab to amend · twice to stop background agents",
+        " Esc to cancel · Tab to amend · ctrl+x ctrl+k twice to stop background agents now",
+        " Esc to cancel · ctrl+x ctrl+k twice to stop background agents · Tab to amend",
+    ],
+    ids=["again", "reworded", "no-keys", "trailing-text", "reordered"],
+)
+def test_an_unseen_background_agent_footer_fails_closed(footer: str) -> None:
+    screen = [*screens.CLAUDE_APPROVAL_BACKGROUND_AGENTS_2_1_292[:-1], footer]
+
+    assert not _recognise(screen).approval_prompt
+
+
 def test_the_box_fingerprint_ignores_the_redrawing_transcript_above() -> None:
     first = _recognise(screens.CLAUDE_APPROVAL_YES_NO)
     spinner = [
