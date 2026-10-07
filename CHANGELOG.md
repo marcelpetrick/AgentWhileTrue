@@ -13,6 +13,17 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.65.9] - 2026-10-07
+
+### Changed
+
+- Claude Code 2.1.292, the latest release, is verified and is now the only
+  version on record: its limit headlines, window names, credit and admin caps,
+  armed-wait notices, wait menu and permission prompt strings match what the
+  patterns expect, and its screen was read live. `doctor` stops asking to verify
+  the prompts. The patterns and the usage guide no longer carry a history of
+  older Claude Code releases.
+
 ## [0.65.8] - 2026-10-06
 
 ### Changed

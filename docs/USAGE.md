@@ -445,7 +445,7 @@ just as "usage limit has reset" outranks a clock.
 
 ![Claude Code session-limit menu](../media/claude_out_of_quota.png)
 
-Claude Code 2.1.283 builds its limit headline at runtime ("You've hit your
+Claude Code builds its limit headline at runtime ("You've hit your
 <limit>", optionally "· progress saved"). Two kinds are told apart. Window
 limits reset by waiting and block like the session limit: the session, weekly,
 Opus, Sonnet and fast limits, "You've reached your Fable limit", and the
@@ -459,8 +459,8 @@ input, including arming Claude's own wait.
 An armed wait makes the supervisor stand down in every wording Claude uses:
 "Continuing automatically when it resets", "... at 6:50pm", "... at 7pm" (zero
 minutes are dropped), "... at Oct 3, 7pm" (a reset more than a day out) and
-"... shortly". Since 2.1.284 these lines are templates Claude can change
-remotely; a wording the patterns do not know leaves the wait unrecognised,
+"... shortly". These lines are templates Claude can change remotely; a
+wording the patterns do not know leaves the wait unrecognised,
 which `doctor`'s version check and a live read are there to catch.
 
 ### Permission prompts

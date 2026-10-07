@@ -9,6 +9,6 @@ test asserts that the newest ``CHANGELOG.md`` heading matches it. Bumping this
 string is therefore the only edit a release needs.
 """
 
-__version__ = "0.65.8"
+__version__ = "0.65.9"
 
 __all__ = ["__version__"]

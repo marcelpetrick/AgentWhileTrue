@@ -38,9 +38,10 @@ from agent_while_true.providers.base import (
 
 NAME: Final = "claude"
 PATTERNS_VERSION: Final = "claude-2.1.x/10"
-#: Versions whose screens were actually read, oldest first.
-VERIFIED_VERSIONS: Final = ("2.1.261", "2.1.270", "2.1.278", "2.1.283", "2.1.284", "2.1.285")
-VERIFIED_AGAINST: Final = f"Claude Code {' and '.join(VERIFIED_VERSIONS)}"
+#: The latest release whose screens and strings were read. Only the newest
+#: Claude Code release is supported; older ones are not tracked.
+VERIFIED_VERSIONS: Final = ("2.1.292",)
+VERIFIED_AGAINST: Final = f"Claude Code {VERIFIED_VERSIONS[-1]}"
 
 
 def _pattern(text: str) -> re.Pattern[str]:
@@ -100,8 +101,8 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         kind=PromptKind.LIMIT_BLOCKED,
         scope="fable",
         all_of=(_pattern(r"You've (?:hit|reached) your Fable limit"),),
-        note="2.1.283: the Fable model window; it resets like the weekly window.",
-        verified_against="strings of the Claude Code 2.1.283 binary",
+        note="The Fable model window; it resets like the weekly window.",
+        verified_against=VERIFIED_AGAINST,
     ),
     PromptPattern(
         id="claude/limit-generic",
@@ -110,8 +111,8 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         scope="session",
         # "limit" and "usage limit" only: "usage credit limit" is a cap below.
         all_of=(_pattern(r"You've hit your (?:usage )?limit\b"),),
-        note="2.1.283 names no window when the type is unknown; it still resets.",
-        verified_against="strings of the Claude Code 2.1.283 binary",
+        note="Claude names no window when the type is unknown; it still resets.",
+        verified_against=VERIFIED_AGAINST,
     ),
     PromptPattern(
         id="claude/credits-exhausted",
@@ -125,7 +126,7 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
             ),
         ),
         note="Credits, not a window: no wait ends it. Never automated.",
-        verified_against="strings of the Claude Code 2.1.283 binary",
+        verified_against=VERIFIED_AGAINST,
     ),
     PromptPattern(
         id="claude/admin-limit",
@@ -140,7 +141,7 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
             ),
         ),
         note="An admin's or organisation's cap: only an admin or money lifts it. Never automated.",
-        verified_against="strings of the Claude Code 2.1.283 binary",
+        verified_against=VERIFIED_AGAINST,
     ),
     PromptPattern(
         id="claude/limit-banner",
@@ -269,7 +270,7 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
             ),
         ),
         note="Tool permission request. Never answered automatically.",
-        verified_against="Claude Code screenshot of 2026-09-28",
+        verified_against=VERIFIED_AGAINST,
     ),
     PromptPattern(
         id="claude/spend-limit",
