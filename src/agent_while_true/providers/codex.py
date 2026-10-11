@@ -275,8 +275,14 @@ class CodexAdapter(ProviderAdapter):
         # empty and continues below it. For typing a fresh message, only the
         # footer may follow; the resume path keeps its tested ``input_ready``.
         trailing = [line for line in live[composer + 1 :] if line.strip()] if empty else []
-        composer_empty = empty and all(
-            _CODEX_FOOTER.search(line) or _CODEX_STATUS_FOOTER.fullmatch(line) for line in trailing
+        status_rows = sum(bool(_CODEX_STATUS_FOOTER.fullmatch(line)) for line in trailing)
+        composer_empty = (
+            empty
+            and status_rows <= 1
+            and all(
+                _CODEX_FOOTER.search(line) or _CODEX_STATUS_FOOTER.fullmatch(line)
+                for line in trailing
+            )
         )
         banner = next(
             (

@@ -13,6 +13,21 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.66.3] - 2026-10-11
+
+### Fixed
+
+- The full-window Claude permission fallback now requires one of the exact
+  observed company-policy explanation families; unrelated rows between a
+  dashed separator and a permission-looking menu fail closed.
+- Codex accepts at most one percentage-free model/directory status row below
+  an empty composer, so repeated status-looking draft rows remain non-empty.
+
+### Changed
+
+- Contributor and implementation plans record the current Claude 2.1.296 and
+  Codex CLI 0.162.1 evidence boundaries.
+
 ## [0.66.2] - 2026-10-11
 
 ### Changed

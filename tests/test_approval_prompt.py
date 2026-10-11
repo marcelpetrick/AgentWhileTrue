@@ -68,6 +68,21 @@ def test_a_full_window_preview_binds_its_visible_rows() -> None:
     assert _recognise(edited).approval_fingerprint != first.approval_fingerprint
 
 
+def test_unrecognised_full_window_permission_explanation_fails_closed() -> None:
+    screen = [
+        line.replace(
+            "Ask rule Bash(glab api X-X*) overrides auto mode for this command.",
+            "An unrelated assistant status row happens to be here.",
+        )
+        for line in screens.CLAUDE_APPROVAL_RULE_OVERRIDE_2_1_296
+    ]
+
+    recognition = _recognise(screen)
+
+    assert recognition.state is SessionState.APPROVAL_PENDING
+    assert not recognition.approval_prompt
+
+
 @pytest.mark.parametrize(
     "screen",
     [

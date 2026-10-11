@@ -65,11 +65,13 @@ when recognizer behavior changes.
   the cursor on `1. Yes`, zero to two consecutive `Yes, and ...` choices, and
   a final numbered `No` - alone on the screen and unchanged since the scan,
   once per appearance, by Enter on item 1. The identical box still on screen
-  3 seconds after its answer counts
-  as an Enter that did not land and gets exactly one more Enter, through the
-  full revalidation; if it stays after that too it is reported once and left
-  to the operator. Never select a "Yes, and ..." item: those change provider
-  settings or session modes.
+  3 seconds after its answer counts as an Enter that did not land and gets
+  exactly one more Enter, through the full revalidation; if it stays after
+  that too it is reported once and left to the operator. If a full-window
+  preview scrolls away the box's top rule, require the dashed separator plus
+  an exact observed permission explanation and fingerprint the visible preview
+  too. Never select a "Yes, and ..." item: those change provider settings or
+  session modes.
 - Never log terminal contents, environment values, credentials, or prompt text.
 - Preserve the persisted action lifecycle and single-instance lock.
 - Treat SSH, containers, tmux/screen, conflicting classification signals, and

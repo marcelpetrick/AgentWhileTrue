@@ -499,6 +499,17 @@ _APPROVAL_ITEM = re.compile(r"^\s*\d+\.\s")
 _APPROVAL_QUESTION = re.compile(r"^\s*Do you want to \S.{0,200}\?\s*$")
 #: The dashed rule Claude draws between a file preview and the question.
 _DASHED_ROW = re.compile(r"^\s*[\u254c\u2504\u2508]{8,}\s*$")
+#: Exact explanation families observed between a full-window command preview
+#: and its permission question. Joining the bounded rows removes soft wrapping
+#: without accepting unrelated assistant prose in the fallback frame.
+_APPROVAL_EXPLANATION = re.compile(
+    r"^(?:Contains brace with quote character \(expansion obfuscation\) "
+    r"Ask rule Bash\(.{1,200}\) overrides auto mode for this command\. "
+    r"/permissions to let auto mode decide"
+    r"|\S+ names a path that is computed at run time, which cannot be checked against "
+    r"the read block \(permissions\.blockReadsOutsideWorkingDirectories\))$",
+    re.IGNORECASE,
+)
 
 
 def _approval_block(lines: list[str]) -> list[str] | None:
@@ -558,10 +569,15 @@ def _approval_block(lines: list[str]) -> list[str] | None:
     # explanation rows before the question. Bind every visible row from that
     # separator into the fingerprint; a numbered item or cursor in this region
     # is not an explanation and keeps the shape unknown.
-    for top in range(question - 1, max(-1, question - 7), -1):
+    for top in range(question - 1, max(-1, question - 6), -1):
         if _DASHED_ROW.match(lines[top]):
             between = lines[top + 1 : question]
             if any(_APPROVAL_ITEM.match(line) or _COMPOSER_GLYPH in line for line in between):
+                return None
+            explanation = " ".join(line.strip() for line in between if line.strip())
+            if explanation and not _APPROVAL_EXPLANATION.fullmatch(
+                normalise_typography(explanation)
+            ):
                 return None
             # This separator closes the command or file preview. Bind the
             # visible preview itself as well as the reason and menu so a

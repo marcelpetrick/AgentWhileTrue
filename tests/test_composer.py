@@ -108,6 +108,14 @@ def test_empty_composer_is_recognised(provider: str, lines: list[str]) -> None:
             "codex",
             [f"{CODEX_CURSOR} ", "  GPT-5.6-Sol default · /tmp/project", "  unfinished draft"],
         ),
+        (
+            "codex",
+            [
+                f"{CODEX_CURSOR} ",
+                "  GPT-5.6-Sol default · /tmp/project",
+                "  GPT-5.6-Sol high · /tmp/other-project",
+            ],
+        ),
     ],
 )
 def test_draft_menu_or_missing_composer_is_not_empty(provider: str, lines: list[str]) -> None:

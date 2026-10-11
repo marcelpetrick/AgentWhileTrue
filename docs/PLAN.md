@@ -76,7 +76,11 @@ The requested implementation is complete:
   two-, three- or four-choice permission menu only, once per appearance (plus
   one re-sent Enter if the identical box outlives the first by 3 s), after
   revalidation; only in full-auto, never in ask or observe mode, while paused
-  or without input control.
+  or without input control. Claude Code 2.1.296's full-window company-policy
+  explanation is exact-matched and its visible preview is fingerprinted.
+- Codex CLI 0.162.1 is the sole verified Codex release. Its percentage-free
+  `model reasoning · directory` composer footer is accepted once, while model
+  switches, admin requests, spend-cap increases and free trials remain vetoes.
 - Measured performance, coverage, licensing and dual-format SBOM gates are
   recorded in [history/maturityPlan.md](history/maturityPlan.md). The observed
   retry and Claude prompt fixes are tracked in
