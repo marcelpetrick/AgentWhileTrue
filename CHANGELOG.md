@@ -13,6 +13,23 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.66.1] - 2026-10-11
+
+### Fixed
+
+- Codex CLI 0.162.1's percentage-free `model reasoning · directory` status row
+  is recognised as exact composer chrome, so the whip and guarded continuation
+  no longer mistake an idle empty composer for a draft. The row is fully
+  anchored, permits at most one status label, and close variations fail closed.
+
+### Changed
+
+- Codex CLI 0.162.1 is the sole verified Codex release. Current model-switch,
+  admin-request, workspace spend-cap and free-trial choices are explicit vetoes
+  and can never trigger a continuation.
+- The provider-compatibility research report records the upstream evidence,
+  company-account alternatives, safety boundary and release plan.
+
 ## [0.66.0] - 2026-10-11
 
 ### Added

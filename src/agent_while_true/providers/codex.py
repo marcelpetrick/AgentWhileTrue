@@ -32,10 +32,10 @@ from agent_while_true.providers.base import (
 )
 
 NAME: Final = "codex"
-PATTERNS_VERSION: Final = "codex-0.160.x/9"
+PATTERNS_VERSION: Final = "codex-0.162.x/10"
 #: The latest release whose screens and strings were read. Only the newest
 #: Codex CLI release is supported; older ones are not tracked.
-VERIFIED_VERSIONS: Final = ("0.160.1",)
+VERIFIED_VERSIONS: Final = ("0.162.1",)
 VERIFIED_AGAINST: Final = f"Codex CLI {VERIFIED_VERSIONS[-1]}"
 
 # Codex's compact blocking composer fits inside eight rows, including the
@@ -75,6 +75,19 @@ _CODEX_FOOTER = re.compile(
     r"|(?:\? for shortcuts|to queue message)"
     r"(?:\s+⚠\s+\d+\s+warnings?\s+·\s+f2 to view)?\s*$"
     r"|Plan mode \(shift\+tab to cycle\)(?:\s+·\s+IDE context)?\s*$"
+)
+#: Codex can omit context/usage from the ordinary status row. The current
+#: shipped snapshots render an empty composer above just
+#: ``MODEL EFFORT · DIRECTORY`` and may append one thread/status label. This
+#: row is anchored end to end and admits at most that one documented label. A
+#: model-looking draft, an unbounded middle-dot row or any further continuation
+#: still fails closed.
+_CODEX_STATUS_FOOTER = re.compile(
+    r"^\s*(?:gpt|codex|o\d)[\w.-]*(?:\s+\([^\r\n)]+\))?"
+    r"\s+(?:default|low|medium|high|xhigh|max|ultra)"
+    r"\s+·\s+(?:~|/)\S+"
+    r"(?:\s+·\s+[^·\r\n]+)?\s*$",
+    re.IGNORECASE,
 )
 #: What an empty composer shows: nothing, or one of Codex's placeholders. 0.158
 #: added "Ask a follow-up question" beside "Ask Codex to do anything"; without
@@ -145,7 +158,12 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         provider=NAME,
         kind=PromptKind.PAID_ACTION_REQUIRED,
         scope="credits",
-        all_of=(_pattern(r"reached your workspace credit limit"),),
+        all_of=(
+            _pattern(
+                r"reached your workspace credit limit"
+                r"|You hit your spend cap set (?:in|by the owner of) your workspace"
+            ),
+        ),
         verified_against=VERIFIED_AGAINST,
     ),
     PromptPattern(
@@ -153,7 +171,9 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         provider=NAME,
         kind=PromptKind.PAID_ACTION_REQUIRED,
         scope="credits",
-        all_of=(_pattern(r"purchase more credits|Upgrade to (?:Plus|Pro)\b"),),
+        all_of=(
+            _pattern(r"purchase more credits|Upgrade to (?:Plus|Pro)\b|start a free trial of\b"),
+        ),
         verified_against=VERIFIED_AGAINST,
     ),
     PromptPattern(
@@ -161,7 +181,12 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         provider=NAME,
         kind=PromptKind.PAID_ACTION_REQUIRED,
         scope="credits",
-        all_of=(_pattern(r"Request (?:a limit increase|an? increase)|Request increase\?"),),
+        all_of=(
+            _pattern(
+                r"Request (?:a limit increase|an? increase)|Request increase\?"
+                r"|send a request to your admin"
+            ),
+        ),
         note="Sends a request to a workspace admin. Never automated.",
         verified_against=VERIFIED_AGAINST,
     ),
@@ -188,7 +213,12 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         provider=NAME,
         kind=PromptKind.MODEL_DOWNGRADE_OFFER,
         scope="model",
-        all_of=(_pattern(r"Keep current model|Uses fewer credits for upcoming turns"),),
+        all_of=(
+            _pattern(
+                r"Keep current model|Uses fewer credits for upcoming turns"
+                r"|Switch to another model now"
+            ),
+        ),
         verified_against=VERIFIED_AGAINST,
     ),
 )
@@ -245,7 +275,9 @@ class CodexAdapter(ProviderAdapter):
         # empty and continues below it. For typing a fresh message, only the
         # footer may follow; the resume path keeps its tested ``input_ready``.
         trailing = [line for line in live[composer + 1 :] if line.strip()] if empty else []
-        composer_empty = empty and all(_CODEX_FOOTER.search(line) for line in trailing)
+        composer_empty = empty and all(
+            _CODEX_FOOTER.search(line) or _CODEX_STATUS_FOOTER.fullmatch(line) for line in trailing
+        )
         banner = next(
             (
                 index

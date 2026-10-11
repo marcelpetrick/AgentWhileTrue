@@ -378,8 +378,10 @@ of its placeholders - "Ask Codex to do anything" or "Ask a follow-up
 question" - with only the status line (`Context 93% left`, `7% used`) and
 exact status chrome below it. That chrome includes the key hints
 (`? for shortcuts`, `tab to queue message`), the warning counter
-(`⚠ 1 warning · f2 to view`) and the Plan-mode cycle hint. An unrecognised row
-still counts as a draft.
+(`⚠ 1 warning · f2 to view`), the Plan-mode cycle hint, and Codex CLI 0.162.1's
+anchored `model reasoning · directory` row when it omits the context percentage
+(with at most one thread/status label). An unrecognised row still counts as a
+draft.
 Anything else is a draft, and the whip leaves it alone. The reset menu Codex
 opens with `$` ("Usage limit resets", "Choose a different reset", "Resetting
 your usage...") vetoes input in every part, because a usage limit reset is

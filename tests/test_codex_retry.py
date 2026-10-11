@@ -250,3 +250,62 @@ def test_a_particle_around_the_glyph_still_reads_as_an_empty_composer(spacing: s
     assert result.input_ready
     assert result.retry_prompt
     assert result.action is not None
+
+
+@pytest.mark.parametrize(
+    ("banner", "veto"),
+    [
+        (
+            "▌ You\N{RIGHT SINGLE QUOTATION MARK}ve hit your usage limit for codex_other. "
+            "Switch to another model now, or try again at 9:52 PM.",
+            "model-downgrade-offer:codex/model-downgrade",
+        ),
+        (
+            "▌ You\N{RIGHT SINGLE QUOTATION MARK}ve hit your usage limit. To get more access now, "
+            "send a request to your admin or try again at 9:52 PM.",
+            "paid-action-required:codex/limit-increase-request",
+        ),
+        (
+            "▌ You\N{RIGHT SINGLE QUOTATION MARK}ve hit your usage limit. To continue using Codex, "
+            "start a free trial of Business today, or try again at 9:52 PM.",
+            "paid-action-required:codex/purchase-offer",
+        ),
+        (
+            "▌ You hit your spend cap set in your workspace. Increase your spend cap to continue.",
+            "paid-action-required:codex/workspace-credit-limit",
+        ),
+        (
+            "▌ You hit your spend cap set by the owner of your workspace. "
+            "Ask an owner to increase your spend cap to continue.",
+            "paid-action-required:codex/workspace-credit-limit",
+        ),
+    ],
+    ids=["switch-model", "admin-request", "free-trial", "owner-cap", "member-cap"],
+)
+def test_codex_0_162_unsafe_limit_paths_are_vetoed(banner: str, veto: str) -> None:
+    """Every shipped upgrade/admin/downgrade path stays outside automation."""
+    result = providers.CODEX.recognise([banner, "", COMPOSER], now=NOW)
+
+    assert veto in result.vetoes
+
+
+@pytest.mark.parametrize(
+    "banner",
+    [
+        "▌ You\N{RIGHT SINGLE QUOTATION MARK}ve hit your usage limit for codex_other. "
+        "Switch to another model now, or try again at 9:52 PM.",
+        "▌ You\N{RIGHT SINGLE QUOTATION MARK}ve hit your usage limit. To get more access now, "
+        "send a request to your admin or try again at 9:52 PM.",
+    ],
+    ids=["switch-model", "admin-request"],
+)
+def test_codex_0_162_unconditional_vetoes_block_timed_retry(tmp_path, banner: str) -> None:
+    kit, session = setup_codex(tmp_path, availability=Availability.AVAILABLE)
+    kit.terminal.set_screen("/Sessions/1", [banner, "", COMPOSER])
+
+    kit.supervisor.tick()
+    kit.clock.advance(69)
+    kit.supervisor.tick()
+
+    assert kit.sent == []
+    assert session.last_reason.startswith(("model-downgrade-offer", "paid-action-required"))

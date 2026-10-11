@@ -181,6 +181,31 @@ def test_claude_extra_usage_offer_is_vetoed() -> None:
     assert result.action is None
 
 
+@pytest.mark.parametrize(
+    ("line", "veto"),
+    [
+        (
+            "Your organization is out of usage credits",
+            "paid-action-required:claude/admin-limit",
+        ),
+        (
+            "Your organization's usage credit cap is reached for this period",
+            "paid-action-required:claude/admin-limit",
+        ),
+        (
+            "This model requires usage credits",
+            "paid-action-required:claude/credits-exhausted",
+        ),
+    ],
+    ids=["organization-out", "organization-cap", "feature-requires-credits"],
+)
+def test_current_claude_credit_and_organization_caps_are_vetoed(line: str, veto: str) -> None:
+    result = providers.CLAUDE.recognise([line], now=NOW)
+
+    assert veto in result.vetoes
+    assert result.action is None
+
+
 def test_claude_session_limit_reset_is_vetoed() -> None:
     result = providers.CLAUDE.recognise(screens.CLAUDE_SESSION_LIMIT_RESET, now=NOW)
     assert result.vetoes == ("paid-action-required:claude/session-limit-reset",)

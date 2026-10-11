@@ -15,6 +15,24 @@ CURSOR = "\N{HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT}"
 CODEX_CURSOR = "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}"
 NOW = datetime(2026, 9, 24, 12, 0, tzinfo=UTC)
 
+# Codex CLI 0.162.1's shipped ``composer_usage_notice`` snapshot: context
+# usage is absent, so the model/reasoning/directory row is the only status row
+# between the empty composer and its shortcut hint.
+CODEX_0_162_STATUS_FOOTER = [
+    "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK} Ask Codex to do anything",
+    "  GPT-5.6-Sol default · /tmp/project",
+    "  ? for shortcuts                                      ⚠ 1 warning · f2 to view",
+]
+
+# The same anchored status shape observed read-only in a live 0.162.0 session,
+# where Codex appended one thread/status label and still omitted percentage.
+CODEX_0_162_STATUS_LABEL_FOOTER = [
+    "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK} Ask Codex to do anything",
+    "",
+    "  GPT-6.1-Sol max · ~/repos/project · review current branch",
+    "  ? for shortcuts",
+]
+
 
 def _empty(provider: str, lines: list[str]) -> bool:
     adapter = providers.by_name(provider)
@@ -39,6 +57,8 @@ def _empty(provider: str, lines: list[str]) -> bool:
         ("codex", screens.CODEX_0_158_QUEUE_HINT),
         ("codex", screens.CODEX_0_160_WARNING_FOOTER),
         ("codex", screens.CODEX_0_160_PLAN_FOOTER),
+        ("codex", CODEX_0_162_STATUS_FOOTER),
+        ("codex", CODEX_0_162_STATUS_LABEL_FOOTER),
     ],
 )
 def test_empty_composer_is_recognised(provider: str, lines: list[str]) -> None:
@@ -76,6 +96,18 @@ def test_empty_composer_is_recognised(provider: str, lines: list[str]) -> None:
         ("codex", [f"{CODEX_CURSOR} Ask a follow-up question about the parser"]),
         ("codex", [f"{CODEX_CURSOR} ", "  93% of the tests are left"]),
         ("codex", [f"{CODEX_CURSOR} ", "  ? for shortcuts · unfinished draft"]),
+        # The percentage-free 0.162 status row is anchored and admits at most
+        # one documented thread/status label. Near misses remain drafts.
+        ("codex", [f"{CODEX_CURSOR} ", "  GPT-5.6-Sol · /tmp/project"]),
+        ("codex", [f"{CODEX_CURSOR} ", "  GPT-5.6-Sol default · relative/project"]),
+        (
+            "codex",
+            [f"{CODEX_CURSOR} ", "  GPT-5.6-Sol default · /tmp/project · title · extra"],
+        ),
+        (
+            "codex",
+            [f"{CODEX_CURSOR} ", "  GPT-5.6-Sol default · /tmp/project", "  unfinished draft"],
+        ),
     ],
 )
 def test_draft_menu_or_missing_composer_is_not_empty(provider: str, lines: list[str]) -> None:
