@@ -87,8 +87,7 @@ REPOSITORY_URL: Final = "https://github.com/marcelpetrick/AgentWhileTrue"
 #: Appended after the phrase so the nudge is not mistaken for a new task. The
 #: version says which release sent it, ahead of where that release lives.
 SUFFIX: Final = (
-    f"(A whip crack from Agent While True v{__version__}, {REPOSITORY_URL}"
-    " - no reply needed, just keep working.)"
+    f"(A whip crack from {REPOSITORY_URL} v{__version__} - no reply needed, just keep working.)"
 )
 
 #: Five cracks inside one minute put the whip arm into a cooldown.

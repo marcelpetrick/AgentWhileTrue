@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.66.2] - 2026-10-11
+
+### Changed
+
+- Whip reminders use the shorter requested provenance suffix:
+  `(A whip crack from https://github.com/marcelpetrick/AgentWhileTrue vX.Y.Z -
+  no reply needed, just keep working.)`.
+
 ## [0.66.1] - 2026-10-11
 
 ### Fixed
