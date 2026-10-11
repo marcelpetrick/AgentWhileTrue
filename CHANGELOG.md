@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.66.4] - 2026-10-11
+
+### Changed
+
+- The README install command points at `agentwhiletrue-v0.66.4`, the reviewed
+  release for Claude Code 2.1.296, Codex CLI 0.162.1, current company-account
+  permission menus and the shorter versioned whip signature.
+
 ## [0.66.3] - 2026-10-11
 
 ### Fixed
