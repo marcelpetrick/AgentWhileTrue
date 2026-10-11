@@ -4,9 +4,9 @@
 
 """Claude Code prompt recognition.
 
-Every pattern below was taken from the strings shipped inside the Claude Code
-2.1.261 and 2.1.270 executables and cross-checked against a screenshot of a real
-five-hour limit event, rather than being guessed from documentation.
+Every pattern below was taken from the strings shipped inside the current
+Claude Code executable and cross-checked against real prompt captures or the
+current provider documentation, rather than being guessed.
 
 The most important entry is not a limit pattern at all: since 2.1.234 Claude
 Code resumes itself when the limit resets, and advertises that with
@@ -37,10 +37,10 @@ from agent_while_true.providers.base import (
 )
 
 NAME: Final = "claude"
-PATTERNS_VERSION: Final = "claude-2.1.x/10"
+PATTERNS_VERSION: Final = "claude-2.1.x/11"
 #: The latest release whose screens and strings were read. Only the newest
 #: Claude Code release is supported; older ones are not tracked.
-VERIFIED_VERSIONS: Final = ("2.1.292",)
+VERIFIED_VERSIONS: Final = ("2.1.296",)
 VERIFIED_AGAINST: Final = f"Claude Code {VERIFIED_VERSIONS[-1]}"
 
 
@@ -122,7 +122,8 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         all_of=(
             _pattern(
                 r"You've hit your usage credit limit|You're out of (?:usage credits|extra usage)"
-                r"|Fable 5 requires usage credits"
+                r"|Fable 5 requires usage credits|\brequires usage credits\b"
+                r"|\b(?:usage credits|extra usage) (?:are|is) required\b"
             ),
         ),
         note="Credits, not a window: no wait ends it. Never automated.",
@@ -136,7 +137,9 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         all_of=(
             _pattern(
                 r"You've hit your (?:org's|channel's|team's|individual) "
-                r"|Your org is out of usage|Your seat type doesn't include"
+                r"|Your org is out of usage|Your organization is out of usage credits"
+                r"|Your organization's usage credit cap is reached"
+                r"|Your seat type doesn't include"
                 r"|Your usage allocation has been disabled|Your group's usage limit is set to \$0"
             ),
         ),
@@ -468,27 +471,28 @@ def _composer_empty(lines: list[str]) -> bool:
     return False
 
 
-#: How many rows below the question a menu item may sit: three items, one
-#: wrapped row of item 2, and room for a blank row.
-APPROVAL_MENU_ROWS: Final = 6
+#: How many rows below the question a menu item may sit: four items, wrapped
+#: rows for the two middle choices, and room for a blank row.
+APPROVAL_MENU_ROWS: Final = 10
 #: How far above the menu the permission box's top rule may sit. The box holds
 #: a tool header, the command or diff, and a sentence or two; a rule further up
 #: belongs to something else, and then the shape is not the tested one.
 APPROVAL_BOX_ROWS: Final = 40
-#: While background agents run, 2.1.292 appends its stop-agents hint to the
-#: footer, e.g. "ctrl+x ctrl+k twice to stop background agents". The key chord
-#: is the user's binding; only the observed "twice" wording is accepted.
+#: While background agents run, Claude appends its stop-agents hint to the
+#: footer. Before the first chord it says "twice"; after that chord it says
+#: "again". The key chord is the user's binding and both exact states were
+#: observed live.
 _KEY_CHORD = r"(?:[a-z]+\+)+[a-z0-9]+"
 _FOOTER_DOT = r"\s*\N{MIDDLE DOT}\s*"
 _APPROVAL_FOOTER = re.compile(
     r"^\s*Esc to cancel(?:" + _FOOTER_DOT + r"Tab to amend)?"
     r"(?:" + _FOOTER_DOT + _KEY_CHORD + r"(?: " + _KEY_CHORD + r"){0,2}"
-    r" twice to stop background agents)?\s*$",
+    r" (?:twice|again) to stop background agents)?\s*$",
     re.IGNORECASE,
 )
 _APPROVAL_YES = re.compile(rf"^\s*{_COMPOSER_GLYPH}\s*1\.\s*Yes\s*$")
-_APPROVAL_YES_AND = re.compile(r"^\s*2\.\s*Yes, and\s+\S")
-_APPROVAL_NO = re.compile(r"^\s*(?P<number>[23])\.\s*No(?:\s*$|,\s)")
+_APPROVAL_YES_AND = re.compile(r"^\s*(?P<number>[23])\.\s*Yes, and\s+\S")
+_APPROVAL_NO = re.compile(r"^\s*(?P<number>[2-4])\.\s*No(?:\s*$|,\s)")
 _APPROVAL_ITEM = re.compile(r"^\s*\d+\.\s")
 #: "Do you want to proceed?", "... overwrite settings.local.json?",
 #: "... create notes.md?", "... make this edit to cli.py?": one whole row.
@@ -505,9 +509,10 @@ def _approval_block(lines: list[str]) -> list[str] | None:
     (item 2, or item 3 with "No, and tell Claude ..."), for three items a
     "2. Yes, and ..." item whose text may wrap, the cursor on "1. Yes", and a
     "Do you want to ...?" question. Above the question sits the box's solid
-    top rule, or - when a file preview fills the window - the dashed rule
-    right above the question. The cursor anywhere else, a fourth item, a
-    reworded item or text below the footer is another shape and yields None.
+    top rule, or - when a preview fills the window - a nearby dashed rule and
+    the visible permission explanation above the question. The cursor anywhere
+    else, a fifth item, a reworded item or text below the footer is another
+    shape and yields None.
     Enter on this shape selects item 1, the one-time "Yes"; a "Yes, and ..."
     item is never reached.
     """
@@ -523,17 +528,23 @@ def _approval_block(lines: list[str]) -> list[str] | None:
     if last is None:
         return None
     row -= 1
-    if last.group("number") == "3":
-        # Item 2 and the rows it wrapped onto, none of which is an item.
-        while row >= 0 and not _APPROVAL_YES_AND.match(lines[row]):
+    for expected in range(int(last.group("number")) - 1, 1, -1):
+        # Each middle item is "Yes, and ...". Its text may wrap, but no blank,
+        # cursor or other numbered item may be hidden inside the wrapped rows.
+        while row >= 0:
+            middle = _APPROVAL_YES_AND.match(lines[row])
+            if middle is not None:
+                if int(middle.group("number")) != expected or _COMPOSER_GLYPH in lines[row]:
+                    return None
+                row -= 1
+                break
             if _APPROVAL_ITEM.match(lines[row]) or _COMPOSER_GLYPH in lines[row]:
                 return None
             if not lines[row].strip() or end - row > APPROVAL_MENU_ROWS + 2:
                 return None
             row -= 1
-        if row < 0 or _COMPOSER_GLYPH in lines[row]:
+        else:
             return None
-        row -= 1
     if row < 1 or not _APPROVAL_YES.match(lines[row]):
         return None
     question = row - 1
@@ -542,8 +553,18 @@ def _approval_block(lines: list[str]) -> list[str] | None:
     for top in range(question - 1, max(-1, question - 1 - APPROVAL_BOX_ROWS), -1):
         if _RULE_ROW.match(lines[top]):
             return lines[top:end]
-    if question >= 1 and _DASHED_ROW.match(lines[question - 1]):
-        # The preview fills the window, so nothing above it can redraw: the
-        # visible preview rows are part of what is being approved.
-        return lines[max(0, question - 1 - APPROVAL_BOX_ROWS) : end]
+    # A full-height command preview can scroll the solid rule away. Current
+    # Claude leaves its dashed separator followed by up to four permission
+    # explanation rows before the question. Bind every visible row from that
+    # separator into the fingerprint; a numbered item or cursor in this region
+    # is not an explanation and keeps the shape unknown.
+    for top in range(question - 1, max(-1, question - 7), -1):
+        if _DASHED_ROW.match(lines[top]):
+            between = lines[top + 1 : question]
+            if any(_APPROVAL_ITEM.match(line) or _COMPOSER_GLYPH in line for line in between):
+                return None
+            # This separator closes the command or file preview. Bind the
+            # visible preview itself as well as the reason and menu so a
+            # changed command cannot inherit an approval from the prior scan.
+            return lines[max(0, top - APPROVAL_BOX_ROWS) : end]
     return None

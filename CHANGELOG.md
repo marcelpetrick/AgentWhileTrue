@@ -13,6 +13,30 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.66.0] - 2026-10-11
+
+### Added
+
+- Auto-yes recognises Claude Code 2.1.296's current two-, three- and four-choice
+  permission menus while still pressing Enter only on the visibly selected
+  one-time `1. Yes`. The two persistent `Yes, and ...` choices and the final
+  `No` are bounded and never selected; a fifth or reworded item fails closed.
+- The live managed-account Bash rule-override prompt is covered: when a
+  full-window command preview scrolls away the box's top rule, its dashed
+  separator and permission explanation are accepted and the entire visible
+  preview remains bound into the revalidation fingerprint.
+
+### Fixed
+
+- Auto-yes accepts both exact background-agent footer states: `twice to stop
+  background agents` before the first chord and `again to stop background
+  agents` afterwards.
+
+### Changed
+
+- Claude Code 2.1.296 is the sole verified Claude release. Current usage-credit
+  and organization-cap messages remain unconditional paid/admin vetoes.
+
 ## [0.65.16] - 2026-10-07
 
 ### Changed

@@ -472,27 +472,30 @@ the prompt is an exact tested permission menu, at the bottom of the screen:
 ```text
  Do you want to <anything>?
  ❯ 1. Yes
-   2. Yes, and <a session or settings choice>      (optional)
-   3. No[, and tell Claude what to do differently]  (2. No without item 2)
+   2. Yes, and <a session or settings choice>       (optional)
+   3. Yes, and <another session or mode choice>     (optional)
+   2|3|4. No[, and tell Claude what to do differently]
 
- Esc to cancel · Tab to amend[ · <keys> twice to stop background agents]
+ Esc to cancel · Tab to amend[ · <keys> twice|again to stop background agents]
 ```
 
-with the box's solid top rule above the question, or the dashed rule right
-above it when a file preview fills the window. The bracketed footer hint is the
-one Claude Code adds while background agents run, with the user's own key
-binding (`ctrl+x ctrl+k` by default); any other footer wording fails closed. A cursor anywhere but item 1, a
-fourth item, a reworded item, or text below the footer is an untested shape to
-answer in the tab itself. A permission prompt is never a resume prompt: no
-mode answers it on its own, and the command text is never logged.
+with the box's solid top rule above the question, or the visible command/file
+preview, dashed separator and bounded permission explanation when a full-height
+preview scrolls that rule away. The bracketed footer hint is the one Claude
+Code adds while background agents run, with the user's own key binding
+(`ctrl+x ctrl+k` by default); `twice` is shown initially and `again` after the
+first stop chord. Any other footer wording fails closed. A cursor anywhere but
+item 1, a fifth item, a reworded item, or text below the footer is an untested
+shape to answer in the tab itself. A permission prompt is never a resume
+prompt: no mode answers it on its own, and the command text is never logged.
 
 **Why it exists.** On an account whose Claude Code managed settings keep
 permission prompts on - no bypass mode, no broad allow rules - an agent stops
 at every tool call it cannot pre-approve, and a supervised session sits idle
 until someone comes back to the tab. Auto-yes lets such a limited account keep
-working unattended, within the gates below. It was validated live on
-2026-09-28 with Claude Code 2.1.283: two sessions on a managed account were
-answered (`approval_sent`) and back to `ACTIVE` within two seconds each.
+working unattended, within the gates below. It is validated against Claude
+Code 2.1.296, including managed-account Bash rule overrides whose full-window
+command preview hides the box's top rule.
 
 **Auto-yes (`y`).** The dashboard's `y` key switches auto-yes on and off; the
 header shows `[y] auto-yes on permission prompts: OFF|ON` and how many sessions

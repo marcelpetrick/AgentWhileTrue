@@ -119,6 +119,21 @@ APPROVAL_SCREEN = [
     "",
     " Esc to cancel · Tab to amend",
 ]
+#: Claude Code 2.1.296's full-window Bash-rule override prompt. The top rule
+#: has scrolled away; the dashed separator and permission reason remain.
+CURRENT_APPROVAL_SCREEN = [
+    *[f"   │ command preview row {number}" for number in range(30)],
+    "╌" * 80,
+    " Contains brace with quote character (expansion obfuscation)",
+    " Ask rule Bash(glab api X-X*) overrides auto mode for this command.",
+    " /permissions to let auto mode decide",
+    "",
+    " Do you want to proceed?",
+    " ❯ 1. Yes",
+    "   2. No",
+    "",
+    " Esc to cancel · Tab to amend",
+]
 #: The three-option box with the operator's cursor moved onto item 2.
 APPROVAL_CURSOR_MOVED_SCREEN = [
     *APPROVAL_SCREEN[:9],
@@ -741,14 +756,19 @@ def scenario_approval_waits_for_the_operator(directory: Path) -> Result:
 def scenario_auto_yes_answers_once(directory: Path) -> Result:
     world = _world(directory, screen=APPROVAL_CURSOR_MOVED_SCREEN)
     world.approve("the cursor was moved off Yes")
-    world.screen(APPROVAL_SCREEN)
-    world.approve("exact permission menu, auto-yes on")
+    world.screen(CURRENT_APPROVAL_SCREEN)
+    world.approve("exact current permission menu, auto-yes on")
     world.approve("the same box, Claude has not redrawn yet")
     world.screen(ACTIVE_SCREEN)
     world.approve("the command runs")
-    world.screen(APPROVAL_SCREEN)
+    world.screen(CURRENT_APPROVAL_SCREEN)
     world.supervisor.tick()
-    world.screen([line.replace("make e2e", "rm -rf ~") for line in APPROVAL_SCREEN])
+    world.screen(
+        [
+            line.replace("command preview row 12", "changed command row")
+            for line in CURRENT_APPROVAL_SCREEN
+        ]
+    )
     outcomes = world.supervisor.approve_pending()
     world.steps.append(
         Step(

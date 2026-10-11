@@ -61,9 +61,11 @@ live project, account or quota data.*
   cannot switch permission prompts off (managed settings, no bypass mode),
   every "Do you want to proceed?", "... overwrite this file?" or "... create
   this file?" used to park the agent until you came back. Press `y` in
-  full-auto and auto-yes answers `1. Yes` on the exact permission menu, once
-  per prompt (plus a single re-sent Enter if that exact box is still there 3 s
-  later), after the same revalidation as every other input.
+  full-auto and auto-yes answers `1. Yes` on the exact current two-, three- or
+  four-choice permission menu, once per prompt (plus a single re-sent Enter if
+  that exact box is still there 3 s later), after the same revalidation as
+  every other input. Full-window command previews and both background-agent
+  footer states are covered.
   It approves whatever command is asked, so it starts off on every run and the
   header always shows it. [Details](docs/USAGE.md#permission-prompts).
 - **Explanations, not surprises** — a detail panel shows the latest decision,

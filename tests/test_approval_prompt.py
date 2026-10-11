@@ -42,10 +42,12 @@ def test_the_live_yes_no_prompt_is_the_exact_tested_shape() -> None:
         screens.CLAUDE_APPROVAL_DONT_ASK_AGAIN,
         screens.CLAUDE_APPROVAL_OVERWRITE_LIVE,
         screens.CLAUDE_APPROVAL_CREATE_LIVE,
+        screens.CLAUDE_APPROVAL_FOUR_OPTIONS_2_1_296,
+        screens.CLAUDE_APPROVAL_RULE_OVERRIDE_2_1_296,
     ],
-    ids=["dont-ask-again", "overwrite-file", "create-file"],
+    ids=["dont-ask-again", "overwrite-file", "create-file", "four-options", "rule-override"],
 )
-def test_three_option_menus_with_the_cursor_on_yes_are_exact(screen: list[str]) -> None:
+def test_current_permission_menus_with_the_cursor_on_yes_are_exact(screen: list[str]) -> None:
     """Enter selects item 1, the one-time Yes; "Yes, and ..." is never reached."""
     recognition = _recognise(screen)
 
@@ -106,6 +108,21 @@ def test_every_variation_of_the_exact_shape_fails_closed(mutate) -> None:
     assert not _recognise(mutate(list(screens.CLAUDE_APPROVAL_YES_NO))).approval_prompt
 
 
+def test_a_fifth_permission_item_fails_closed() -> None:
+    screen = [
+        *screens.CLAUDE_APPROVAL_FOUR_OPTIONS_2_1_296[:-3],
+        "   4. Yes, and change provider settings",
+        "   5. No",
+        "",
+        " Esc to cancel · Tab to amend",
+    ]
+
+    recognition = _recognise(screen)
+
+    assert recognition.state is SessionState.APPROVAL_PENDING
+    assert not recognition.approval_prompt
+
+
 def test_the_background_agent_footer_hint_keeps_the_exact_shape() -> None:
     """Regression: 2.1.292 appends its stop-agents hint while subagents run."""
     recognition = _recognise(screens.CLAUDE_APPROVAL_BACKGROUND_AGENTS_2_1_292)
@@ -115,16 +132,23 @@ def test_the_background_agent_footer_hint_keeps_the_exact_shape() -> None:
     assert recognition.approval_fingerprint
 
 
+def test_the_background_agent_again_footer_keeps_the_exact_shape() -> None:
+    recognition = _recognise(screens.CLAUDE_APPROVAL_BACKGROUND_AGENTS_AGAIN_2_1_296)
+
+    assert recognition.state is SessionState.APPROVAL_PENDING
+    assert recognition.approval_prompt
+    assert recognition.approval_fingerprint
+
+
 @pytest.mark.parametrize(
     "footer",
     [
-        " Esc to cancel · Tab to amend · ctrl+x ctrl+k again to stop background agents",
         " Esc to cancel · Tab to amend · ctrl+x ctrl+k twice to stop all agents",
         " Esc to cancel · Tab to amend · twice to stop background agents",
         " Esc to cancel · Tab to amend · ctrl+x ctrl+k twice to stop background agents now",
         " Esc to cancel · ctrl+x ctrl+k twice to stop background agents · Tab to amend",
     ],
-    ids=["again", "reworded", "no-keys", "trailing-text", "reordered"],
+    ids=["reworded", "no-keys", "trailing-text", "reordered"],
 )
 def test_an_unseen_background_agent_footer_fails_closed(footer: str) -> None:
     screen = [*screens.CLAUDE_APPROVAL_BACKGROUND_AGENTS_2_1_292[:-1], footer]

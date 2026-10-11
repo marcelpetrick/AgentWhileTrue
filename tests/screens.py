@@ -584,6 +584,45 @@ CLAUDE_APPROVAL_BACKGROUND_AGENTS_2_1_292 = [
     " Esc to cancel · Tab to amend · ctrl+x ctrl+k twice to stop background agents",
 ]
 
+#: A Bash permission prompt read live from Claude Code 2.1.296 on 2026-10-11.
+#: The command preview fills the Konsole window, so the box's solid top rule
+#: has scrolled away. Claude leaves the dashed separator and three explanation
+#: rows before its ordinary two-choice menu. The command itself is replaced;
+#: the permission explanation, menu, spacing and footer are verbatim.
+CLAUDE_APPROVAL_RULE_OVERRIDE_2_1_296 = [
+    *[f"   │ command preview row {number}" for number in range(30)],
+    "╌" * 139,
+    " Contains brace with quote character (expansion obfuscation)",
+    " Ask rule Bash(glab api X-X*) overrides auto mode for this command.",
+    " /permissions to let auto mode decide",
+    "",
+    " Do you want to proceed?",
+    " ❯ 1. Yes",
+    "   2. No",
+    "",
+    " Esc to cancel · Tab to amend",
+]
+
+#: Claude Code 2.1.296 can offer two persistent choices between one-time Yes
+#: and No. Enter on item 1 remains the only permitted answer.
+CLAUDE_APPROVAL_FOUR_OPTIONS_2_1_296 = [
+    *CLAUDE_APPROVAL_YES_NO[:13],
+    " Do you want to proceed?",
+    " ❯ 1. Yes",
+    "   2. Yes, and don't ask again for similar commands in this project",
+    "   3. Yes, and switch to auto mode",
+    "   4. No",
+    "",
+    " Esc to cancel · Tab to amend",
+]
+
+#: The same background-agent prompt after the first stop chord. Claude changes
+#: only "twice" to "again" while the permission box remains unchanged.
+CLAUDE_APPROVAL_BACKGROUND_AGENTS_AGAIN_2_1_296 = [
+    *CLAUDE_APPROVAL_BACKGROUND_AGENTS_2_1_292[:-1],
+    " Esc to cancel · Tab to amend · ctrl+x ctrl+k again to stop background agents",
+]
+
 #: File-edit prompts read live from Claude Code 2.1.283 on 2026-09-28. The
 #: question names the file, a dashed rule separates it from the preview, and
 #: item 2 is a session-scoped "Yes, and ...". File contents are shortened.
