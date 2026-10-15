@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.66.5] - 2026-10-15
+
+### Changed
+
+- Ruff 0.17.0 and upload-artifact 7.0.2 replace their previous exact pins.
+- The dependency-audit workflow pins every GitHub Action to its verified commit.
+- The Python 3.14 slim container base advances to the current 3.14.8 multi-platform digest.
+
 ## [0.66.4] - 2026-10-11
 
 ### Changed

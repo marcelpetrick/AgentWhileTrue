@@ -25,7 +25,7 @@ def test_image_is_a_pinned_non_root_exact_wheel_simulator() -> None:
     dockerfile = DOCKERFILE.read_text(encoding="utf-8")
 
     assert (
-        "python:3.14-slim@sha256:f85c5697265c178cc6887276c55fe16cf3d14ca35c3df6a5eab3b360534a55d2"
+        "python:3.14-slim@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170"
     ) in dockerfile
     assert "COPY dist/agent_while_true-${VERSION}-py3-none-any.whl /tmp/" in dockerfile
     assert "COPY dist/*.whl" not in dockerfile
