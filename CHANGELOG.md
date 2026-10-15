@@ -13,6 +13,22 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.67.2] - 2026-10-15
+
+### Fixed
+
+- Hidden Codex command previews remain manual with every fullscreen keybinding,
+  including customized bindings; rejection uses the stable clipping marker.
+- Complete current overlays with hidden previews stay visible as pending manual
+  approvals instead of appearing active when their title is above the short
+  composer window.
+
+### Changed
+
+- The documented pipx installation points at the reviewed `agentwhiletrue-v0.67.2`
+  release, including the refreshed dependency pins and current one-turn
+  Claude/Codex approval handling.
+
 ## [0.67.1] - 2026-10-15
 
 ### Fixed

@@ -285,6 +285,23 @@ class CodexAdapter(ProviderAdapter):
                 approval_prompt=True,
                 approval_fingerprint=fingerprint(block),
             )
+        end = len(lines)
+        while end and not lines[end - 1].strip():
+            end -= 1
+        footer_visible = any(
+            end >= width and _APPROVAL_FOOTER.fullmatch(_joined_rows(lines[end - width : end]))
+            for width in (1, 2)
+        )
+        manual = (
+            super().recognise(lines, now=now, live_lines=_MAX_APPROVAL_ROWS + 12)
+            if footer_visible
+            else None
+        )
+        if manual is not None and "codex/tool-approval" in manual.matched_ids:
+            # A current overlay with an incomplete/hidden preview still blocks
+            # work. Keep it visible as manual approval, without an answerable
+            # fingerprint or any composer/resume input path.
+            return replace(manual, input_ready=False, composer_empty=False)
         result = super().recognise(lines, now=now, live_lines=live_lines)
         live = lines[-live_lines:]
         # Timed trials require the tested empty composer (or its known
@@ -370,7 +387,7 @@ _OPTION = re.compile(r"^\s*(?P<number>[1-4])\.\s*(?P<label>\S.*)\s*$")
 _ANY_OPTION = re.compile(r"^\s*\d+\.\s")
 _MAX_APPROVAL_ROWS: Final = 40
 _CLIPPED_APPROVAL_CONTENT = re.compile(
-    r"^\s*\[…\s+\d+\s+lines\](?:\s+⌃g\s+view\s+all)?\s*$",
+    r"^\s*\[…\s+\d+\s+lines\].*$",
     re.IGNORECASE,
 )
 

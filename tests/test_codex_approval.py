@@ -115,6 +115,19 @@ def test_a_clipped_overlay_remains_manual(screen: list[str]) -> None:
     assert recognition.action is None
 
 
+@pytest.mark.parametrize("hint", ["⌃a view all", "f12 view all", "", "unknown hint"])
+def test_clipped_content_with_any_keybinding_remains_manual(hint: str) -> None:
+    screen = [
+        line.replace("⌃g view all", hint)
+        for line in screens.CODEX_APPROVAL_EXEC_CLIPPED_PREVIEW_0_162_1
+    ]
+
+    recognition = _recognise(screen)
+    assert recognition.state is SessionState.APPROVAL_PENDING
+    assert not recognition.approval_prompt
+    assert recognition.approval_fingerprint == ""
+
+
 def test_the_fingerprint_binds_the_command_preview() -> None:
     first = _recognise(screens.CODEX_APPROVAL_EXEC_0_162_1)
     changed = [
@@ -123,3 +136,20 @@ def test_the_fingerprint_binds_the_command_preview() -> None:
     ]
 
     assert _recognise(changed).approval_fingerprint != first.approval_fingerprint
+
+
+def test_a_completed_approval_above_the_current_composer_is_history() -> None:
+    recognition = _recognise(
+        [
+            *screens.CODEX_APPROVAL_EXEC_0_162_1,
+            "• Ran pytest",
+            "  all tests passed",
+            "",
+            "\u203a Ask Codex to do anything",
+            "  gpt-6 medium · ~/repo",
+        ]
+    )
+
+    assert recognition.state is SessionState.ACTIVE
+    assert recognition.composer_empty
+    assert not recognition.approval_prompt
