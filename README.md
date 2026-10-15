@@ -28,6 +28,12 @@ state, account, five-hour and weekly quota, and reset countdown. When a session
 stops on a usage limit, Agent While True can wait for the window to reopen and
 resume that session for you.
 
+We update Agent While True regularly to keep agents moving as Claude Code and
+Codex CLI evolve. Known automation blockers drive our fixes: changed quota
+screens, company-account permission prompts, new footers and wrapped menus.
+Each supported fix gets regression coverage and passes the full release gate
+before publication. See [Keeping your agents unblocked](#keeping-your-agents-unblocked).
+
 It is built to refuse rather than guess: only sessions you selected, only exact
 tested prompts, only after fresh provider evidence, and never a paid, upgrade,
 reset-credit or model-downgrade choice. Start in observe mode, read why a
@@ -44,7 +50,7 @@ the real renderer — `scripts/record_demo.py` feeds fabricated sessions to the 
 
 ![Agent While True 0.65.3 running in KDE Konsole](media/agentWhileTrue_v0.65.3.png)
 
-*A real KDE Konsole capture of the current 0.65.3 renderer, using invented
+*A real KDE Konsole capture of the 0.65.3 renderer, using invented
 sessions and `.invalid` accounts with screenshot redaction enabled. It shows
 the independent `A` auto-resume and `y` auto-yes controls without publishing
 live project, account or quota data.*
@@ -82,6 +88,31 @@ Target platform: Manjaro/Arch Linux, KDE Plasma, Konsole (Wayland or X11),
 Python 3.14.x, `qdbus6`. The runtime has no third-party dependencies. Older
 Python versions and unreviewed future minor versions are intentionally rejected
 so local checks, CI, release builds and the container all exercise one runtime.
+
+## Keeping your agents unblocked
+
+Claude Code and Codex CLI change frequently. We regularly review the latest
+stable releases and investigate reported blockers, then extend the tested
+rules so supported sessions can continue unattended. We aim to cover every
+known, safely automatable blocker; this is not a promise to answer every
+question or support an unseen screen immediately.
+
+Enable `A` for auto-resume after five-hour or weekly limits, and `y` separately
+for supported one-time tool permissions. A five-hour reset does not clear an
+exhausted weekly budget. Arbitrary decisions, persistent permission changes,
+paid choices and requests with hidden previews still need the operator.
+
+Use the [latest public release](https://github.com/marcelpetrick/AgentWhileTrue/releases/latest)
+and run `agent-while-true doctor` after updating either provider. Restart the
+dashboard after updating Agent While True so it loads the new code, and enable
+`y` again if wanted; that switch is never saved. The [changelog](CHANGELOG.md)
+records which blockers each version addresses.
+
+If a session still waits, [report the blocker](https://github.com/marcelpetrick/AgentWhileTrue/issues)
+with the Agent While True/provider versions and a privacy-redacted screenshot
+of the complete prompt. Remove credentials, account details and confidential
+command or file contents before sharing. Exact prompt evidence lets us add a
+regression fixture and a focused fix.
 
 ## The whip
 

@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.67.3] - 2026-10-15
+
+### Documentation
+
+- README explains regular provider compatibility updates, the goal of covering
+  known safely automatable blockers, the separate resume/permission switches,
+  and how to update or report a remaining blocker with redacted evidence.
+
 ## [0.67.2] - 2026-10-15
 
 ### Fixed
