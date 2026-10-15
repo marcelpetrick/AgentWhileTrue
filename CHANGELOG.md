@@ -13,6 +13,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.66.6] - 2026-10-15
+
+### Changed
+
+- Updated and digest-pinned the Dockerfile frontend to 1.27.1, and extended
+  the immutable GitHub Action pin test to cover the dependency-audit workflow.
+
 ## [0.66.5] - 2026-10-15
 
 ### Changed

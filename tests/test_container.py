@@ -24,6 +24,10 @@ SECURITY_WORKFLOW = ROOT / ".github/workflows/security.yml"
 def test_image_is_a_pinned_non_root_exact_wheel_simulator() -> None:
     dockerfile = DOCKERFILE.read_text(encoding="utf-8")
 
+    assert dockerfile.startswith(
+        "# syntax=docker/dockerfile:1.27.1@"
+        "sha256:4edf897a3ffa55b89f906fc8cc78afdb3f1834cc9c7083565e611a8a7d5fe99e"
+    )
     assert (
         "python:3.14-slim@sha256:a2b82f3c48559aa0a8446d9af49826b6e2b2016f4cd2afabfe6013ec53729170"
     ) in dockerfile
@@ -163,8 +167,8 @@ def test_release_is_tag_only_multiarch_and_attested() -> None:
 
 
 def test_every_workflow_action_is_pinned_to_a_full_sha() -> None:
-    for path in (QUALITY_WORKFLOW, RELEASE_WORKFLOW):
+    for path in (QUALITY_WORKFLOW, RELEASE_WORKFLOW, SECURITY_WORKFLOW):
         workflow = path.read_text(encoding="utf-8")
-        references = re.findall(r"^\s*uses:\s+\S+@([^\s]+)", workflow, flags=re.MULTILINE)
+        references = re.findall(r"^\s*(?:-\s*)?uses:\s+\S+@([^\s]+)", workflow, flags=re.MULTILINE)
         assert references
         assert all(re.fullmatch(r"[0-9a-f]{40}", reference) for reference in references)
