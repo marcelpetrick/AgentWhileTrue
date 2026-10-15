@@ -75,7 +75,7 @@ def test_the_toggle_line_says_what_auto_yes_will_do() -> None:
     auto, observe = Config(mode=Mode.AUTO), Config(mode=Mode.OBSERVE)
 
     assert "auto-yes on permission prompts: OFF" in toggles_line([], auto, auto_yes=False)
-    assert "ON - approves any command asked" in toggles_line([], auto, auto_yes=True)
+    assert "ON - approves any tool use asked" in toggles_line([], auto, auto_yes=True)
     assert "ON, inert: observe mode sends nothing" in toggles_line([], observe, auto_yes=True)
     ask = Config(mode=Mode.ASK)
     assert "ON, inert: ask mode confirms each action" in toggles_line([], ask, auto_yes=True)
@@ -125,7 +125,7 @@ def test_pressing_y_answers_the_waiting_prompt(tmp_path: Path, monkeypatch) -> N
     log = (tmp_path / "agent-while-true.log").read_text(encoding="utf-8")
     assert "auto_yes_toggled enabled=true" in log.lower()
     assert "approval_sent" in log
-    assert "ON - approves any command asked" in output
+    assert "ON - approves any tool use asked" in output
 
 
 def test_a_prompt_that_stays_gets_one_more_enter_then_waits(tmp_path: Path, monkeypatch) -> None:

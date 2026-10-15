@@ -408,6 +408,19 @@ def session_details(
     account = (
         redact_account_label(session.account_label) if redact_accounts else session.account_label
     )
+    approval_detail = (
+        (
+            "exact permission menu; auto-yes pressed Enter once and it stayed -"
+            " answer it in its tab"
+            if session.provider_name == "codex"
+            else "exact permission menu; auto-yes pressed Enter twice and it stayed -"
+            " answer it in its tab"
+        )
+        if session.approval_exact and session.approval_stuck
+        else "exact permission menu; auto-yes may answer it"
+        if session.approval_exact
+        else "permission prompt of an untested shape; answer it in its tab"
+    )
     return [
         f"Session: {session.provider_name} {session.identity.tty} PID {session.identity.pid}",
         f"Title: {session.display_title()}",
@@ -416,21 +429,7 @@ def session_details(
         f"Observation: {age(session.observed_at)}{'; STALE' if stale else ''}",
         f"Recognized state: {session.observed_state}",
         f"Patterns: {', '.join(session.matched_ids) or 'none'}",
-        *(
-            [
-                "Approval: "
-                + (
-                    "exact permission menu; auto-yes pressed Enter twice and it stayed -"
-                    " answer it in its tab"
-                    if session.approval_exact and session.approval_stuck
-                    else "exact permission menu; auto-yes may answer it"
-                    if session.approval_exact
-                    else "permission prompt of an untested shape; answer it in its tab"
-                )
-            ]
-            if session.observed_state == "APPROVAL_PENDING"
-            else []
-        ),
+        *(["Approval: " + approval_detail] if session.observed_state == "APPROVAL_PENDING" else []),
         f"Quota: {quota_state(session.quota, now)}; source={session.quota.source}; "
         f"age={age(session.quota.observed_at)}",
         f"Quota detail: {session.quota.note or 'none'}",
@@ -776,7 +775,7 @@ def toggles_line(sessions: Sequence[SupervisedSession], config: Config, *, auto_
     if not auto_yes:
         yes = "OFF"
     elif config.mode is Mode.AUTO:
-        yes = "ON - approves any command asked"
+        yes = "ON - approves any tool use asked"
     elif config.mode is Mode.ASK:
         yes = "ON, inert: ask mode confirms each action"
     else:

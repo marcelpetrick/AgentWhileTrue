@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.67.1] - 2026-10-15
+
+### Fixed
+
+- Codex auto-yes recognizes exact 0.162.1 approval overlays when their complete
+  visible title, denial and footer wrap, including the cross-thread footer. A
+  viewport that hides the title or replaces command content with a `view all`
+  placeholder remains manual because the hidden command cannot be fingerprinted.
+
 ## [0.67.0] - 2026-10-15
 
 ### Added

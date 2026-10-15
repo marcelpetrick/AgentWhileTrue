@@ -14,6 +14,7 @@ from agent_while_true.config import Mode
 from agent_while_true.fsm import APPROVAL_RECHECK_SECONDS, APPROVE_KEYSTROKES
 from agent_while_true.states import SessionState
 from agent_while_true.terminal.base import TerminalUnavailableError
+from agent_while_true.ui import session_details
 from tests import harness as harness_module
 from tests import screens
 
@@ -220,6 +221,10 @@ def test_an_exact_codex_one_turn_prompt_is_answered(tmp_path: Path) -> None:
 
     kit.clock.advance(APPROVAL_RECHECK_SECONDS)
     assert _scan(kit) == {ref.key(): "unanswered-no-resend"}
+    assert any(
+        "auto-yes pressed Enter once and it stayed" in line
+        for line in session_details(kit.supervisor.sessions[ref.key()], NOW, 1.0)
+    )
     for _ in range(3):
         kit.clock.advance(APPROVAL_RECHECK_SECONDS)
         assert _scan(kit) == {}

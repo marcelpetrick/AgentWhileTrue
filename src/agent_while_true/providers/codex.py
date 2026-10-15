@@ -51,11 +51,16 @@ DEFAULT_RESUME_TEXT: Final = "continue"
 _MENU_GLYPH = "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}"
 
 _APPROVAL_TITLE_TEXT = (
-    r"Would you like to run the following command\?"
-    r"|Would you like to make the following edits\?"
-    r"|Would you like to send input to (?:the existing )?terminal(?: \d+)?\?"
-    r'|Do you want to approve network access to "[^"\r\n]{1,253}"\?'
-    r"|Would you like to grant these permissions\?"
+    r"Would\s+you\s+like\s+to\s+run\s+the\s+following\s+command\?"
+    r"|Would\s+you\s+like\s+to\s+make\s+the\s+following\s+edits\?"
+    r"|Would\s+you\s+like\s+to\s+send\s+input\s+to\s+(?:the\s+existing\s+)?"
+    r"terminal(?:\s+\d+)?\?"
+    r'|Do\s+you\s+want\s+to\s+approve\s+network\s+access\s+to\s+"[^"\r\n]{1,253}"\?'
+    r"|Would\s+you\s+like\s+to\s+grant\s+these\s+permissions\?"
+)
+_APPROVAL_FOOTER_TEXT = (
+    r"Press\s+enter\s+to\s+confirm\s+or\s+esc\s+to\s+cancel"
+    r"(?:\s+or\s+o\s+to\s+open\s+thread)?"
 )
 
 
@@ -118,7 +123,7 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         all_of=(
             re.compile(rf"^\s*(?:{_APPROVAL_TITLE_TEXT})\s*$", re.MULTILINE),
             re.compile(rf"^\s*{_MENU_GLYPH}\s*1\.\s*Yes,\s", re.MULTILINE),
-            re.compile(r"^\s*Press enter to confirm or esc to cancel\s*$", re.MULTILINE),
+            re.compile(rf"^\s*{_APPROVAL_FOOTER_TEXT}\s*$", re.MULTILINE),
         ),
         note="Exact one-turn Codex tool permission. Only the selected first item is eligible.",
         verified_against=VERIFIED_AGAINST,
@@ -359,11 +364,20 @@ class CodexAdapter(ProviderAdapter):
 
 
 _APPROVAL_TITLE = re.compile(rf"^\s*(?P<title>{_APPROVAL_TITLE_TEXT})\s*$")
-_APPROVAL_FOOTER = re.compile(r"^\s*Press enter to confirm or esc to cancel\s*$")
+_APPROVAL_FOOTER = re.compile(rf"^\s*{_APPROVAL_FOOTER_TEXT}\s*$")
 _SELECTED_OPTION = re.compile(rf"^\s*{_MENU_GLYPH}\s*1\.\s*(?P<label>\S.*)\s*$")
 _OPTION = re.compile(r"^\s*(?P<number>[1-4])\.\s*(?P<label>\S.*)\s*$")
 _ANY_OPTION = re.compile(r"^\s*\d+\.\s")
 _MAX_APPROVAL_ROWS: Final = 40
+_CLIPPED_APPROVAL_CONTENT = re.compile(
+    r"^\s*\[…\s+\d+\s+lines\](?:\s+⌃g\s+view\s+all)?\s*$",
+    re.IGNORECASE,
+)
+
+
+def _joined_rows(lines: list[str]) -> str:
+    """Undo Codex's soft wrapping for one exact bounded overlay field."""
+    return " ".join(normalise_typography(line).strip() for line in lines)
 
 
 def _approval_block(lines: list[str]) -> list[str] | None:
@@ -378,10 +392,17 @@ def _approval_block(lines: list[str]) -> list[str] | None:
     end = len(lines)
     while end and not lines[end - 1].strip():
         end -= 1
-    if end < 4 or not _APPROVAL_FOOTER.fullmatch(normalise_typography(lines[end - 1])):
+    footer = next(
+        (
+            end - width
+            for width in (1, 2)
+            if end >= width and _APPROVAL_FOOTER.fullmatch(_joined_rows(lines[end - width : end]))
+        ),
+        -1,
+    )
+    if footer < 0:
         return None
 
-    footer = end - 1
     last = footer - 1
     while last >= 0 and not lines[last].strip():
         last -= 1
@@ -421,14 +442,25 @@ def _approval_block(lines: list[str]) -> list[str] | None:
     title_row = -1
     title = ""
     for row in range(selected - 1, max(-1, selected - _MAX_APPROVAL_ROWS), -1):
-        title_match = _APPROVAL_TITLE.fullmatch(normalise_typography(lines[row]))
-        if title_match is not None:
-            title_row = row
-            title = title_match.group("title")
+        for width in (1, 2):
+            if row + width > selected:
+                continue
+            title_match = _APPROVAL_TITLE.fullmatch(_joined_rows(lines[row : row + width]))
+            if title_match is not None:
+                title_row = row
+                title = title_match.group("title")
+                break
+        if title_row >= 0:
             break
         if _MENU_GLYPH in lines[row] or _ANY_OPTION.match(lines[row]):
             return None
     if title_row < 0:
+        return None
+    block = lines[title_row:end]
+    if any(_CLIPPED_APPROVAL_CONTENT.fullmatch(line) for line in block):
+        # The hidden command is not available to fingerprint. A changed command
+        # can render the same line-count placeholder, so this cannot be bound
+        # to the operator-visible prompt and must stay manual.
         return None
 
     exec_middle = (
@@ -479,4 +511,4 @@ def _approval_block(lines: list[str]) -> list[str] | None:
             "Yes, grant these permissions for this session (a)",
             "No, continue without permissions (d)",
         ]
-    return lines[title_row:end] if valid else None
+    return block if valid else None

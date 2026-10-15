@@ -505,8 +505,11 @@ its exact command, patch, terminal-input, one-time-network and turn-permission
 titles, the exact footer, consecutive complete choices and the cursor already
 on item 1 (`Yes, proceed`, `Yes, just this once`, or the one-turn permission
 grant). The command, diff, path, input or permission preview is bounded and
-fingerprinted. Persistent/session choices may be visible but are never
-selected. MCP elicitation, user verification, model/account questions and
+fingerprinted. The exact cross-thread `o to open thread` footer is supported;
+an overlay that clips its title or hides command rows behind `view all` stays
+manual because the complete request cannot be fingerprinted. Persistent/session
+choices may be visible but are never selected. MCP elicitation, user
+verification, model/account questions and
 arbitrary Yes/No forms remain manual. Codex receives no delayed resend: an
 identical overlay still visible after 3 seconds is reported and left to you.
 

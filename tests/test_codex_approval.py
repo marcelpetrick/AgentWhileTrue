@@ -27,8 +27,18 @@ def _recognise(lines: list[str]):
         screens.CODEX_APPROVAL_NETWORK_0_162_1,
         screens.CODEX_APPROVAL_PERMISSIONS_0_162_1,
         screens.CODEX_APPROVAL_WRITE_STDIN_0_162_1,
+        screens.CODEX_APPROVAL_EXEC_NARROW_0_162_1,
+        screens.CODEX_APPROVAL_EXEC_CROSS_THREAD_0_162_1,
     ],
-    ids=["command", "patch", "network-once", "turn-permissions", "terminal-input"],
+    ids=[
+        "command",
+        "patch",
+        "network-once",
+        "turn-permissions",
+        "terminal-input",
+        "narrow-command",
+        "cross-thread-command",
+    ],
 )
 def test_current_one_turn_tool_menus_are_exact(screen: list[str]) -> None:
     recognition = _recognise(screen)
@@ -84,6 +94,21 @@ def test_exec_menu_variations_fail_closed(mutate) -> None:
     ids=["mcp-elicitation", "user-verification", "arbitrary-question"],
 )
 def test_non_tool_or_identity_questions_remain_manual(screen: list[str]) -> None:
+    recognition = _recognise(screen)
+
+    assert not recognition.approval_prompt
+    assert recognition.action is None
+
+
+@pytest.mark.parametrize(
+    "screen",
+    [
+        screens.CODEX_APPROVAL_EXEC_CLIPPED_TITLE_0_162_1,
+        screens.CODEX_APPROVAL_EXEC_CLIPPED_PREVIEW_0_162_1,
+    ],
+    ids=["clipped-title", "hidden-command-preview"],
+)
+def test_a_clipped_overlay_remains_manual(screen: list[str]) -> None:
     recognition = _recognise(screen)
 
     assert not recognition.approval_prompt

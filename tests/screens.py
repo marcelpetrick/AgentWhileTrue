@@ -377,6 +377,59 @@ CODEX_APPROVAL_WRITE_STDIN_0_162_1 = [
     "  Press enter to confirm or esc to cancel",
 ]
 
+# Codex 0.162.1's upstream 40x10 clipping snapshot. The complete title,
+# denial and footer are soft-wrapped, while an exact clipped-content marker
+# replaces the command preview.
+CODEX_APPROVAL_EXEC_NARROW_0_162_1 = [
+    "  Would you like to run the following",
+    "  command?",
+    "",
+    "  $ echo ok",
+    "› 1. Yes, proceed (y)",
+    "  2. No, and tell Codex what to do",
+    "     differently (esc)",
+    "  Press enter to confirm or esc to",
+    "  cancel",
+]
+
+CODEX_APPROVAL_EXEC_CLIPPED_PREVIEW_0_162_1 = [
+    "  Would you like to run the following command?",
+    "",
+    "  Environment: local",
+    "",
+    "  Reason: A reason requiring review.",
+    "  [… 34 lines] ⌃g view all",
+    "› 1. Yes, proceed (y)",
+    "  2. No, and tell Codex what to do differently (esc)",
+    "  Press enter to confirm or esc to cancel",
+]
+
+CODEX_APPROVAL_EXEC_CROSS_THREAD_0_162_1 = [
+    "  Would you like to run the following command?",
+    "",
+    "  Thread: Robie [explorer]",
+    "",
+    "  $ echo hi",
+    "",
+    "",
+    "› 1. Yes, proceed (y)",
+    "  2. No, and tell Codex what to do differently (esc)",
+    "",
+    "  Press enter to confirm or esc to cancel or o to open thread",
+]
+
+# At 40x8 the same upstream snapshot has clipped away half the title. Without
+# an exact title the overlay deliberately remains manual.
+CODEX_APPROVAL_EXEC_CLIPPED_TITLE_0_162_1 = [
+    "  Would you like to run the following",
+    "  [… 43 lines] ⌃g view all",
+    "› 1. Yes, proceed (y)",
+    "  2. No, and tell Codex what to do",
+    "     differently (esc)",
+    "  Press enter to confirm or esc to",
+    "  cancel",
+]
+
 #: Claude Code's idle composer as read from live 2.x sessions on 2026-09-24: the
 #: cursor row sits between two rules, with the status line underneath. Status
 #: text is illustrative.
