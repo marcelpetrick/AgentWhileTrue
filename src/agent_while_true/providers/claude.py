@@ -37,10 +37,10 @@ from agent_while_true.providers.base import (
 )
 
 NAME: Final = "claude"
-PATTERNS_VERSION: Final = "claude-2.1.x/11"
+PATTERNS_VERSION: Final = "claude-2.1.x/12"
 #: The latest release whose screens and strings were read. Only the newest
 #: Claude Code release is supported; older ones are not tracked.
-VERIFIED_VERSIONS: Final = ("2.1.296",)
+VERIFIED_VERSIONS: Final = ("2.1.300",)
 VERIFIED_AGAINST: Final = f"Claude Code {VERIFIED_VERSIONS[-1]}"
 
 
@@ -506,6 +506,8 @@ _APPROVAL_EXPLANATION = re.compile(
     r"^(?:Contains brace with quote character \(expansion obfuscation\) "
     r"Ask rule Bash\(.{1,200}\) overrides auto mode for this command\. "
     r"/permissions to let auto mode decide"
+    r"|Auto mode classifier requires confirmation for this command\. "
+    r"Contains brace with quote character \(expansion obfuscation\)"
     r"|\S+ names a path that is computed at run time, which cannot be checked against "
     r"the read block \(permissions\.blockReadsOutsideWorkingDirectories\))$",
     re.IGNORECASE,

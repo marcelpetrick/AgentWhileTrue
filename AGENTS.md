@@ -57,11 +57,11 @@ when recognizer behavior changes.
   into a selected, revalidated session with a plain working screen, a visibly
   empty provider composer and quota that is not exhausted; it is never
   persisted or retried, and it is limited to five cracks per rolling minute.
-- Claude Code permission prompts are never resume prompts. Only the operator's
+- Claude Code and Codex CLI permission prompts are never resume prompts. Only the operator's
   dashboard auto-yes switch (`y`) answers one: off at every start, never
   persisted, only in full-auto - never in ask or observe mode, while paused or
   without input control;
-  only an exact tested permission menu - a whole-row "Do you want to ...?",
+  for Claude, only an exact tested permission menu - a whole-row "Do you want to ...?",
   the cursor on `1. Yes`, zero to two consecutive `Yes, and ...` choices, and
   a final numbered `No` - alone on the screen and unchanged since the scan,
   once per appearance, by Enter on item 1. The identical box still on screen
@@ -71,7 +71,13 @@ when recognizer behavior changes.
   preview scrolls away the box's top rule, require the dashed separator plus
   an exact observed permission explanation and fingerprint the visible preview
   too. Never select a "Yes, and ..." item: those change provider settings or
-  session modes.
+  session modes. For Codex, require one of the complete 0.162.1 command,
+  patch, terminal-input, one-time-network or turn-permission menus, its exact
+  title and footer, the cursor on the exact one-turn item 1, every consecutive
+  persistent middle choice and its final denial. Codex gets no resend: an
+  unchanged overlay after 3 seconds is reported and left to the operator.
+  Never answer MCP elicitation,
+  user-verification, arbitrary questions or an unknown/reworded menu.
 - Never log terminal contents, environment values, credentials, or prompt text.
 - Preserve the persisted action lifecycle and single-instance lock.
 - Treat SSH, containers, tmux/screen, conflicting classification signals, and

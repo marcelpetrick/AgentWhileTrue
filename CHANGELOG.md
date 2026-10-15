@@ -13,6 +13,31 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.67.0] - 2026-10-15
+
+### Added
+
+- The dashboard's non-persistent auto-yes switch now handles Codex CLI 0.162.1's
+  exact command, patch, terminal-input, one-time-network and turn-permission
+  menus. It presses Enter only with the cursor on the one-turn first choice;
+  persistent choices, MCP elicitation, user verification and arbitrary
+  questions remain manual. Codex never receives Claude's delayed resend.
+- A Codex auto-yes safety simulation and provider snapshot fixtures cover the
+  complete supported menu family and close negative variations.
+
+### Fixed
+
+- Claude Code 2.1.300's full-window `Auto mode classifier requires confirmation`
+  company-account frame is exact-matched and preview-fingerprinted. This fixes
+  the long Bash/glab approval prompts found waiting in MPT while preserving
+  manual AskUserQuestion and persistent decisions.
+
+### Changed
+
+- Claude Code 2.1.300 and Codex CLI 0.162.1 are the sole verified provider
+  releases. The contributor rules, implementation plan and user documentation
+  define both providers' bounded one-turn auto-yes grammars.
+
 ## [0.66.6] - 2026-10-15
 
 ### Changed

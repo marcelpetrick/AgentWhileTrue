@@ -118,11 +118,11 @@ These are deliberate limits, not pending implementation bugs:
 - KDE Konsole exposes no atomic compare-screen-and-send operation. Agent While
   True minimizes the remaining race by making the last external check a fresh
   process-identity read and performing no persistence between it and `sendText`.
-- Auto-yes answers only the tested permission-menu shapes: a whole-row
-  "Do you want to ...?", the cursor on `1. Yes`, zero to two consecutive
-  `Yes, and ...` choices and a final numbered `No`. Any other shape - a moved
-  cursor, a fifth item, a question Claude words differently - stays with the
-  operator until a live capture is transcribed into a fixture.
+- Auto-yes answers only tested permission-menu shapes: Claude's bounded
+  `Do you want to ...?` grammar and Codex 0.162.1's complete supported tool
+  overlays, always with the cursor on the one-turn first item. A moved cursor,
+  unknown/reworded choice, MCP elicitation, user verification or arbitrary
+  question stays with the operator until exact evidence is transcribed into a fixture.
 - Unsupported terminals, SSH, containers, tmux/screen, unknown prompt shapes,
   purchases, paid credits, upgrades, reset credits, and model downgrades remain
   intentionally outside automation.

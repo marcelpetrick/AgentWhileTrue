@@ -204,22 +204,19 @@ A permission prompt is the `APPROVAL_PENDING` state and never a resume prompt:
 only way it is answered. After each scan with the switch on,
 `Supervisor.approve_pending` offers every session whose last observation was
 an exact permission menu to `Supervisor.approve`, which refuses observe and ask
-mode, an unsafe session, a non-Claude provider or an action in flight, re-observes the
-session, requires `claude/tool-approval` as the only match with the exact
+mode, an unsafe session, an unsupported provider or an action in flight, re-observes the
+session, requires that provider's `tool-approval` as the only match with the exact
 shape and the same box fingerprint, re-reads the foreground process last and
 sends a single Enter. The answered fingerprint is held in memory until a scan
 sees no permission prompt, so a slow redraw cannot take a second Enter. The one
-exception is a dropped keypress: when the identical box is still there
-`APPROVAL_RECHECK_SECONDS` (3 s) after its answer, `approve_pending` offers it to
-`approve` once more through the same gate (`approval_sent reason=resent`). A
-box that outlives that Enter too is reported once as `unanswered-after-resend`
-and left to the operator; toggling `y` does not reset this, and nothing about it
-is persisted. The re-send cannot tell a dropped Enter from one still queued in
-the terminal while Claude Code is stalled for longer than the settle delay; in
-that case both arrive once it resumes and the second lands on whatever screen
-follows, unchecked. That is accepted because Claude's next menus put a harmless
-choice on item 1; if it is ever seen live, gate the re-send on evidence that
-Claude redrew the rest of the screen after the first Enter.
+exception is a dropped Claude keypress: when the identical Claude box is still
+there `APPROVAL_RECHECK_SECONDS` (3 s) after its answer, `approve_pending`
+offers it to `approve` once more through the same gate (`approval_sent
+reason=resent`). A box that outlives that Enter too is reported once as
+`unanswered-after-resend` and left to the operator. Codex never gets this
+second Enter: its unchanged overlay is reported as `unanswered-no-resend`
+because a delayed key could land on a consequential next modal. Toggling `y`
+does not reset either state, and nothing about it is persisted.
 
 ## Operator whip
 
@@ -336,14 +333,12 @@ and ambiguous process ancestry are non-automatable.
 - Route every operator-initiated input, such as the dashboard's whip crack,
   through the supervisor's revalidation; it types only into a plain working
   screen whose own composer is visibly empty, and is never persisted or retried.
-- Answer a Claude Code permission prompt only while the operator's auto-yes
-  switch is on (`Supervisor.approve_pending`), only on an exact permission menu
-  whose cursor is on one-time item `1. Yes`, followed by zero to two bounded
-  `Yes, and ...` choices and a final `No`; whose fingerprint the scan saw;
-  once per appearance, never persisted. The identical box still there
-  `APPROVAL_RECHECK_SECONDS` after its answer gets one more fully revalidated
-  Enter, and never a third. A full-window prompt binds its visible command
-  preview, separator, permission explanation, menu and footer into that
-  fingerprint.
+- Answer a Claude Code or Codex CLI permission prompt only while the operator's
+  auto-yes switch is on (`Supervisor.approve_pending`), only on that provider's
+  exact complete menu with its cursor on the one-turn first choice and the
+  fingerprint the scan saw; once per appearance, never persisted. Claude's
+  exact bounded menu may get its one evidence-backed resend; Codex never does.
+  A full-window prompt binds its visible command preview, separator, permission
+  explanation, menu and footer into that fingerprint.
 - Preserve a narrow adapter boundary for future terminals or providers without
   weakening the current Konsole-specific gate.

@@ -745,8 +745,8 @@ def render_status(
                         "d       show/hide resume explanation; [ / ] previous/next session",
                         "w       crack the whip: one reminder to every idle, empty agent "
                         "composer; five cracks a minute, then a cooldown",
-                        "y       toggle auto-yes: answer 1. Yes on exact Claude Code "
-                        "permission prompts; approves any command; off at start, never saved",
+                        "y       toggle auto-yes: answer the selected one-turn item on exact "
+                        "Claude/Codex prompts; approves tool use; off at start, never saved",
                         "j / k   scroll down/up; g / G jump to top/end",
                         "h / ?   close this help",
                         "q       quit cleanly",

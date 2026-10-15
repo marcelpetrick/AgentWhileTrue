@@ -57,7 +57,7 @@ live project, account or quota data.*
 - **Resume with guardrails** — observe without typing, confirm each action, or
   let it continue exact tested prompts automatically; Codex composer input and
   Claude's own "wait, then continue" menu are separate, explicit opt-ins.
-- **New: keeps limited accounts moving** — on a Claude Code account that
+- **Keeps company accounts moving** — on a Claude Code account that
   cannot switch permission prompts off (managed settings, no bypass mode),
   every "Do you want to proceed?", "... overwrite this file?" or "... create
   this file?" used to park the agent until you came back. Press `y` in
@@ -65,8 +65,9 @@ live project, account or quota data.*
   four-choice permission menu, once per prompt (plus a single re-sent Enter if
   that exact box is still there 3 s later), after the same revalidation as
   every other input. Full-window command previews and both background-agent
-  footer states are covered.
-  It approves whatever command is asked, so it starts off on every run and the
+  footer states are covered. The same switch covers Codex 0.162.1's exact
+  one-turn command, edit, terminal-input, network and permission overlays.
+  It approves whatever tool use is asked, so it starts off on every run and the
   header always shows it. [Details](docs/USAGE.md#permission-prompts).
 - **Explanations, not surprises** — a detail panel shows the latest decision,
   quota freshness, blocking windows and the next scheduled check.
@@ -202,8 +203,8 @@ Ask and auto mode need Konsole's input D-Bus API enabled once
 [docs/USAGE.md §1](docs/USAGE.md#1-enable-konsole-input-once). In the running
 dashboard, `Shift+A` switches to full-auto and back to observe or ask, `d`
 explains the selected session, `w` cracks the whip (a reminder to every idle
-agent, through the same revalidation), `y` toggles auto-yes for Claude Code's
-permission prompts (off at every start; it approves whatever command is
+agent, through the same revalidation), `y` toggles auto-yes for exact Claude Code and
+Codex CLI permission prompts (off at every start; it approves whatever tool use is
 asked, see [docs/USAGE.md](docs/USAGE.md#permission-prompts)), and `h` lists
 every key.
 
@@ -255,9 +256,9 @@ classification; a current known prompt and its permitted action; fresh provider
 quota (or the narrowly opted-in Codex timed-trial gate); and the persisted
 prompt fingerprint and retry budget. SSH, containers, tmux/screen, unknown
 prompts, contradictory quota, process replacement and every paid or
-quality-changing choice fail closed. A Claude Code permission prompt is never
+quality-changing choice fail closed. A provider permission prompt is never
 a resume prompt: only the operator's `y` switch answers it, in full-auto, on the
-exact permission menu, and never a "Yes, and ..." option that changes settings.
+exact permission menu, and never a persistent option that changes settings.
 A single-instance lock and the persisted
 action lifecycle prevent duplicate input across processes and crashes.
 

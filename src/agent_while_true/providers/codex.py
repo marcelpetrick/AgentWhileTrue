@@ -21,6 +21,7 @@ from dataclasses import replace
 from datetime import datetime
 from typing import Final
 
+from agent_while_true.logging_setup import fingerprint
 from agent_while_true.providers.base import (
     ActionKind,
     PromptKind,
@@ -32,7 +33,7 @@ from agent_while_true.providers.base import (
 )
 
 NAME: Final = "codex"
-PATTERNS_VERSION: Final = "codex-0.162.x/10"
+PATTERNS_VERSION: Final = "codex-0.162.x/11"
 #: The latest release whose screens and strings were read. Only the newest
 #: Codex CLI release is supported; older ones are not tracked.
 VERIFIED_VERSIONS: Final = ("0.162.1",)
@@ -47,6 +48,15 @@ CODEX_LIVE_LINES: Final = 8
 #: plain instruction with no slash command: a slash command that has been
 #: renamed would silently do something else.
 DEFAULT_RESUME_TEXT: Final = "continue"
+_MENU_GLYPH = "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}"
+
+_APPROVAL_TITLE_TEXT = (
+    r"Would you like to run the following command\?"
+    r"|Would you like to make the following edits\?"
+    r"|Would you like to send input to (?:the existing )?terminal(?: \d+)?\?"
+    r'|Do you want to approve network access to "[^"\r\n]{1,253}"\?'
+    r"|Would you like to grant these permissions\?"
+)
 
 
 def _pattern(text: str) -> re.Pattern[str]:
@@ -100,6 +110,19 @@ def _without_particles(lines: list[str]) -> list[str]:
 
 
 PATTERNS: Final[tuple[PromptPattern, ...]] = (
+    PromptPattern(
+        id="codex/tool-approval",
+        provider=NAME,
+        kind=PromptKind.APPROVAL_REQUESTED,
+        scope="approval",
+        all_of=(
+            re.compile(rf"^\s*(?:{_APPROVAL_TITLE_TEXT})\s*$", re.MULTILINE),
+            re.compile(rf"^\s*{_MENU_GLYPH}\s*1\.\s*Yes,\s", re.MULTILINE),
+            re.compile(r"^\s*Press enter to confirm or esc to cancel\s*$", re.MULTILINE),
+        ),
+        note="Exact one-turn Codex tool permission. Only the selected first item is eligible.",
+        verified_against=VERIFIED_AGAINST,
+    ),
     PromptPattern(
         id="codex/limit-usage",
         provider=NAME,
@@ -247,6 +270,16 @@ class CodexAdapter(ProviderAdapter):
     ) -> Recognition:
         """Restrict Codex decisions to its immediate prompt area."""
         lines = _without_particles(lines)
+        block = _approval_block(lines)
+        if block is not None:
+            result = super().recognise(block, now=now, live_lines=len(block))
+            return replace(
+                result,
+                input_ready=False,
+                composer_empty=False,
+                approval_prompt=True,
+                approval_fingerprint=fingerprint(block),
+            )
         result = super().recognise(lines, now=now, live_lines=live_lines)
         live = lines[-live_lines:]
         # Timed trials require the tested empty composer (or its known
@@ -323,3 +356,127 @@ class CodexAdapter(ProviderAdapter):
             input_ready=empty,
             composer_empty=composer_empty,
         )
+
+
+_APPROVAL_TITLE = re.compile(rf"^\s*(?P<title>{_APPROVAL_TITLE_TEXT})\s*$")
+_APPROVAL_FOOTER = re.compile(r"^\s*Press enter to confirm or esc to cancel\s*$")
+_SELECTED_OPTION = re.compile(rf"^\s*{_MENU_GLYPH}\s*1\.\s*(?P<label>\S.*)\s*$")
+_OPTION = re.compile(r"^\s*(?P<number>[1-4])\.\s*(?P<label>\S.*)\s*$")
+_ANY_OPTION = re.compile(r"^\s*\d+\.\s")
+_MAX_APPROVAL_ROWS: Final = 40
+
+
+def _approval_block(lines: list[str]) -> list[str] | None:
+    """Return one exact Codex 0.162.1 one-turn approval overlay.
+
+    The visible cursor must already select item 1. Every remaining choice is
+    matched as part of a title-specific complete menu, so Enter cannot select a
+    persistent rule, session mode, strict-review mode, denial or arbitrary
+    question. Command, path, reason and input preview rows are deliberately
+    opaque but bounded and fingerprinted with the menu.
+    """
+    end = len(lines)
+    while end and not lines[end - 1].strip():
+        end -= 1
+    if end < 4 or not _APPROVAL_FOOTER.fullmatch(normalise_typography(lines[end - 1])):
+        return None
+
+    footer = end - 1
+    last = footer - 1
+    while last >= 0 and not lines[last].strip():
+        last -= 1
+    selected = -1
+    for row in range(last, max(-1, last - 12), -1):
+        if _SELECTED_OPTION.fullmatch(normalise_typography(lines[row])):
+            selected = row
+            break
+        if not lines[row].strip():
+            return None
+    if selected < 0:
+        return None
+
+    items: list[str] = []
+    expected = 1
+    row = selected
+    while row <= last:
+        folded = normalise_typography(lines[row])
+        match = _SELECTED_OPTION.fullmatch(folded) if expected == 1 else _OPTION.fullmatch(folded)
+        if match is None:
+            return None
+        if expected > 1 and int(match.group("number")) != expected:
+            return None
+        label = match.group("label").strip()
+        row += 1
+        continuations: list[str] = []
+        while row <= last and not _OPTION.fullmatch(normalise_typography(lines[row])):
+            if not lines[row].strip() or _MENU_GLYPH in lines[row] or _ANY_OPTION.match(lines[row]):
+                return None
+            continuations.append(normalise_typography(lines[row]).strip())
+            row += 1
+        items.append(" ".join((label, *continuations)))
+        expected += 1
+    if not 2 <= len(items) <= 4:
+        return None
+
+    title_row = -1
+    title = ""
+    for row in range(selected - 1, max(-1, selected - _MAX_APPROVAL_ROWS), -1):
+        title_match = _APPROVAL_TITLE.fullmatch(normalise_typography(lines[row]))
+        if title_match is not None:
+            title_row = row
+            title = title_match.group("title")
+            break
+        if _MENU_GLYPH in lines[row] or _ANY_OPTION.match(lines[row]):
+            return None
+    if title_row < 0:
+        return None
+
+    exec_middle = (
+        re.compile(
+            r"Yes, and don't ask again for commands that start with `[^`\r\n]{1,500}` \(p\)"
+        ),
+        re.compile(r"Yes, and don't ask again for this command in this session \(a\)"),
+        re.compile(r"Yes, and allow these permissions for this session \(a\)"),
+    )
+    network_middle = (
+        re.compile(r"Yes, and allow this host for this conversation \(a\)"),
+        re.compile(r"Yes, and allow this host in the future \(p\)"),
+    )
+
+    if title == "Would you like to run the following command?":
+        valid = (
+            items[0] == "Yes, proceed (y)"
+            and items[-1]
+            in {
+                "No, continue without running it (n)",
+                "No, and tell Codex what to do differently (esc)",
+            }
+            and all(any(pattern.fullmatch(item) for pattern in exec_middle) for item in items[1:-1])
+        )
+    elif title == "Would you like to make the following edits?":
+        valid = items == [
+            "Yes, proceed (y)",
+            "Yes, and don't ask again for these files (a)",
+            "No, and tell Codex what to do differently (esc)",
+        ]
+    elif title.startswith("Would you like to send input to "):
+        valid = items == [
+            "Yes, proceed (y)",
+            "No, and tell Codex what to do differently (esc)",
+        ]
+    elif title.startswith("Do you want to approve network access to "):
+        valid = (
+            items[0] == "Yes, just this once (y)"
+            and items[-1] == "No, and tell Codex what to do differently (esc)"
+            and all(
+                any(pattern.fullmatch(item) for pattern in network_middle) for item in items[1:-1]
+            )
+        )
+    else:
+        valid = items == [
+            "Yes, grant these permissions for this turn (y)",
+            "Yes, grant for this turn with strict auto review (r)",
+            "Yes, grant these permissions for this session (a)",
+            "No, continue without permissions (d)",
+        ]
+    return lines[title_row:end] if valid else None

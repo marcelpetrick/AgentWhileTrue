@@ -302,6 +302,81 @@ CODEX_ACTIVE = [
     "› ",
 ]
 
+# Transcribed from Codex CLI 0.162.1's own ratatui approval snapshots. The
+# command/reason is illustrative; title, selected item, choice labels, shortcut
+# hints and footer are verbatim.
+CODEX_APPROVAL_EXEC_0_162_1 = [
+    "  Would you like to run the following command?",
+    "",
+    "  Reason: this is a test reason such as one that would be produced by the model",
+    "",
+    "  $ echo hello world",
+    "",
+    "",
+    "› 1. Yes, proceed (y)",
+    "  2. Yes, and don't ask again for commands that start with `echo hello world` (p)",
+    "  3. No, and tell Codex what to do differently (esc)",
+    "",
+    "  Press enter to confirm or esc to cancel",
+]
+
+CODEX_APPROVAL_PATCH_0_162_1 = [
+    "  Would you like to make the following edits?",
+    "",
+    "  Description: The model wants to apply changes",
+    "  Destination: /tmp/project/README.md",
+    "",
+    "",
+    "› 1. Yes, proceed (y)",
+    "  2. Yes, and don't ask again for these files (a)",
+    "  3. No, and tell Codex what to do differently (esc)",
+    "",
+    "  Press enter to confirm or esc to cancel",
+]
+
+CODEX_APPROVAL_NETWORK_0_162_1 = [
+    '  Do you want to approve network access to "example.com"?',
+    "",
+    "  Reason: network request blocked",
+    "",
+    "",
+    "",
+    "› 1. Yes, just this once (y)",
+    "  2. Yes, and allow this host for this conversation (a)",
+    "  3. Yes, and allow this host in the future (p)",
+    "  4. No, and tell Codex what to do differently (esc)",
+    "",
+    "  Press enter to confirm or esc to cancel",
+]
+
+CODEX_APPROVAL_PERMISSIONS_0_162_1 = [
+    "  Would you like to grant these permissions?",
+    "",
+    "  Reason: need workspace access",
+    "",
+    "  Permission rule: network; read `/tmp/readme.txt`; write `/tmp/out.txt`",
+    "",
+    "",
+    "› 1. Yes, grant these permissions for this turn (y)",
+    "  2. Yes, grant for this turn with strict auto review (r)",
+    "  3. Yes, grant these permissions for this session (a)",
+    "  4. No, continue without permissions (d)",
+    "",
+    "  Press enter to confirm or esc to cancel",
+]
+
+CODEX_APPROVAL_WRITE_STDIN_0_162_1 = [
+    "  Would you like to send input to terminal 42?",
+    "",
+    '  Input: "confirm\\n"',
+    "",
+    "",
+    "› 1. Yes, proceed (y)",
+    "  2. No, and tell Codex what to do differently (esc)",
+    "",
+    "  Press enter to confirm or esc to cancel",
+]
+
 #: Claude Code's idle composer as read from live 2.x sessions on 2026-09-24: the
 #: cursor row sits between two rules, with the status line underneath. Status
 #: text is illustrative.
@@ -595,6 +670,23 @@ CLAUDE_APPROVAL_RULE_OVERRIDE_2_1_296 = [
     " Contains brace with quote character (expansion obfuscation)",
     " Ask rule Bash(glab api X-X*) overrides auto mode for this command.",
     " /permissions to let auto mode decide",
+    "",
+    " Do you want to proceed?",
+    " ❯ 1. Yes",
+    "   2. No",
+    "",
+    " Esc to cancel · Tab to amend",
+]
+
+# Reconstructed from a missed Claude Code 2.1.300 company-profile prompt in
+# the retained MPT session plus the exact strings in that installed binary.
+# The long command is privacy-redacted; the new two-row classifier explanation
+# and the surrounding 2.1.300 frame are preserved.
+CLAUDE_APPROVAL_CLASSIFIER_2_1_300 = [
+    *[f"   │ command preview row {number}" for number in range(30)],
+    "╌" * 139,
+    " Auto mode classifier requires confirmation for this command.",
+    " Contains brace with quote character (expansion obfuscation)",
     "",
     " Do you want to proceed?",
     " ❯ 1. Yes",

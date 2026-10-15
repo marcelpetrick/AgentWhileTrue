@@ -44,8 +44,16 @@ def test_the_live_yes_no_prompt_is_the_exact_tested_shape() -> None:
         screens.CLAUDE_APPROVAL_CREATE_LIVE,
         screens.CLAUDE_APPROVAL_FOUR_OPTIONS_2_1_296,
         screens.CLAUDE_APPROVAL_RULE_OVERRIDE_2_1_296,
+        screens.CLAUDE_APPROVAL_CLASSIFIER_2_1_300,
     ],
-    ids=["dont-ask-again", "overwrite-file", "create-file", "four-options", "rule-override"],
+    ids=[
+        "dont-ask-again",
+        "overwrite-file",
+        "create-file",
+        "four-options",
+        "rule-override",
+        "auto-mode-classifier",
+    ],
 )
 def test_current_permission_menus_with_the_cursor_on_yes_are_exact(screen: list[str]) -> None:
     """Enter selects item 1, the one-time Yes; "Yes, and ..." is never reached."""

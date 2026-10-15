@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""Auto-yes answers only the exact, revalidated Claude Code permission menu, once."""
+"""Auto-yes answers only exact, revalidated provider permission menus, once."""
 
 from dataclasses import replace
 from datetime import UTC, datetime
@@ -204,14 +204,34 @@ def test_an_unsafe_session_is_refused(tmp_path: Path) -> None:
     assert kit.sent == []
 
 
-def test_a_codex_session_is_never_answered(tmp_path: Path) -> None:
+def test_an_exact_codex_one_turn_prompt_is_answered(tmp_path: Path) -> None:
     kit, _ = _kit(tmp_path, screens.CLAUDE_IDLE_COMPOSER)
     info = kit.inspector.add_codex(4202)
     ref = kit.terminal.add(
-        CODEX, shell_pid=200, foreground_pid=4202, screen=list(screens.CODEX_ACTIVE)
+        CODEX,
+        shell_pid=200,
+        foreground_pid=4202,
+        screen=list(screens.CODEX_APPROVAL_EXEC_0_162_1),
     )
     kit.supervisor.select(ref, info.identity, "codex", "web : codex")
-    kit.supervisor.tick()
+
+    assert _scan(kit) == {ref.key(): "approved"}
+    assert kit.sent == [(CODEX, "\r")]
+
+    kit.clock.advance(APPROVAL_RECHECK_SECONDS)
+    assert _scan(kit) == {ref.key(): "unanswered-no-resend"}
+    for _ in range(3):
+        kit.clock.advance(APPROVAL_RECHECK_SECONDS)
+        assert _scan(kit) == {}
+    assert kit.sent == [(CODEX, "\r")]
+
+
+def test_a_non_provider_session_is_never_answered(tmp_path: Path) -> None:
+    kit, _ = _kit(tmp_path, screens.CLAUDE_IDLE_COMPOSER)
+    info = kit.inspector.add_codex(4202)
+    ref = kit.terminal.add(CODEX, shell_pid=200, foreground_pid=4202, screen=[])
+    kit.supervisor.select(ref, info.identity, "codex", "web : codex")
+    kit.supervisor.sessions[ref.key()].provider_name = "other"
 
     assert kit.supervisor.approve(ref.key(), "0123456789ab") == "unsupported-provider"
     assert kit.supervisor.approve("/nowhere", "0123456789ab") == "no-session"

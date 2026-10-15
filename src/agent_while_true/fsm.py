@@ -986,10 +986,11 @@ class Supervisor:
         per session it tried.
 
         An answered box that is still on screen :data:`APPROVAL_RECHECK_SECONDS`
-        later, unchanged, is taken as an Enter that did not land and is answered
-        once more through the same gate. If it outlives that one as well, the
-        scan reports ``unanswered-after-resend`` once and leaves it to the
-        operator.
+        later, unchanged, is taken as an Enter that did not land. Claude is
+        answered once more through the same gate; Codex is reported as
+        ``unanswered-no-resend`` and left alone because a delayed second Enter
+        could land on its next modal. If the Claude box outlives its retry, the
+        scan reports ``unanswered-after-resend`` once and leaves it to the operator.
         """
         # Ask mode promises a confirmation per action, so auto-yes is a
         # full-auto switch. An unsafe or busy session stays with its operator;
@@ -1010,6 +1011,21 @@ class Supervisor:
                 session, now
             ):
                 outcomes[key] = self.approve(key, session.approval_fingerprint)
+            elif (
+                session.provider_name == "codex"
+                and not session.approval_stuck
+                and _settled(session, now)
+            ):
+                session.approval_stuck = True
+                outcomes[key] = "unanswered-no-resend"
+                self.log.info(
+                    "approval_refused",
+                    provider=session.provider_name,
+                    session=key,
+                    process=session.describe_process(),
+                    screen=session.approval_fingerprint,
+                    reason=outcomes[key],
+                )
             elif session.approval_resent and not session.approval_stuck and _settled(session, now):
                 session.approval_stuck = True
                 outcomes[key] = "unanswered-after-resend"
@@ -1024,7 +1040,7 @@ class Supervisor:
         return outcomes
 
     def approve(self, key: str, expected_fingerprint: str) -> str:
-        """Answer "1. Yes" on one session's permission prompt.
+        """Answer the selected one-turn item on one exact permission prompt.
 
         Reached only through the operator's auto-yes toggle, never from a
         tick: nothing here is persisted, and a refusal is final. The only
@@ -1032,8 +1048,8 @@ class Supervisor:
         ``expected_fingerprint`` is the permission box the last scan saw; a
         different box on screen now - a new command, an edited one - is
         refused, and the same box is answered once until it leaves the screen.
-        Only an exact tested permission menu with the cursor on Yes qualifies, so
-        an option that writes Claude Code's settings can never be reached. The
+        Only an exact tested permission menu with the cursor on its one-turn
+        choice qualifies, so an option that changes provider settings can never be reached. The
         session is revalidated from scratch and the foreground process is
         re-read last, directly before ``sendText``.
 
@@ -1082,7 +1098,7 @@ class Supervisor:
             return "ask-mode-confirms-each"
         if session.marked_unsafe:
             return "session-unsafe"
-        if session.provider_name != "claude":
+        if session.provider_name not in {"claude", "codex"}:
             return "unsupported-provider"
         pending = self.store.records.get(session.pending_key)
         if session.verify_after is not None or (pending is not None and not pending.is_settled):
@@ -1105,7 +1121,7 @@ class Supervisor:
         # same screen is a screen that was not understood.
         if (
             recognition.state is not SessionState.APPROVAL_PENDING
-            or recognition.matched_ids != ("claude/tool-approval",)
+            or recognition.matched_ids != (f"{session.provider_name}/tool-approval",)
             or not recognition.approval_prompt
         ):
             return "no-exact-approval-prompt"
@@ -1301,9 +1317,10 @@ def _settled(session: SupervisedSession, now: float) -> bool:
 
 
 def _resend_due(session: SupervisedSession, now: float) -> bool:
-    """The answered box may have its one extra Enter: settled and not used yet."""
+    """A Claude box may have its one extra Enter; Codex never does."""
     return (
-        bool(session.approved_fingerprint)
+        session.provider_name == "claude"
+        and bool(session.approved_fingerprint)
         and not session.approval_resent
         and _settled(session, now)
     )

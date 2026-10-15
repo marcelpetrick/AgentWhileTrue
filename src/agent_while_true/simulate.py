@@ -102,6 +102,20 @@ ARMED_WAIT_SCREEN = [
     "  ⚠ Usage limit reached · continuing shortly · esc to cancel",
 ]
 CODEX_BLOCKED_SCREEN = ["▌ You've hit your usage limit. Try again at 8:10 PM.", "", "› "]
+CODEX_APPROVAL_SCREEN = [
+    "  Would you like to run the following command?",
+    "",
+    "  Reason: run the requested tests",
+    "",
+    "  $ make test",
+    "",
+    "",
+    "› 1. Yes, proceed (y)",
+    "  2. Yes, and don't ask again for commands that start with `make test` (p)",
+    "  3. No, and tell Codex what to do differently (esc)",
+    "",
+    "  Press enter to confirm or esc to cancel",
+]
 #: Claude Code's permission box, as read live on 2026-09-28; the command is invented.
 _BOX_RULE = "\u2500" * 80
 APPROVAL_SCREEN = [
@@ -119,14 +133,13 @@ APPROVAL_SCREEN = [
     "",
     " Esc to cancel · Tab to amend",
 ]
-#: Claude Code 2.1.296's full-window Bash-rule override prompt. The top rule
-#: has scrolled away; the dashed separator and permission reason remain.
+#: Claude Code 2.1.300's full-window auto-mode classifier prompt. The top rule
+#: has scrolled away; the dashed separator and exact permission reason remain.
 CURRENT_APPROVAL_SCREEN = [
     *[f"   │ command preview row {number}" for number in range(30)],
     "╌" * 80,
+    " Auto mode classifier requires confirmation for this command.",
     " Contains brace with quote character (expansion obfuscation)",
-    " Ask rule Bash(glab api X-X*) overrides auto mode for this command.",
-    " /permissions to let auto mode decide",
     "",
     " Do you want to proceed?",
     " ❯ 1. Yes",
@@ -787,6 +800,21 @@ def scenario_auto_yes_answers_once(directory: Path) -> Result:
     )
 
 
+def scenario_codex_auto_yes_answers_once(directory: Path) -> Result:
+    world = _world(directory, provider="codex", screen=CODEX_APPROVAL_SCREEN)
+    world.approve("exact Codex one-turn command permission, auto-yes on")
+    world.clock.advance(APPROVAL_RECHECK_SECONDS)
+    world.approve("the same Codex box stayed; no second Enter is allowed")
+    return _result(
+        "codex-auto-yes-answers-once",
+        "The operator switched auto-yes on; Codex asks for one-turn tool permission.",
+        "only the exact selected one-turn choice receives one Enter",
+        world,
+        passed=world.terminal.sent == [(SESSION, "\r")]
+        and world.steps[-1].decision_reason == "unanswered-no-resend",
+    )
+
+
 def scenario_auto_yes_resends_once(directory: Path) -> Result:
     world = _world(directory, screen=APPROVAL_SCREEN)
     world.approve("exact permission menu, auto-yes on")
@@ -843,6 +871,7 @@ SCENARIOS: dict[str, ScenarioFn] = {
     "observe-mode": scenario_observe_mode,
     "approval-waits-for-operator": scenario_approval_waits_for_the_operator,
     "auto-yes-answers-once": scenario_auto_yes_answers_once,
+    "codex-auto-yes-answers-once": scenario_codex_auto_yes_answers_once,
     "auto-yes-resends-once": scenario_auto_yes_resends_once,
 }
 

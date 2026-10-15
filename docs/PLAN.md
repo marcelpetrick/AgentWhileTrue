@@ -71,13 +71,15 @@ The requested implementation is complete:
   a plain working screen, an empty provider composer and quota that is not
   exhausted; five cracks per rolling minute, and never any input in observe
   mode, while paused, or without input control.
-- Claude Code permission prompts are the `APPROVAL_PENDING` state, and a
-  non-persistent `y` auto-yes switch answers `1. Yes` on an exact current
-  two-, three- or four-choice permission menu only, once per appearance (plus
-  one re-sent Enter if the identical box outlives the first by 3 s), after
+- Provider tool-permission prompts are the `APPROVAL_PENDING` state, and a
+  non-persistent `y` auto-yes switch answers only the selected one-turn first
+  item of exact current Claude or Codex menus, once per appearance, after full
   revalidation; only in full-auto, never in ask or observe mode, while paused
-  or without input control. Claude Code 2.1.296's full-window company-policy
-  explanation is exact-matched and its visible preview is fingerprinted.
+  or without input control. Claude Code 2.1.300's full-window company-policy
+  explanations are exact-matched and their visible previews fingerprinted.
+  Codex 0.162.1 command, patch, terminal-input, one-time-network and
+  turn-permission overlays are covered but never re-sent; persistent choices,
+  MCP elicitation, user verification and arbitrary questions remain manual.
 - Codex CLI 0.162.1 is the sole verified Codex release. Its percentage-free
   `model reasoning · directory` composer footer is accepted once, while model
   switches, admin requests, spend-cap increases and free trials remain vetoes.

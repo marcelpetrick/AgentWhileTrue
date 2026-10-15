@@ -172,9 +172,8 @@ class Recognition:
     #: typed and submitted there lands as a fresh message rather than finishing
     #: a draft or answering a menu. Unknown layouts leave it False.
     composer_empty: bool = False
-    #: The exact tested tool-permission menu - "Do you want to proceed?",
-    #: the cursor on "1. Yes", "2. No" and nothing else - ends the screen.
-    #: Every other approval shape leaves it False.
+    #: An exact provider-tested one-turn tool-permission menu with the cursor
+    #: visibly on its first affirmative item. Every other shape leaves it False.
     approval_prompt: bool = False
     #: Fingerprint of that permission box alone, so an operator's approval
     #: binds to the prompt they saw rather than to a spinner redrawing above.

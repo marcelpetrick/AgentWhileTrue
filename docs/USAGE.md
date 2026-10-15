@@ -152,12 +152,12 @@ observe mode.
 | `j` / `k` | Scroll down / up through the dashboard |
 | `g` / `G` | Jump to the top / end of the dashboard |
 | `w` | Crack the whip: an ASCII bullwhip snaps across the screen, then one reminder goes to every idle supervised agent (see [The whip](#the-whip)) |
-| `y` | Toggle auto-yes: answer `1. Yes` on exact Claude Code permission prompts (see [Permission prompts](#permission-prompts)); off at every start, never saved |
+| `y` | Toggle auto-yes: answer the selected one-turn item on exact Claude Code or Codex CLI permission prompts (see [Permission prompts](#permission-prompts)); off at every start, never saved |
 | `q` | Quit and restore the terminal |
 
 The header shows both automation switches side by side with their keys:
 `[A] auto-resume on limit: OFF | ASK each | ON (Claude) | ON (Claude + Codex)`
-and `[y] auto-yes on permission prompts: OFF | ON - approves any command asked |
+and `[y] auto-yes on permission prompts: OFF | ON - approves any tool use asked |
 ON, inert: ...` (inert outside full-auto, with the reason), followed by the
 number of sessions waiting for approval.
 
@@ -496,14 +496,25 @@ permission prompts on - no bypass mode, no broad allow rules - an agent stops
 at every tool call it cannot pre-approve, and a supervised session sits idle
 until someone comes back to the tab. Auto-yes lets such a limited account keep
 working unattended, within the gates below. It is validated against Claude
-Code 2.1.296, including managed-account Bash rule overrides whose full-window
-command preview hides the box's top rule.
+Code 2.1.300, including managed-account Bash rule overrides and its new
+auto-mode-classifier explanation whose full-window command preview hides the
+box's top rule.
+
+Codex CLI 0.162.1 uses a different complete overlay. Auto-yes recognizes only
+its exact command, patch, terminal-input, one-time-network and turn-permission
+titles, the exact footer, consecutive complete choices and the cursor already
+on item 1 (`Yes, proceed`, `Yes, just this once`, or the one-turn permission
+grant). The command, diff, path, input or permission preview is bounded and
+fingerprinted. Persistent/session choices may be visible but are never
+selected. MCP elicitation, user verification, model/account questions and
+arbitrary Yes/No forms remain manual. Codex receives no delayed resend: an
+identical overlay still visible after 3 seconds is reported and left to you.
 
 **Auto-yes (`y`).** The dashboard's `y` key switches auto-yes on and off; the
 header shows `[y] auto-yes on permission prompts: OFF|ON` and how many sessions
 wait for approval. While it is on, every scan answers each exact permission
-menu with Enter on the visibly selected `1. Yes`, the one-time approval. **That
-approves whatever command or file write the agent asked for** - including an
+menu with Enter on the visibly selected one-turn first choice. **That approves
+whatever tool use the agent asked for** - including an
 edit to its own `.claude/settings*.json`, which a Bash command could make just
 as well - so it starts off on every run, is never saved, and
 exists only in the interactive dashboard - the headless service cannot enable
@@ -513,9 +524,9 @@ it. Each answer is gated like any other input:
   action, and observe mode, a paused dashboard or a watcher without input
   control types nothing; the header then says `ON, inert`;
 - only an exact tested menu qualifies, alone on the screen: a limit, paid
-  offer or wait menu beside it, or the cursor anywhere but `1. Yes` is
-  refused, and Enter on item 1 never reaches a "Yes, and ..." item that would
-  change Claude Code's settings or switch the session to accept-edits mode;
+  offer or wait menu beside it, or the cursor anywhere but the exact first
+  choice is refused, and Enter on item 1 never reaches a persistent/session
+  item that would change provider settings or future approval behavior;
 - the box is re-read immediately before the keypress and must be the one the
   scan saw - a different command, an edit, a replaced process or another
   foreground program cancels it;
