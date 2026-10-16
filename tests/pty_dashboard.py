@@ -33,7 +33,13 @@ COLUMNS, ROWS = 120, 32
 class Dashboard:
     """One real dashboard process on a pseudo-terminal."""
 
-    def __init__(self, home: Path, *arguments: str, env: dict[str, str] | None = None) -> None:
+    def __init__(
+        self,
+        home: Path,
+        *arguments: str,
+        env: dict[str, str] | None = None,
+        driver: Path | None = None,
+    ) -> None:
         runtime = home / "run"
         runtime.mkdir(mode=0o700, parents=True, exist_ok=True)
         environment = {
@@ -51,6 +57,10 @@ class Dashboard:
             **(env or {}),
         }
         command = [sys.executable, "-m", "agent_while_true.cli", "run", "--observe", "--all"]
+        if driver is not None:
+            # Test-only drivers wire the real dashboard loop to isolated fakes.
+            command = [sys.executable, str(driver), str(home)]
+            environment["PYTHONPATH"] = os.pathsep.join((str(ROOT / "src"), str(ROOT)))
         self.pid, self.fd = pty.fork()
         if self.pid == 0:  # pragma: no cover - the child process
             os.execve(sys.executable, [*command, *arguments], environment)

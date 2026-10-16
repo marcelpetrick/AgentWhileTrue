@@ -127,6 +127,16 @@ documentation and recorded discovery latency, bounded retries and manual-only
 requests in [USAGE.md](USAGE.md). This is a point-in-time observation, not a
 claim to cover every possible provider question.
 
+Overnight monitoring then found a real scoping defect: Claude had successfully
+armed its own wait, but the trailing `main` agent panel hid the waiting footer
+and verification falsely recorded a resumed turn. An exact-panel-trimmed
+candidate is now accepted only for a recognized self-healing wait with no
+action; historical actionable menus remain out of scope. Full-screen composer
+and permission checks are preserved. A fixture-first recognition regression, persisted lifecycle
+test, `claude-wait-agent-panel` simulation and offline PTY dashboard regression
+cover the fix. Monitoring continues to the requested 07:00 cutoff; this finding
+does not expand permission rules or enable paid choices.
+
 | Trigger | Required response |
 | --- | --- |
 | Codex or Claude changes a blocking prompt | Capture a real redacted fixture, add a failing recognition test, then update the narrow adapter pattern. |

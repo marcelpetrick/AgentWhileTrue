@@ -178,6 +178,36 @@ def test_claude_timed_auto_wait_banner_verifies_the_menu_action(tmp_path: Path) 
     assert kit.supervisor.store.records[pending_key].state is ActionState.VERIFIED
 
 
+def test_live_agent_panel_wait_is_verified_as_armed_not_resumed(tmp_path: Path) -> None:
+    kit, ref = _claude_session(tmp_path, screen=list(screens.CLAUDE_LIMIT_MENU))
+    kit.quota["claude"].availability = Availability.EXHAUSTED
+    assert kit.supervisor.tick()[0].allowed
+    pending = kit.supervisor.sessions[ref.key()].pending_key
+    kit.terminal.set_screen(SESSION, list(screens.CLAUDE_AUTO_WAIT_AGENT_PANEL_2026_10_17))
+    kit.clock.advance(5)
+    harness_module.refresh_quota(kit)
+
+    assert kit.supervisor.tick()[0].reason == "verify:armed-provider-wait"
+    session = kit.supervisor.sessions[ref.key()]
+    assert session.state is SessionState.WAITING_FOR_RESET
+    assert session.limit_seen
+    assert kit.supervisor.store.records[pending].result == "armed-provider-wait"
+    for _ in range(3):
+        kit.clock.advance(60)
+        harness_module.refresh_quota(kit)
+        assert not kit.supervisor.tick()[0].allowed
+        assert session.state is not SessionState.ACTIVE
+    assert kit.sent == [(SESSION, "\x1b[B\r")]
+
+
+def test_panel_like_assistant_turn_cannot_expose_a_historical_wait_menu(tmp_path: Path) -> None:
+    screen = [*screens.CLAUDE_LIMIT_MENU, "", "● main", "● Reading the next task"]
+    kit, _ = _claude_session(tmp_path, screen=screen)
+    kit.quota["claude"].availability = Availability.EXHAUSTED
+    assert not kit.supervisor.tick()[0].allowed
+    assert kit.sent == []
+
+
 def test_an_outstanding_action_is_not_repeated_while_it_is_unverified(tmp_path: Path) -> None:
     # DANGER 17: one logical prompt has one action outstanding at a time,
     # however many times the same screen is scanned.

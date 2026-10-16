@@ -13,6 +13,25 @@ backlogs.
 
 ## Completed acceptance
 
+### Overnight agent-panel waiting regression — 2026-10-17
+
+At 01:14:37 local time the live Claude process selected its exact automatic-wait
+item. At 01:14:42 the watcher incorrectly recorded `result=resumed`, despite
+fresh exhausted session quota and a visible timed automatic-wait footer. The
+trailing `main` panel was being interpreted as a new assistant turn and hid
+that footer. Read-only inspection of the running binary identified Claude
+2.1.302; private task, draft and agent names are absent from the regression
+fixture.
+
+The fix accepts an exact-panel-trimmed candidate only for a recognized
+self-healing wait with no action; it cannot expose a historical actionable
+menu or reset prompt. It preserves automatic-wait and paid-credit vetoes,
+verifies `armed-provider-wait`, and leaves
+the provider's waiting and operator draft alone. Recognition, action lifecycle,
+simulation and offline PTY regressions cover this screen. Global provider
+version verification remains conservative: this evidence verifies a waiting
+layout, not every newer permission menu.
+
 ### O1 — Validate one natural provider reset end to end
 
 Status: **accepted for Codex on 2026-09-18 and Claude on 2026-10-15** with

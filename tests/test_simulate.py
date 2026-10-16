@@ -36,6 +36,7 @@ TALKATIVE = {
     "continue-still-blocked": [(simulate.SESSION, "\r")],
     "duplicate-prompt": [(simulate.SESSION, "\r")],
     "wait-menu-gauge-says-available": [(simulate.SESSION, "\x1b[B\r")],
+    "claude-wait-agent-panel": [(simulate.SESSION, "\x1b[B\r")],
     # Auto-yes switched on by the operator answers one exact permission menu.
     "auto-yes-answers-once": [(simulate.SESSION, "\r")],
     "codex-auto-yes-answers-once": [(simulate.SESSION, "\r")],

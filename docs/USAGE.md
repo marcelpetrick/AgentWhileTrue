@@ -489,12 +489,19 @@ usage limit, "Your org is out of usage", a seat type without usage, a disabled
 allocation, a group limit of $0 - are paid or admin choices: every one vetoes
 input, including arming Claude's own wait.
 
-An armed wait makes the supervisor stand down in every wording Claude uses:
+An armed wait makes the supervisor stand down in the tested wordings:
 "Continuing automatically when it resets", "... at 6:50pm", "... at 7pm" (zero
 minutes are dropped), "... at Oct 3, 7pm" (a reset more than a day out) and
 "... shortly". These lines are templates Claude can change remotely; a
 wording the patterns do not know leaves the wait unrecognised,
 which `doctor`'s version check and a live read are there to catch.
+
+The exact trailing background-agent panel (`main`, then agent rows) cannot hide
+this footer. An automatic-wait selection verifies as `armed-provider-wait`,
+not as resumed work or returned quota. A paid `/usage-credits` offer beside the
+waiting message remains a veto, never a shortcut. A non-empty composer is left
+alone. The overnight layout fixture verifies this waiting screen specifically;
+it does not certify every permission menu in a newer provider binary.
 
 ### Permission prompts
 

@@ -874,6 +874,22 @@ CLAUDE_APPROVAL_QUOTED = [
 ]
 
 
+#: Claude's live automatic-wait footer, observed on 2026-10-17. Private task,
+#: draft and background-agent names are replaced; provider UI is verbatim.
+CLAUDE_AUTO_WAIT_AGENT_PANEL_2026_10_17 = [
+    "● Previous task output omitted.",
+    "",
+    _RULE,
+    "❯ operator draft omitted",
+    _RULE,
+    "⚠ Usage limit reached · limit resets 2:10am",
+    "Continuing automatically at 2:10am · esc to cancel · /usage-credits to continue now",
+    "",
+    "● main",
+    "◯ background-worker · 1h 52m 33s",
+]
+
+
 #: A limit banner that has scrolled far up the screen. It must not be able to
 #: trigger anything (vision DANGER 3).
 def scrolled_away(block: list[str], *, filler_lines: int = 60) -> list[str]:

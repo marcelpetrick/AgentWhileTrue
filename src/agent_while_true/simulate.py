@@ -101,6 +101,17 @@ ARMED_WAIT_SCREEN = [
     "",
     "  ⚠ Usage limit reached · continuing shortly · esc to cancel",
 ]
+# Public waiting footer and trailing agent panel observed live; draft redacted.
+TIMED_WAIT_PANEL_SCREEN = [
+    "─" * 80,
+    "❯ operator draft omitted",
+    "─" * 80,
+    "⚠ Usage limit reached · limit resets 2:10am",
+    "Continuing automatically at 2:10am · esc to cancel · /usage-credits to continue now",
+    "",
+    "● main",
+    "◯ background-worker · 1h 52m 33s",
+]
 CODEX_BLOCKED_SCREEN = ["▌ You've hit your usage limit. Try again at 8:10 PM.", "", "› "]
 CODEX_APPROVAL_SCREEN = [
     "  Would you like to run the following command?",
@@ -685,6 +696,30 @@ def scenario_armed_wait_is_left_alone(directory: Path) -> Result:
     )
 
 
+def scenario_claude_wait_agent_panel(directory: Path) -> Result:
+    world = _world(directory, screen=WAIT_MENU_SCREEN)
+    world.quota["claude"].availability = Availability.EXHAUSTED
+    world.step("arm Claude's exact automatic-wait item")
+    world.screen(TIMED_WAIT_PANEL_SCREEN)
+    world.clock.advance(5)
+    world.step("the trailing agent panel must not hide the waiting footer")
+    armed = world.steps[-1].decision_reason == "verify:armed-provider-wait"
+    world.clock.advance(60)
+    world.step("leave the provider's armed wait and paid offer alone")
+    return _result(
+        "claude-wait-agent-panel",
+        "A trailing main/background-agent panel follows Claude's timed wait footer.",
+        "verify an armed provider wait, never claim recovery or select paid credits",
+        world,
+        passed=armed
+        and world.terminal.sent == [(SESSION, "\x1b[B\r")]
+        and all(
+            record.result == "armed-provider-wait"
+            for record in world.supervisor.store.records.values()
+        ),
+    )
+
+
 def scenario_duplicate_prompt(directory: Path) -> Result:
     world = _ready_world(directory)
     world.step("ready prompt seen")
@@ -903,6 +938,7 @@ SCENARIOS: dict[str, ScenarioFn] = {
     "self-healing-provider": scenario_self_healing_provider,
     "wait-menu-gauge-says-available": scenario_wait_menu_gauge_says_available,
     "armed-wait-is-left-alone": scenario_armed_wait_is_left_alone,
+    "claude-wait-agent-panel": scenario_claude_wait_agent_panel,
     "duplicate-prompt": scenario_duplicate_prompt,
     "crash-recovery": scenario_crash_between_send_and_persist,
     "codex-needs-opt-in": scenario_codex_needs_opt_in,

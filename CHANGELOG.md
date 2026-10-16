@@ -13,6 +13,23 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.67.6] - 2026-10-17
+
+### Fixed
+
+- Claude's exact trailing background-agent panel no longer hides the usage
+  limit and automatic-wait footer. A live overnight regression is verified as
+  `armed-provider-wait`, not falsely reported as a resumed turn.
+- Original full-screen composer and permission validation remain intact;
+  automatic-wait and paid-credit vetoes are preserved.
+
+### Tests and documentation
+
+- Added the redacted live fixture, recognition and lifecycle regressions, an
+  offline pseudo-terminal dashboard test and a dedicated safety simulation.
+- Documented the overnight finding and partial live-provider verification.
+- The installation command points at `agentwhiletrue-v0.67.6`.
+
 ## [0.67.5] - 2026-10-16
 
 ### Documentation

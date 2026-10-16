@@ -362,6 +362,30 @@ class ClaudeAdapter(ProviderAdapter):
         Earlier limit scopes in one region remain useful, but command links
         before its newest limit headline are historical and cannot veto.
         """
+        # An exact trailing panel may hide an already-armed wait. Never let
+        # stripping it expose an actionable historical menu or ready prompt.
+        # Keep the original screen for composer and permission validation.
+        end = len(lines)
+        while end and not lines[end - 1].strip():
+            end -= 1
+        panel_start = _without_agent_panel(lines, end)
+        result = self._recognise_turn(lines, now=now, live_lines=live_lines)
+        if panel_start != end:
+            candidate = self._recognise_turn(lines[:panel_start], now=now, live_lines=live_lines)
+            if candidate.action is None and any(
+                match.pattern.kind is PromptKind.SELF_HEALING for match in candidate.matches
+            ):
+                result = candidate
+        block = _approval_block(lines)
+        return replace(
+            result,
+            composer_empty=_composer_empty(lines),
+            approval_prompt=block is not None,
+            approval_fingerprint=fingerprint(block) if block is not None else "",
+        )
+
+    def _recognise_turn(self, lines: list[str], *, now: datetime, live_lines: int) -> Recognition:
+        """Original latest-turn scoping, without a panel-removal exception."""
         latest_turn = 0
         menu_cursor = re.compile(
             r"^\s*\N{HEAVY RIGHT-POINTING ANGLE QUOTATION MARK ORNAMENT}"
@@ -402,14 +426,7 @@ class ClaudeAdapter(ProviderAdapter):
             else line
             for index, line in enumerate(live)
         ]
-        result = super().recognise(scoped, now=now, live_lines=live_lines)
-        block = _approval_block(lines)
-        return replace(
-            result,
-            composer_empty=_composer_empty(lines),
-            approval_prompt=block is not None,
-            approval_fingerprint=fingerprint(block) if block is not None else "",
-        )
+        return super().recognise(scoped, now=now, live_lines=live_lines)
 
 
 #: Claude draws its composer cursor with this glyph; the menu cursor uses it too.

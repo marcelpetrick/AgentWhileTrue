@@ -253,6 +253,13 @@ box's closing rule, so a multi-line draft begun with Shift+Enter is skipped
 too. The background-agent panel Claude Code
 2.1.292 draws under its status lines while subagents run (a `main` row, then
 one row per agent) is cut as chrome first; any other row there fails closed.
+For prompt recognition, the panel-trimmed candidate is accepted only when it
+contains a recognized self-healing wait and proposes no action. All actionable
+menu/reset recognition keeps the original latest-turn scope: panel-like
+assistant prose must never expose a historical action. Composer and permission
+checks still use the original full screen. Verification of a self-healing footer records
+`armed-provider-wait`, retains the limit sighting and never claims that quota
+has returned, even when the footer also offers paid credits.
 Quota is used the other way round from a
 resume: exhausted quota blocks a crack, while unknown quota does not, because a
 reminder asks for no usage that is not already being spent. Each crack offers

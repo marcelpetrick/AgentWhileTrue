@@ -34,6 +34,29 @@ def test_claude_session_limit_screen_also_flags_the_paid_offer() -> None:
     assert any(veto.startswith("paid-action-required") for veto in result.vetoes)
 
 
+def test_live_claude_auto_wait_footer_survives_background_agent_panel() -> None:
+    result = providers.CLAUDE.recognise(screens.CLAUDE_AUTO_WAIT_AGENT_PANEL_2026_10_17, now=NOW)
+    assert result.state is SessionState.LIMIT_BLOCKED
+    assert "claude/limit-banner" in result.matched_ids
+    assert "claude/self-healing-timed" in result.matched_ids
+    assert any(match.pattern.kind is PromptKind.SELF_HEALING for match in result.matches)
+    assert "provider-resumes-itself:claude/self-healing-timed" in result.vetoes
+    assert "paid-action-required:claude/usage-credits-offer" in result.vetoes
+    assert result.action is None
+    assert not result.composer_empty
+    assert not result.approval_prompt
+
+
+def test_unknown_claude_agent_panel_tail_cannot_authorize_input() -> None:
+    result = providers.CLAUDE.recognise(
+        [*screens.CLAUDE_AUTO_WAIT_AGENT_PANEL_2026_10_17, "Unknown panel controls"],
+        now=NOW,
+    )
+    assert not result.composer_empty
+    assert not result.approval_prompt
+    assert result.action is None
+
+
 def test_real_claude_limit_menu_proposes_only_the_safe_wait_choice() -> None:
     result = providers.CLAUDE.recognise(screens.CLAUDE_LIMIT_MENU, now=NOW)
     assert result.state is SessionState.LIMIT_BLOCKED
@@ -351,6 +374,15 @@ def test_registry_maps_only_agent_classes() -> None:
     assert providers.for_process_class(ProcessClass.CODEX) is providers.CODEX
     for other in (ProcessClass.SHELL, ProcessClass.SSH, ProcessClass.UNKNOWN):
         assert providers.for_process_class(other) is None
+
+
+@pytest.mark.parametrize("historical", [screens.CLAUDE_LIMIT_MENU, screens.CLAUDE_READY_TO_RESUME])
+def test_panel_exception_never_exposes_historical_actions(historical: list[str]) -> None:
+    result = providers.CLAUDE.recognise(
+        [*historical, "", "● main", "● Reading the next task"], now=NOW
+    )
+    assert result.state is SessionState.ACTIVE
+    assert result.action is None
 
 
 def test_latest_reset_wins_when_two_windows_are_blocked() -> None:
