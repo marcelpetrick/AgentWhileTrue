@@ -272,7 +272,7 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
                 re.IGNORECASE | re.MULTILINE,
             ),
         ),
-        note="Tool permission request. Never answered automatically.",
+        note="Tool permission request. Only exact menus may use operator-enabled auto-yes.",
         verified_against=VERIFIED_AGAINST,
     ),
     PromptPattern(

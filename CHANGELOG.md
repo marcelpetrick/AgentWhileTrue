@@ -13,6 +13,18 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.67.5] - 2026-10-16
+
+### Documentation
+
+- Corrected polling configuration descriptions and generated configuration
+  comments: quota is read during scans and pre-action checks, while cached
+  health redraw follows the dashboard interval.
+- Documented discovery latency, bounded retry exhaustion, dashboard-only
+  permission approvals and the limits of automatic continuation.
+- Recorded the follow-up live profile audit and corrected Claude's permission
+  pattern explanation to describe operator-enabled exact-menu auto-yes.
+
 ## [0.67.4] - 2026-10-16
 
 ### Fixed

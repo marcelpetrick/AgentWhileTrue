@@ -300,8 +300,8 @@ environment < command line. Durations accept `ms`, `s`, `m`, `h`.
 | --- | --- | --- |
 | `MODE` | `ask` | `observe`, `ask`, or `auto` |
 | `SCAN_INTERVAL` | `2s` | How often selected sessions are read |
-| `USAGE_POLL_INTERVAL` | `60s` | Provider quota refresh cadence |
-| `STATUS_POLL_INTERVAL` | `1s` | Dashboard redraw of cached service health |
+| `USAGE_POLL_INTERVAL` | `60s` | Accepted configuration field; currently has no runtime effect |
+| `STATUS_POLL_INTERVAL` | `1s` | Accepted configuration field; currently has no runtime effect |
 | `SERVICE_STATUS_INTERVAL` | `5m` | Real requests to the public status APIs (1s–24h) |
 | `RESET_GRACE` | `60s` | Extra wait after a nominal reset |
 | `MAX_RESUME_ATTEMPTS` | `3` | Attempt budget per prompt outside Codex timed retries |
@@ -314,6 +314,29 @@ environment < command line. Durations accept `ms`, `s`, `m`, `h`.
 | `AUTO_ACCEPT_MODEL_DOWNGRADE`, `AUTO_USE_PAID_CREDITS`, `AUTO_BUY_CREDITS`, `AUTO_CONSUME_RESET_CREDIT` | `false` | Never enabled by the supplied configuration |
 | `LOG_FILE`, `STATE_DIR`, `RUNTIME_DIR` | XDG defaults | Paths |
 | `ALLOW_ROOT`, `USE_FZF` | `false`, `true` | Diagnostics-only root; optional fzf picker |
+
+### How quickly will a session continue?
+
+Selected sessions are scanned every two seconds by default. The dashboard's
+`-` / `+` keys change that interval; pending reset and verification deadlines
+can wake the loop earlier. With `--all`, newly started sessions are discovered
+within roughly 30 seconds, or on an operator rescan. Quota snapshots are read
+during scans and immediately before an action, not on `USAGE_POLL_INTERVAL`.
+Cached service health is redrawn with the dashboard, not on
+`STATUS_POLL_INTERVAL`.
+
+Opted-in Codex timed retries first become eligible one second after an anchored
+reset, subject to quota, prompt and identity revalidation. The persisted
+11-attempt budget is finite; exhausted retries require operator attention, not
+an endless stream of `continue` messages. Claude's exact automatic-wait menu
+hands waiting back to Claude; other Claude continuations still need provider
+confirmation. Neither a reset clock nor this supervisor guarantees that the
+provider is available.
+
+Permission approvals require a selected session and an unpaused, input-owning
+full-auto dashboard with `y` enabled. A headless service cannot enable auto-yes.
+Unknown questions, MCP elicitation and paid or model-changing choices remain
+manual. An idle shell or exited agent cannot be continued.
 
 ## 6. Logs and summaries
 

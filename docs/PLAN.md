@@ -119,6 +119,14 @@ remain the deterministic regression mechanism.
 
 Maintenance is evidence-driven rather than scheduled feature growth.
 
+The follow-up live audit found Claude-dmo active in `hr-doccontrol`, both Codex
+profiles active, and no pending approval in those inspected sessions. The
+previous MPT agents had exited; an idle shell is not a resumable session. No
+additional prompt rule was justified. The audit corrected misleading polling
+documentation and recorded discovery latency, bounded retries and manual-only
+requests in [USAGE.md](USAGE.md). This is a point-in-time observation, not a
+claim to cover every possible provider question.
+
 | Trigger | Required response |
 | --- | --- |
 | Codex or Claude changes a blocking prompt | Capture a real redacted fixture, add a failing recognition test, then update the narrow adapter pattern. |

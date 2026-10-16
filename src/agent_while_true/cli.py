@@ -959,10 +959,9 @@ DEFAULT_CONFIG_TEMPLATE = """\
 MODE=ask
 
 SCAN_INTERVAL=2s
+# Accepted fields with no runtime effect. Quota is reread during scans and
+# before actions; cached service health is redrawn with the dashboard.
 USAGE_POLL_INTERVAL=60s
-
-# Public status summaries are cached off the supervisor thread. The TUI still
-# refreshes their age every second when its display interval is 1s.
 STATUS_POLL_INTERVAL=1s
 
 # How often the providers' public status APIs are actually requested. The
