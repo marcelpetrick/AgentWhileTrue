@@ -74,6 +74,10 @@ Codex is launched through a Node.js shim on current installations, so Konsole
 may label its tab or foreground command `node`. Agent While True walks the child
 process tree, classifies the native Codex process, reads quota from that
 process, and presents the session as `Codex`.
+Quota discovery also follows children spawned by native runtime worker threads;
+both the default and `codex-dmo` profile retain their own quota/account binding.
+If data still reports `UNKNOWN`, inspect its reason and freshness with `quota`
+or the dashboard's `d` panel; missing data never becomes an available budget.
 
 ## 3. Choose sessions and a mode
 
@@ -399,6 +403,12 @@ delay replaces reset grace on this path; subsequent delays begin after the
 previous attempt's verification finishes (normally one second plus latency), so
 the delays are not absolute offsets from the reset. Near deadlines wake the scan
 loop sooner than its ordinary interval.
+Successful recovery requires two working observations at least three seconds
+apart; an exact one-time tool request also counts as progress. A brief Working
+redraw followed by the identical limit keeps the original
+reset and spent attempt count, including across a watcher restart. A matching
+fresh absolute provider reset can establish a genuinely later episode; a
+time-only banner returning after nominal reset cannot silently become tomorrow.
 
 The same prompt keeps its first observed reset date across midnight and
 restarts. On a late first sighting, a matching absolute quota-window timestamp

@@ -739,6 +739,44 @@ def scenario_codex_needs_opt_in(directory: Path) -> Result:
     )
 
 
+def scenario_codex_transient_recovery(directory: Path) -> Result:
+    world = _world(
+        directory,
+        provider="codex",
+        screen=CODEX_BLOCKED_SCREEN,
+        policy=Policy(allow_codex_auto_resume=True),
+    )
+    world.quota["codex"].availability = Availability.UNKNOWN
+    world.step("anchor the printed Codex reset")
+    session = world.supervisor.sessions[world.terminal.ref(SESSION).key()]
+    reset = session.reset_at
+    episode = session.retry_episode_key
+    assert reset is not None
+    world.clock.advance((reset - world.clock.wall).total_seconds() + 1)
+    world.step("the first bounded trial reaches the composer")
+    world.screen(["• Working (1s · esc to interrupt)", "", "› "])
+    world.clock.advance(1)
+    world.step("one working redraw does not complete recovery")
+    world.screen(CODEX_BLOCKED_SCREEN)
+    world.clock.advance(3)
+    world.step("the identical limit returns")
+    world.clock.advance(2)
+    world.step("retry using the original anchor and remaining budget")
+    record = world.supervisor.store.get_episode(episode)
+    return _result(
+        "codex-transient-recovery",
+        "Codex briefly draws Working, then returns to the identical limit.",
+        "retain the original reset and retry budget instead of waiting until tomorrow",
+        world,
+        passed=len(world.terminal.sent) == 2
+        and session.reset_at == reset
+        and session.retry_episode_key == episode
+        and record is not None
+        and record.attempts == 2
+        and not record.completed,
+    )
+
+
 def scenario_observe_mode(directory: Path) -> Result:
     world = _ready_world(directory, mode=Mode.OBSERVE)
     world.step("ready prompt in observe mode")
@@ -868,6 +906,7 @@ SCENARIOS: dict[str, ScenarioFn] = {
     "duplicate-prompt": scenario_duplicate_prompt,
     "crash-recovery": scenario_crash_between_send_and_persist,
     "codex-needs-opt-in": scenario_codex_needs_opt_in,
+    "codex-transient-recovery": scenario_codex_transient_recovery,
     "observe-mode": scenario_observe_mode,
     "approval-waits-for-operator": scenario_approval_waits_for_the_operator,
     "auto-yes-answers-once": scenario_auto_yes_answers_once,

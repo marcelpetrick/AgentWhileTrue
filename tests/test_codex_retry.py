@@ -54,6 +54,195 @@ def test_reset_does_not_move_to_tomorrow_and_retry_occurs(tmp_path):
     assert len(kit.sent) == 1
 
 
+def test_transient_working_redraw_does_not_complete_retry_or_move_reset(tmp_path):
+    kit, session = setup_codex(tmp_path)
+    kit.supervisor.tick()
+    reset = session.reset_at
+    episode = session.retry_episode_key
+    kit.clock.advance(69)
+    kit.supervisor.tick()
+    kit.terminal.set_screen("/Sessions/1", ["• Working (1s · esc to interrupt)", "", COMPOSER])
+    kit.clock.advance(1)
+    result = kit.supervisor.tick()[0]
+
+    assert not result.allowed
+    assert not kit.supervisor.store.get_episode(episode).completed
+    kit.terminal.set_screen("/Sessions/1", TONIGHTS_LIMIT)
+    kit.clock.advance(3)
+    kit.supervisor.tick()
+    assert session.reset_at == reset
+    assert session.retry_episode_key == episode
+    assert not kit.supervisor.store.get_episode(episode).completed
+    kit.clock.advance(2)
+    kit.supervisor.tick()
+    assert len(kit.sent) == 2
+
+
+def test_reported_repeated_limit_stays_an_exact_retry_prompt() -> None:
+    result = providers.CODEX.recognise(screens.CODEX_REPEATED_LIMIT_2026_10_16, now=NOW)
+
+    assert result.state is SessionState.LIMIT_BLOCKED
+    assert result.retry_prompt
+    assert result.action is not None
+
+
+def test_resume_into_exact_permission_menu_verifies_then_auto_yes_can_answer(tmp_path):
+    kit, session = setup_codex(tmp_path)
+    kit.supervisor.tick()
+    kit.clock.advance(69)
+    assert kit.supervisor.tick()[0].allowed
+    kit.terminal.set_screen("/Sessions/1", screens.CODEX_APPROVAL_EXEC_0_162_1)
+    kit.clock.advance(1)
+    assert kit.supervisor.tick()[0].reason == "verifying"
+    kit.clock.advance(3)
+    assert kit.supervisor.tick()[0].reason == "resume-verified"
+    assert session.state is SessionState.APPROVAL_PENDING
+    assert kit.supervisor.approve_pending() == {session.ref.key(): "approved"}
+    assert len(kit.sent) == 2
+    assert kit.sent[-1] == ("/Sessions/1", "\r")
+
+
+def _complete_retry_with_stable_activity(kit, session):
+    kit.terminal.set_screen("/Sessions/1", ["• Working", "", COMPOSER])
+    kit.clock.advance(1)
+    assert kit.supervisor.tick()[0].reason == "verifying"
+    kit.clock.advance(3)
+    assert kit.supervisor.tick()[0].reason == "resume-verified"
+    assert session.retry_episode_key == ""
+
+
+def _restart_codex(kit, tmp_path):
+    restarted = build(tmp_path, now=kit.clock.wall, config=kit.supervisor.config)
+    restarted.supervisor.store = StateStore.in_directory(tmp_path).load(now=kit.clock.wall)
+    info = restarted.inspector.add_codex(423301)
+    ref = restarted.terminal.add(
+        "/Sessions/1", shell_pid=100, foreground_pid=info.pid, screen=TONIGHTS_LIMIT
+    )
+    restarted.supervisor.select(ref, info.identity, "codex", "synthetic")
+    return restarted, restarted.supervisor.sessions[ref.key()]
+
+
+def test_completed_retry_reopens_identical_limit_after_restart_with_original_budget(tmp_path):
+    kit, session = setup_codex(
+        tmp_path,
+        config=Config(
+            mode=Mode.AUTO, policy=Policy(allow_codex_auto_resume=True), retry_schedule=(1, 2)
+        ),
+    )
+    kit.supervisor.tick()
+    reset, episode_key = session.reset_at, session.retry_episode_key
+    kit.clock.advance(69)
+    kit.supervisor.tick()
+    _complete_retry_with_stable_activity(kit, session)
+
+    restarted, recovered = _restart_codex(kit, tmp_path)
+    assert not restarted.supervisor.tick()[0].allowed
+    episode = restarted.supervisor.store.get_episode(episode_key)
+    assert recovered.reset_at == reset
+    assert recovered.retry_episode_key == episode_key
+    assert episode.attempts == 1
+    assert not episode.completed
+    restarted.clock.advance(2)
+    assert restarted.supervisor.tick()[0].allowed
+    assert len(restarted.sent) == 1
+    assert restarted.supervisor.store.get_episode(episode_key).attempts == 2
+
+
+def test_completed_last_attempt_cannot_mint_new_budget_for_identical_limit(tmp_path):
+    kit, session = setup_codex(
+        tmp_path,
+        config=Config(
+            mode=Mode.AUTO, policy=Policy(allow_codex_auto_resume=True), retry_schedule=(1,)
+        ),
+    )
+    kit.supervisor.tick()
+    episode_key, reset = session.retry_episode_key, session.reset_at
+    kit.clock.advance(69)
+    kit.supervisor.tick()
+    _complete_retry_with_stable_activity(kit, session)
+    kit.terminal.set_screen("/Sessions/1", TONIGHTS_LIMIT)
+    kit.clock.advance(1)
+    assert kit.supervisor.tick()[0].reason == "retry-budget-exhausted"
+    assert session.reset_at == reset
+    assert kit.supervisor.store.get_episode(episode_key).attempts == 1
+    assert kit.supervisor.store.get_episode(episode_key).exhausted
+    kit.clock.advance(86401)
+    kit.supervisor.store = StateStore.in_directory(tmp_path).load(now=kit.clock.wall)
+    kit.supervisor.select(session.ref, session.identity, "codex", "synthetic")
+    assert kit.supervisor.tick()[0].reason == "retry-budget-exhausted"
+    assert len(kit.sent) == 1
+
+
+def test_fresh_absolute_next_day_reset_starts_a_genuine_new_episode(tmp_path):
+    kit, session = setup_codex(tmp_path)
+    kit.supervisor.tick()
+    old_reset, old_episode = session.reset_at, session.retry_episode_key
+    kit.clock.advance(69)
+    kit.supervisor.tick()
+    _complete_retry_with_stable_activity(kit, session)
+    kit.clock.advance(86400 - 65)
+    kit.quota["codex"].availability = Availability.EXHAUSTED
+    kit.quota["codex"].observed_at = kit.clock.wall
+    kit.quota["codex"].windows = (QuotaWindow("session", 100, old_reset + timedelta(days=1)),)
+    kit.terminal.set_screen("/Sessions/1", TONIGHTS_LIMIT)
+    assert not kit.supervisor.tick()[0].allowed
+    assert session.reset_at == old_reset + timedelta(days=1)
+    assert session.retry_episode_key != old_episode
+    assert kit.supervisor.store.get_episode(session.retry_episode_key).attempts == 0
+    assert kit.supervisor.store.get_episode(session.retry_episode_key).reset_confirmed
+    new_episode = session.retry_episode_key
+    restarted, recovered = _restart_codex(kit, tmp_path)
+    restarted.clock.advance(1)
+    restarted.supervisor.tick()
+    assert recovered.retry_episode_key == new_episode
+    assert recovered.reset_at == old_reset + timedelta(days=1)
+
+
+def test_migration_ignores_bogus_unstarted_tomorrow_episode(tmp_path):
+    kit, session = setup_codex(
+        tmp_path,
+        config=Config(
+            mode=Mode.AUTO, policy=Policy(allow_codex_auto_resume=True), retry_schedule=(1,)
+        ),
+    )
+    kit.supervisor.tick()
+    episode_key, reset = session.retry_episode_key, session.reset_at
+    original = kit.supervisor.store.get_episode(episode_key)
+    kit.clock.advance(69)
+    kit.supervisor.tick()
+    _complete_retry_with_stable_activity(kit, session)
+    kit.supervisor.store.ensure_episode(
+        "old-controller-bogus-tomorrow",
+        provider=original.provider,
+        session=original.session,
+        process=original.process,
+        prompt_key=original.prompt_key,
+        reset_at=(reset + timedelta(days=1)).isoformat(),
+        first_seen_at=kit.clock.wall.isoformat(),
+    )
+    restarted, recovered = _restart_codex(kit, tmp_path)
+    assert restarted.supervisor.tick()[0].reason == "retry-budget-exhausted"
+    assert recovered.reset_at == reset
+    assert recovered.retry_episode_key == episode_key
+    assert restarted.sent == []
+
+
+def test_manual_working_redraw_keeps_original_episode_until_activity_is_stable(tmp_path):
+    kit, session = setup_codex(tmp_path)
+    kit.supervisor.tick()
+    old_reset, episode_key = session.reset_at, session.retry_episode_key
+    kit.terminal.set_screen("/Sessions/1", ["• Working", "", COMPOSER])
+    kit.clock.advance(1)
+    kit.supervisor.tick()
+    assert not kit.supervisor.store.get_episode(episode_key).completed
+    kit.terminal.set_screen("/Sessions/1", TONIGHTS_LIMIT)
+    kit.clock.advance(1)
+    kit.supervisor.tick()
+    assert session.reset_at == old_reset
+    assert session.retry_active_since is None
+    assert not kit.supervisor.store.get_episode(episode_key).completed
+
+
 def test_pre_limit_available_quota_cannot_send_before_printed_reset(tmp_path):
     kit, _ = setup_codex(tmp_path, availability=Availability.AVAILABLE)
     kit.supervisor.tick()

@@ -36,6 +36,7 @@ import os
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from itertools import islice
 from pathlib import Path
 from typing import cast
 
@@ -53,6 +54,9 @@ DEFAULT_MAX_AGE_SECONDS = 15 * 60.0
 #: How much of a rollout file's tail to scan for the newest rate-limit event.
 _ROLLOUT_TAIL_BYTES = 256 * 1024
 _PROCESS_ENVIRONMENT_BYTES = 64 * 1024
+_PROCESS_THREAD_LIMIT = 256
+_PROCESS_TREE_LIMIT = 64
+_PROCESS_CHILD_LIST_BYTES = 4096
 _MAX_CLOCK_SKEW_SECONDS = 5 * 60.0
 
 _MINUTES_PER_WEEK = 10080
@@ -196,14 +200,54 @@ def _codex_home_from_rollout(rollout: Path) -> Path | None:
     return None
 
 
+def _process_children(pid: int) -> tuple[int, ...]:
+    """Read bounded child lists from the main thread and worker threads.
+
+    Linux assigns a child to the thread that spawned it. Codex's runtime
+    workers can therefore own the rollout-writing child even though the
+    process leader's children file is empty.
+    """
+    task_root = PROC / str(pid) / "task"
+    main = task_root / str(pid)
+    try:
+        workers = sorted(
+            islice(
+                (task for task in task_root.iterdir() if task != main and task.name.isdecimal()),
+                _PROCESS_THREAD_LIMIT - 1,
+            ),
+            key=lambda task: int(task.name),
+        )
+    except OSError:
+        workers = []
+    children: list[int] = []
+    seen: set[int] = set()
+    for task in (main, *workers):
+        try:
+            with (task / "children").open("rb") as handle:
+                raw = handle.read(_PROCESS_CHILD_LIST_BYTES + 1)
+            if len(raw) > _PROCESS_CHILD_LIST_BYTES:
+                continue
+            candidates = [int(value) for value in raw.split()]
+        except OSError, ValueError:
+            continue
+        for child in candidates:
+            if child > 0 and child not in seen:
+                children.append(child)
+                seen.add(child)
+                if len(children) >= _PROCESS_TREE_LIMIT:
+                    return tuple(children)
+    return tuple(children)
+
+
 def _find_codex_rollouts(pid: int) -> tuple[Path, ...]:
     """Return every profile-matching rollout open in the process tree."""
     found: list[Path] = []
     found_set: set[Path] = set()
     selected_home = _process_codex_home(pid) or Path.home() / ".codex"
     pending = [pid]
+    queued = {pid}
     seen: set[int] = set()
-    while pending and len(seen) < 64:
+    while pending and len(seen) < _PROCESS_TREE_LIMIT:
         current = pending.pop(0)
         if current in seen:
             continue
@@ -229,11 +273,12 @@ def _find_codex_rollouts(pid: int) -> tuple[Path, ...]:
             if target not in found_set:
                 found.append(target)
                 found_set.add(target)
-        children = PROC / str(current) / "task" / str(current) / "children"
-        try:
-            pending.extend(int(value) for value in children.read_text().split())
-        except OSError, ValueError:
-            continue
+        for child in _process_children(current):
+            if len(queued) >= _PROCESS_TREE_LIMIT:
+                break
+            if child not in queued:
+                pending.append(child)
+                queued.add(child)
     return tuple(found)
 
 

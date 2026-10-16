@@ -102,6 +102,12 @@ for supported one-time tool permissions. A five-hour reset does not clear an
 exhausted weekly budget. Arbitrary decisions, persistent permission changes,
 paid choices and requests with hidden previews still need the operator.
 
+For unattended work, open `agent-while-true run --observe --all`, press `A`
+to take input control and enable Codex continuation, then `y` for one-time
+permissions. Check that both switches show ON and the dashboard is unpaused.
+The background service alone cannot enable auto-yes. Both Codex profiles'
+quota meters follow the native process's worker-spawned rollout writers.
+
 Use the [latest public release](https://github.com/marcelpetrick/AgentWhileTrue/releases/latest)
 and run `agent-while-true doctor` after updating either provider. Restart the
 dashboard after updating Agent While True so it loads the new code, and enable
@@ -175,7 +181,7 @@ in [docs/USAGE.md](docs/USAGE.md#the-whip).
 ## Install
 
 ```bash
-pipx install --python python3.14 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.67.2'
+pipx install --python python3.14 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.67.4'
 agent-while-true --version
 agent-while-true doctor
 ```

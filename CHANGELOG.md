@@ -13,6 +13,28 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.67.4] - 2026-10-16
+
+### Fixed
+
+- Codex and codex-dmo quota discovery follows children spawned by runtime
+  worker threads, restoring fresh five-hour and weekly meters instead of
+  `UNKNOWN/no-rollout-file`. Thread/process traversal stays bounded and
+  different profiles remain isolated.
+- Codex recovery retains its reset anchor and original bounded retry budget
+  when a transient Working redraw is followed by the identical limit banner;
+  short redraws no longer count as a completed recovery.
+- A successful Codex continuation into an exact one-time tool permission is
+  verified as progress before the operator-enabled auto-yes path answers it.
+
+### Documentation
+
+- Closed the Claude natural-reset acceptance item using the retained
+  provider-confirmed Enter and verified resume on 2026-10-15.
+- Updated the implementation plan and quota-source documentation with the
+  live root cause, regression coverage and full-auto operating instructions.
+- The installation command points at `agentwhiletrue-v0.67.4`.
+
 ## [0.67.3] - 2026-10-15
 
 ### Documentation

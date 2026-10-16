@@ -241,7 +241,7 @@ def test_episode_updates_schedule_and_terminal_outcomes(tmp_path: Path) -> None:
         )
         == updated
     )
-    store.update_episode(episode.key, completed=True)
+    completed = store.update_episode(episode.key, completed=True)
     assert (
         store.find_episode(
             provider="codex",
@@ -249,7 +249,7 @@ def test_episode_updates_schedule_and_terminal_outcomes(tmp_path: Path) -> None:
             process=episode.process,
             prompt_key=PROMPT_KEY,
         )
-        is None
+        == completed
     )
 
 
@@ -385,6 +385,49 @@ def test_a_completed_episode_with_a_pending_attempt_is_kept(tmp_path: Path) -> N
     store.update_episode("odd", completed=True, pending_key="action")
     reset = datetime.fromisoformat(RESET)
     assert "odd" in StateStore(store.path).load(now=reset + timedelta(days=3)).episodes
+
+
+def test_a_completed_episode_with_a_spent_budget_keeps_its_anchor(tmp_path: Path) -> None:
+    store = _store(tmp_path)
+    episode = _episode(store, "spent")
+    store.update_episode(episode.key, completed=True, exhausted=True)
+    reset = datetime.fromisoformat(RESET)
+    reloaded = StateStore(store.path).load(now=reset + timedelta(days=3))
+    assert (
+        reloaded.find_episode(
+            provider=episode.provider,
+            session=episode.session,
+            process=episode.process,
+            prompt_key=episode.prompt_key,
+        ).key
+        == episode.key
+    )
+
+
+def test_unstarted_unconfirmed_future_episode_does_not_replace_completed_anchor(tmp_path: Path):
+    store = _store(tmp_path)
+    prior = _episode(store, "prior")
+    store.update_episode(prior.key, completed=True)
+    future = store.ensure_episode(
+        "future",
+        provider=prior.provider,
+        session=prior.session,
+        process=prior.process,
+        prompt_key=prior.prompt_key,
+        reset_at=(datetime.fromisoformat(RESET) + timedelta(days=1)).isoformat(),
+        first_seen_at=RESET,
+    )
+    lookup = {
+        "provider": prior.provider,
+        "session": prior.session,
+        "process": prior.process,
+        "prompt_key": prior.prompt_key,
+    }
+    assert store.find_episode(**lookup).key == prior.key
+    store.update_episode(future.key, reset_confirmed=True)
+    assert store.find_episode(**lookup).key == future.key
+    store.update_episode(prior.key, pending_key="unsettled-action")
+    assert store.find_episode(**lookup).key == prior.key
 
 
 def test_a_long_running_save_prunes_expired_episodes(tmp_path: Path) -> None:

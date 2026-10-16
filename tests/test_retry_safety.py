@@ -111,6 +111,10 @@ def test_manual_recovery_completes_episode_before_due_retry(tmp_path) -> None:
     assert decision.reason.startswith("no-recognised-blocking-prompt")
     assert session.state is SessionState.ACTIVE
     assert episode is not None
+    assert not episode.completed
+    kit.clock.advance(3)
+    kit.supervisor.tick()
+    episode = kit.supervisor.store.get_episode(key)
     assert episode.completed
     assert kit.sent == []
 

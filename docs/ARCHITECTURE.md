@@ -196,6 +196,10 @@ state; action/verification deadlines can wake the loop sooner. Codex reset
 anchors are bound to the selected process and reset hint; a later reset creates
 a separate episode. All open same-profile rollouts are considered for quota,
 using newest valid windowed evidence rather than file-descriptor order.
+Discovery reads child lists from the main thread and up to 255 worker threads
+per process, with a 64-process traversal cap. Linux assigns children to their
+spawning thread; inspecting only the leader misses Codex's rollout writers.
+Profile filtering still applies to every discovered process and rollout.
 
 ## Auto-yes
 
@@ -277,6 +281,14 @@ recheck refreshes quota/prompt evidence, then directly rereads process identity
 and classification immediately before `sendText`; no disk write intervenes.
 Konsole offers no atomic compare-screen-and-send operation, so a residual
 asynchronous boundary remains and must not be described as atomic.
+
+Codex recovery completes only after two working observations at least three
+seconds apart, including an exact one-time tool-permission request. Completed
+episodes remain usable as reset anchors; an identical
+returning limit reopens the same episode with its spent attempts intact. A
+matching fresh absolute provider reset distinguishes a genuinely later date.
+Unstarted, unconfirmed future episodes created by older versions cannot outrank
+an already attempted or completed anchor for the same process and prompt.
 
 Malformed retry state disables timed trials; pending `PLANNED` attempts are not
 replayed after restart. A pending `SENT` can be verified without another send.

@@ -37,6 +37,10 @@ when recognizer behavior changes.
   composer after an anchored reset, with a persistent bounded retry schedule,
   no fresh contradictory quota and immediate identity/prompt/policy revalidation.
   Claude and every other action still require provider confirmation.
+  Codex recovery needs two working observations at least three seconds apart;
+  an identical returning limit reuses its retained reset and spent attempts,
+  including after restart. A genuinely later date needs matching fresh absolute
+  provider evidence before it can replace a completed anchor.
 - Bind a selection to Konsole service/session plus PID, process start time, and
   TTY; never transfer an interactive selection to a replacement process.
 - Re-read session identity, process class, visible prompt, and policy directly

@@ -302,6 +302,22 @@ CODEX_ACTIVE = [
     "› ",
 ]
 
+# Redacted from the 2026-10-16 16:14 screenshot: repeated failed continuations
+# retained the exact same 12:45 banner, with a brief Working redraw between
+# retries. The account/project/model status is omitted; the limit and composer
+# affordances are verbatim.
+CODEX_REPEATED_LIMIT_2026_10_16 = [
+    "■ You've hit your usage limit. Upgrade to Pro (https://chatgpt.com/explore/pro), "
+    "visit https://chatgpt.com/settings/usage to purchase more credits or try again at 12:45 PM.",
+    "",
+    "› continue",
+    "",
+    "■ You've hit your usage limit. Upgrade to Pro (https://chatgpt.com/explore/pro), "
+    "visit https://chatgpt.com/settings/usage to purchase more credits or try again at 12:45 PM.",
+    "",
+    "› Ask Codex to do anything",
+]
+
 # Transcribed from Codex CLI 0.162.1's own ratatui approval snapshots. The
 # command/reason is illustrative; title, selected item, choice labels, shortcut
 # hints and footer are verbatim.

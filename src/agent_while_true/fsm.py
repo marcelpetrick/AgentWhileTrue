@@ -62,6 +62,7 @@ TIME_JUMP_THRESHOLD_SECONDS = 30.0
 
 #: How long after sending input to check whether it worked.
 DEFAULT_VERIFY_DELAY_SECONDS = 5.0
+RETRY_ACTIVITY_CONFIRM_SECONDS = 3.0
 
 #: How long an answered permission box may stay on screen before auto-yes
 #: takes it as an Enter that did not land. Long enough for Claude Code to
@@ -165,6 +166,7 @@ class SupervisedSession:
     reset_prompt_key: str = ""
     reset_first_seen: datetime | None = None
     retry_episode_key: str = ""
+    retry_active_since: datetime | None = None
     verify_after: datetime | None = None
     #: Sends since the last verified resume. The store counts attempts per
     #: prompt; this counts them per session, so a screen that keeps changing
@@ -403,6 +405,7 @@ class Supervisor:
         for session in self.sessions.values():
             session.next_check_at = None
             session.verify_after = None
+            session.retry_active_since = None
             if session.state is SessionState.CONTINUE_SENT:
                 session.state = SessionState.VERIFYING
         self.log.warning("time_jump_detected", sessions=len(self.sessions), at=now)
@@ -415,13 +418,7 @@ class Supervisor:
 
         previous_deadline = session.next_check_at
         observation = self._anchor_reset(session, self.observe(session.ref, now=now))
-        if (
-            observation.identity == session.identity
-            and observation.recognition is not None
-            and observation.recognition.provider == "codex"
-            and observation.recognition.state in {SessionState.ACTIVE, SessionState.LIMIT_WARNING}
-            and observation.recognition.active_evidence
-        ):
+        if self._retry_activity_confirmed(session, observation):
             self._finish_episode(session)
         self._prepare_retry(session, observation)
         episode = self.store.get_episode(session.retry_episode_key)
@@ -525,7 +522,39 @@ class Supervisor:
             process=session.describe_process(),
             prompt_key=hint,
         )
-        if hint == session.reset_prompt_key and session.reset_at is not None:
+        # An absolute provider window can distinguish a genuinely new limit
+        # from the same time-only banner returning after a transient redraw.
+        dated = [
+            window.resets_at
+            for window in observation.quota.windows
+            if window.resets_at is not None
+            and abs((observation.at - window.resets_at).total_seconds()) <= 86400
+            and all(
+                parse_reset(
+                    text,
+                    window.resets_at.replace(second=0, microsecond=0) - timedelta(seconds=1),
+                )
+                == window.resets_at.replace(second=0, microsecond=0)
+                for text in texts
+            )
+        ]
+        newer_reset = (
+            max(dated)
+            if dated
+            and saved is not None
+            and not saved.pending_key
+            and not observation.quota.is_stale(observation.at)
+            and observation.quota.observed_at is not None
+            and observation.quota.observed_at > datetime.fromisoformat(saved.reset_at)
+            and max(dated) > datetime.fromisoformat(saved.reset_at)
+            else None
+        )
+        if newer_reset is not None:
+            reset = newer_reset.replace(second=0, microsecond=0)
+            session.reset_first_seen = observation.at
+            session.retry_episode_key = ""
+            session.retry_active_since = None
+        elif hint == session.reset_prompt_key and session.reset_at is not None:
             reset = session.reset_at
         elif saved is not None:
             reset = datetime.fromisoformat(saved.reset_at)
@@ -535,21 +564,6 @@ class Supervisor:
             if session.reset_first_seen is None:
                 # Absolute window timestamps can date a prompt on restart.
                 # Even stale evidence may anchor a date, never availability.
-                dated = [
-                    window.resets_at
-                    for window in observation.quota.windows
-                    if window.resets_at is not None
-                    and abs((observation.at - window.resets_at).total_seconds()) <= 86400
-                    and all(
-                        parse_reset(
-                            text,
-                            window.resets_at.replace(second=0, microsecond=0)
-                            - timedelta(seconds=1),
-                        )
-                        == window.resets_at.replace(second=0, microsecond=0)
-                        for text in texts
-                    )
-                ]
                 if dated:
                     reference = max(dated).replace(second=0, microsecond=0) - timedelta(seconds=1)
             parsed = [
@@ -564,12 +578,40 @@ class Supervisor:
         session.reset_at = reset
         return replace(observation, recognition=replace(recognition, reset_at=reset))
 
+    def _retry_activity_confirmed(
+        self, session: SupervisedSession, observation: Observation
+    ) -> bool:
+        """Require two working observations before settling a retry budget."""
+        recognition = observation.recognition
+        if not (
+            session.retry_episode_key
+            and observation.screen_read
+            and observation.identity == session.identity
+            and recognition is not None
+            and _codex_recovery_progress(recognition)
+        ):
+            session.retry_active_since = None
+            return False
+        if session.retry_active_since is None:
+            session.retry_active_since = observation.at
+            return False
+        return (
+            observation.at - session.retry_active_since
+        ).total_seconds() >= RETRY_ACTIVITY_CONFIRM_SECONDS
+
     def _finish_episode(self, session: SupervisedSession) -> None:
         if session.retry_episode_key and self.config.mode is Mode.AUTO:
+            episode = self.store.get_episode(session.retry_episode_key)
             self.store.update_episode(
-                session.retry_episode_key, completed=True, pending_key="", next_retry_at=""
+                session.retry_episode_key,
+                completed=True,
+                exhausted=episode is not None
+                and episode.attempts >= len(self.config.retry_schedule),
+                pending_key="",
+                next_retry_at="",
             )
         session.retry_episode_key = ""
+        session.retry_active_since = None
         session.reset_prompt_key = ""
         session.reset_first_seen = None
         session.reset_at = None
@@ -598,6 +640,11 @@ class Supervisor:
                 ]
             ).encode()
         ).hexdigest()
+        reset_confirmed = not observation.quota.is_stale(observation.at) and any(
+            window.resets_at is not None
+            and window.resets_at.replace(second=0, microsecond=0) == recognition.reset_at
+            for window in observation.quota.windows
+        )
         episode = self.store.ensure_episode(
             key,
             provider="codex",
@@ -606,8 +653,17 @@ class Supervisor:
             prompt_key=session.reset_prompt_key,
             reset_at=recognition.reset_at.isoformat(),
             first_seen_at=session.reset_first_seen.isoformat(),
+            reset_confirmed=reset_confirmed,
         )
+        if reset_confirmed and not episode.reset_confirmed:
+            episode = self.store.update_episode(key, reset_confirmed=True)
         session.retry_episode_key = key
+        if episode.completed and not episode.pending_key:
+            # A returning identical limit inherits every attempt already
+            # spent; a working redraw must never mint a fresh budget.
+            self.store.update_episode(key, completed=False)
+            self._schedule_retry(session, observation.at)
+            episode = self.store.episodes[key]
         if not episode.next_retry_at and not episode.attempts and not episode.completed:
             due = recognition.reset_at + timedelta(seconds=self.config.retry_schedule[0])
             self.store.update_episode(key, next_retry_at=due.isoformat())
@@ -1172,8 +1228,13 @@ class Supervisor:
             SessionState.LIMIT_WARNING,
             SessionState.APPROVAL_PENDING,
         }
-        if session.retry_episode_key and not observation.recognition.active_evidence:
-            resumed = False
+        if session.retry_episode_key:
+            confirmed = self._retry_activity_confirmed(session, observation)
+            if resumed and _codex_recovery_progress(observation.recognition) and not confirmed:
+                session.verify_after = now + timedelta(seconds=RETRY_ACTIVITY_CONFIRM_SECONDS)
+                session.state = SessionState.VERIFYING
+                return Decision(allowed=False, reason="verifying", retry_at=session.verify_after)
+            resumed = resumed and confirmed
         if resumed:
             result = "armed-provider-wait" if armed_self_resume else "resumed"
             self.store.mark(key, ActionState.VERIFIED, result=result)
@@ -1309,6 +1370,22 @@ class WhipOutcome:
 
 #: Enter on the visibly selected "1. Yes": the one-time approval.
 APPROVE_KEYSTROKES = "\r"
+
+
+def _codex_recovery_progress(recognition: Recognition) -> bool:
+    """Positive working output or an exact one-turn tool request shows progress."""
+    return recognition.provider == "codex" and (
+        (
+            recognition.state in {SessionState.ACTIVE, SessionState.LIMIT_WARNING}
+            and recognition.active_evidence
+        )
+        or (
+            recognition.state is SessionState.APPROVAL_PENDING
+            and recognition.approval_prompt
+            and recognition.matched_ids == ("codex/tool-approval",)
+            and not recognition.vetoes
+        )
+    )
 
 
 def _settled(session: SupervisedSession, now: float) -> bool:

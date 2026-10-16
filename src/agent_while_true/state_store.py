@@ -69,6 +69,7 @@ class RetryEpisode:
     pending_key: str = ""
     completed: bool = False
     exhausted: bool = False
+    reset_confirmed: bool = False
 
 
 def _now_text() -> str:
@@ -260,6 +261,7 @@ class StateStore:
         prompt_key: str,
         reset_at: str,
         first_seen_at: str,
+        reset_confirmed: bool = False,
     ) -> RetryEpisode:
         existing = self.episodes.get(key)
         if existing is not None:
@@ -272,6 +274,7 @@ class StateStore:
             prompt_key=prompt_key,
             reset_at=reset_at,
             first_seen_at=first_seen_at,
+            reset_confirmed=reset_confirmed,
         )
         if _parse_episode(asdict(episode)) is None:
             raise ValueError("invalid retry episode")
@@ -294,16 +297,27 @@ class StateStore:
     def find_episode(
         self, *, provider: str, session: str, process: str, prompt_key: str
     ) -> RetryEpisode | None:
-        matches = (
+        """Find the last anchor, including a completed but returning limit."""
+        matches = [
             episode
             for episode in self.episodes.values()
-            if not episode.completed
-            and episode.provider == provider
+            if episode.provider == provider
             and episode.session == session
             and episode.process == process
             and episode.prompt_key == prompt_key
+        ]
+        # A previous controller could parse an identical returning time-only
+        # banner as tomorrow and persist an unstarted episode. Actual attempts
+        # and provider-confirmed dates outrank that speculative future anchor.
+        anchored = [
+            item for item in matches if item.attempts or item.completed or item.reset_confirmed
+        ]
+        unsettled = [item for item in matches if item.pending_key]
+        return max(
+            unsettled or anchored or matches,
+            key=lambda item: _timestamp(item.reset_at),
+            default=None,
         )
-        return max(matches, key=lambda item: _timestamp(item.reset_at), default=None)
 
     def reserve_episode_attempt(self, key: str, action_key: str) -> RetryEpisode:
         episode = self.episodes[key]
@@ -396,6 +410,7 @@ class StateStore:
         completed: bool | None = None,
         exhausted: bool | None = None,
         pending_key: str | None = None,
+        reset_confirmed: bool | None = None,
     ) -> RetryEpisode:
         episode = self.episodes[key]
         candidate = RetryEpisode(**asdict(episode))
@@ -407,6 +422,8 @@ class StateStore:
             candidate.exhausted = exhausted
         if pending_key is not None:
             candidate.pending_key = pending_key
+        if reset_confirmed is not None:
+            candidate.reset_confirmed = reset_confirmed
         if _parse_episode(asdict(candidate)) is None:
             raise ValueError("invalid retry episode update")
         self.episodes[key] = candidate
@@ -430,7 +447,7 @@ def _episode_expired(episode: RetryEpisode, now: datetime) -> bool:
     An exhausted episode is what stops the same process at the same prompt from
     minting a fresh retry budget, so it is kept for as long as it exists.
     """
-    if not episode.completed or episode.pending_key:
+    if not episode.completed or episode.pending_key or episode.exhausted:
         return False
     return (now - _timestamp(episode.reset_at)).total_seconds() > RECORD_TTL_SECONDS
 
@@ -473,9 +490,14 @@ def _parse_episode(raw: object) -> RetryEpisode | None:
         attempts = raw.get("attempts", 0)
         completed = raw.get("completed", False)
         exhausted = raw.get("exhausted", False)
+        reset_confirmed = raw.get("reset_confirmed", False)
         if type(attempts) is not int or attempts < 0:
             return None
-        if type(completed) is not bool or type(exhausted) is not bool:
+        if (
+            type(completed) is not bool
+            or type(exhausted) is not bool
+            or type(reset_confirmed) is not bool
+        ):
             return None
         episode = RetryEpisode(**raw)
     except TypeError, ValueError, OverflowError:

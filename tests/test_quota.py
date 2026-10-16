@@ -128,6 +128,100 @@ def test_codex_rollout_is_found_below_the_node_launcher(tmp_path: Path, monkeypa
     assert CodexRolloutSource().snapshot(pid=123).availability is Availability.AVAILABLE
 
 
+def test_codex_rollout_is_found_below_a_native_worker_thread(tmp_path: Path, monkeypatch) -> None:
+    """Live 0.162.1 launches its rollout writer from a Tokio worker thread."""
+    home = tmp_path / ".codex-dmo"
+    rollout = _write_account_rollout(home, "company", CODEX_EVENT)
+    proc = tmp_path / "proc"
+    _attach_rollouts(proc, 123, codex_home=home)
+    _attach_rollouts(proc, 456, codex_home=home)
+    _attach_rollouts(proc, 789, rollout, codex_home=home)
+    (proc / "123/task/123/children").write_text("456")
+    worker = proc / "456/task/457"
+    worker.mkdir()
+    (worker / "children").write_text("789")
+    monkeypatch.setattr(quota, "PROC", proc)
+
+    assert quota.find_codex_rollout(123) == rollout
+    snapshot = CodexRolloutSource().snapshot(pid=123)
+    assert snapshot.availability is Availability.AVAILABLE
+    assert {window.scope for window in snapshot.windows} == {"session", "weekly"}
+
+
+def test_codex_worker_discovery_preserves_profile_boundary(tmp_path: Path, monkeypatch) -> None:
+    home = tmp_path / ".codex-dmo"
+    other = tmp_path / ".codex"
+    rollout = _write_account_rollout(other, "personal", CODEX_EVENT)
+    proc = tmp_path / "proc"
+    _attach_rollouts(proc, 123, codex_home=home)
+    _attach_rollouts(proc, 456, rollout, codex_home=other)
+    worker = proc / "123/task/124"
+    worker.mkdir()
+    (worker / "children").write_text("456")
+    monkeypatch.setattr(quota, "PROC", proc)
+
+    assert CodexRolloutSource().snapshot(pid=123).note == "no-rollout-file"
+
+
+def test_codex_thread_scan_is_bounded_and_always_reads_main_thread(
+    tmp_path: Path, monkeypatch
+) -> None:
+    proc = tmp_path / "proc"
+    task_root = proc / "123/task"
+    task_root.mkdir(parents=True)
+    for tid in range(200, 210):
+        worker = task_root / str(tid)
+        worker.mkdir()
+        (worker / "children").write_text(str(tid + 1000))
+    main = task_root / "123"
+    main.mkdir()
+    (main / "children").write_text("456")
+    monkeypatch.setattr(quota, "PROC", proc)
+    monkeypatch.setattr(quota, "_PROCESS_THREAD_LIMIT", 3)
+
+    children = quota._process_children(123)
+    assert children[0] == 456
+    assert len(children) == 3
+    assert children[1:] == tuple(sorted(children[1:]))
+
+
+def test_codex_thread_scan_tolerates_missing_and_malformed_threads(
+    tmp_path: Path, monkeypatch
+) -> None:
+    task_root = tmp_path / "123/task"
+    for name, contents in (("123", ""), ("124", "invalid"), ("125", "456")):
+        thread = task_root / name
+        thread.mkdir(parents=True)
+        (thread / "children").write_text(contents)
+    (task_root / "126").mkdir()  # exited before its child list was read
+    (task_root / "unexpected").mkdir()
+    monkeypatch.setattr(quota, "PROC", tmp_path)
+
+    assert quota._process_children(123) == (456,)
+    assert quota._process_children(999) == ()
+
+
+def test_codex_child_lists_and_pending_tree_are_bounded(tmp_path, monkeypatch) -> None:
+    main = tmp_path / "123/task/123"
+    main.mkdir(parents=True)
+    child_file = main / "children"
+    child_file.write_text(" ".join(str(pid) for pid in range(1000, 11000)))
+    monkeypatch.setattr(quota, "PROC", tmp_path)
+    assert quota._process_children(123) == ()  # oversized evidence fails closed
+
+    child_file.write_text(" ".join(str(pid) for pid in range(1000, 1200)))
+    assert len(quota._process_children(123)) == quota._PROCESS_TREE_LIMIT
+    calls = []
+
+    def children(pid):
+        calls.append(pid)
+        return tuple(range(1000, 11000))
+
+    monkeypatch.setattr(quota, "_process_children", children)
+    assert quota._find_codex_rollouts(123) == ()
+    assert len(calls) == quota._PROCESS_TREE_LIMIT
+
+
 def test_codex_selects_freshest_windowed_event_across_open_descriptors(
     tmp_path: Path, monkeypatch
 ) -> None:

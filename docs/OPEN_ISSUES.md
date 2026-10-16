@@ -11,13 +11,25 @@ consolidates the former root-level debugging and task documents. Completed
 implementation plans remain under `docs/history/` as evidence, not as active
 backlogs.
 
-## Open acceptance issue
+## Completed acceptance
 
 ### O1 — Validate one natural provider reset end to end
 
-Status: **accepted for Codex on 2026-09-18** with a natural reset; the Claude
-path remains unwitnessed (Claude Code has resumed itself since 2.1.234, so a
-Claude event may never need the supervisor).
+Status: **accepted for Codex on 2026-09-18 and Claude on 2026-10-15** with
+natural resets. Claude evidence was audited from retained structured events
+on 2026-10-16, bound to the same session and process `3084890:27701407`:
+
+| Local log time, 2026-10-15 | Claude evidence |
+| --- | --- |
+| 16:26:23.880 | `ACTIVE -> LIMIT_BLOCKED`; screen fingerprint `c3668e7cbb5a` |
+| 16:26:24.027–16:26:29.198 | Automatic-wait selection sent and verified as `armed-provider-wait` |
+| 21:09:27.747 | `LIMIT_BLOCKED -> READY_TO_RESUME`; fingerprint `bdc36b6c2541` |
+| 21:09:27.803 | `resume_sent action=ENTER authorization=PROVIDER_CONFIRMED` |
+| 21:09:28.784 | `ACTIVE`; fingerprint `51069fd19c74` |
+| 21:09:32.873 | `resume_verified result=resumed` |
+
+The reset-to-Enter-to-active sequence supplies the Claude acceptance evidence.
+An automatic-wait selection alone does not prove a natural resumed turn.
 
 Evidence, build 0.45.9 (commits `ac34510`, `1b51d0c`, `7846733` on top of the
 v0.45.6 release), full-auto user service with the Codex opt-in, six sessions
@@ -46,7 +58,7 @@ session quoting the reset affordance was read as `READY_TO_RESUME` (F0). The
 accepted build therefore differs from the v0.45.6 release, and was published as
 `agentwhiletrue-v0.45.9`.
 
-The original acceptance criteria are kept below for the Claude path.
+The original acceptance criteria remain the standard for future provider changes.
 
 The released build must supervise an intended Codex or Claude session through a
 real quota exhaustion and reset, without fabricated quota data, process
@@ -72,9 +84,9 @@ behavior and must not be weakened merely to close the test.
 
 1. **Done — the accepted build is published.** Tagged and released as
    `agentwhiletrue-v0.45.9`; later releases follow the same verified path.
-2. **Medium — witness the Claude path if it ever arises.** Keep the service
-   under observation; a Claude session that does not self-heal (reset more
-   than 24 h out, or backgrounded) is the only case that needs the supervisor.
+2. **Done — Claude natural continuation witnessed.** The 2026-10-15
+   provider-confirmed Enter and verified active transition close the second
+   provider's acceptance path; continue read-only observation after updates.
 3. **Ongoing — work the fix backlog below in impact order.** F0 (a quoted
    reset affordance authorising an Enter) is closed: the pattern is anchored
    since 0.45.9 and the gate requires a preceding limit since 0.50.1. F1, F3,
@@ -128,6 +140,14 @@ These are deliberate limits, not pending implementation bugs:
   intentionally outside automation.
 
 ## Resolved debugging issues
+
+Codex recovery, 2026-10-16: retained logs show four trials at 12:45, a
+one-frame active verification, then the identical banner parsed as tomorrow's
+12:45 after the episode anchor was cleared. The same installation displayed
+both profiles' quota as unknown because it missed worker-spawned rollout
+writers. Regression coverage now binds retry recovery to sustained activity
+and preserves the original reset/budget on recurrence; bounded all-thread
+discovery restores the missing provider evidence.
 
 Auto-yes, 2026-09-28: the first live run never fired because Konsole returns
 every row of the window and a short Claude Code 2.1.283 screen left 53 blank

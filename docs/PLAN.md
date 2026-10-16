@@ -8,8 +8,8 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 This plan tracks the current implementation and the work that remains. Product
 intent and safety requirements live in [vision.md](vision.md); implemented
-structure and data flows live in [ARCHITECTURE.md](ARCHITECTURE.md); the one
-remaining machine-level validation is detailed in [OPEN_ISSUES.md](OPEN_ISSUES.md).
+structure and data flows live in [ARCHITECTURE.md](ARCHITECTURE.md); acceptance
+evidence and remaining evidence-dependent work are in [OPEN_ISSUES.md](OPEN_ISSUES.md).
 
 ## Current status
 
@@ -28,7 +28,8 @@ The requested implementation is complete:
 - Provider prompt adapters recognize only tested prompt shapes and veto paid,
   upgrade, reset-credit, and quality-changing choices.
 - Codex quota is read from its local rollout stream and bound to a validated
-  account/rate-limit identity.
+  account/rate-limit identity. Bounded main/worker-thread child discovery fixes
+  the live default/company-profile `no-rollout-file` failure found on 2026-10-16.
 - Claude quota is projected by the owner-only status-line bridge into
   idle-refreshed, hashed-session files bound to PID and process start time.
 - Five-hour and weekly usage meters show compact reset countdowns.
@@ -83,17 +84,22 @@ The requested implementation is complete:
 - Codex CLI 0.162.1 is the sole verified Codex release. Its percentage-free
   `model reasoning · directory` composer footer is accepted once, while model
   switches, admin requests, spend-cap increases and free trials remain vetoes.
+- Codex recovery survives transient Working redraws and watcher restarts without
+  losing its reset anchor or replenishing its bounded retry budget. Positive
+  activity is confirmed across two observations; the same returning limit
+  keeps its spent attempts, and a later date needs absolute provider evidence.
 - Measured performance, coverage, licensing and dual-format SBOM gates are
   recorded in [history/maturityPlan.md](history/maturityPlan.md). The observed
   retry and Claude prompt fixes are tracked in
   [history/retryFixPlan.md](history/retryFixPlan.md).
 
-## Remaining acceptance gate
+## Acceptance status
 
-No known feature implementation is pending. Codex acceptance was witnessed with
-a natural reset on 2026-09-18 ([OPEN_ISSUES.md](OPEN_ISSUES.md) O1); the Claude
-path remains open until one naturally occurring, eligible quota reset proves the
-final end-to-end action on a real Claude session:
+No known feature implementation is pending. Natural reset acceptance is
+witnessed for Codex on 2026-09-18 and Claude on 2026-10-15
+([OPEN_ISSUES.md](OPEN_ISSUES.md) O1). The latter used a provider-confirmed
+Enter and verified active transition, not merely an automatic-wait selection.
+For subsequent provider changes, repeat the same evidence standard:
 
 1. Leave the current version running in full-auto mode with intended sessions
    selected.
