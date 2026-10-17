@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.67.7] - 2026-10-17
+
+### Documentation
+
+- Added the contributor monitoring runbook: live controller versus installed
+  versions, read-only session inspection, private metadata, bounded observation,
+  fixture-first fixes and evidence-based recovery and handoff.
+- Recorded the completed overnight observation and renewed monitoring request.
+
 ## [0.67.6] - 2026-10-17
 
 ### Fixed

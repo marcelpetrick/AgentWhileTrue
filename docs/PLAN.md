@@ -134,8 +134,13 @@ candidate is now accepted only for a recognized self-healing wait with no
 action; historical actionable menus remain out of scope. Full-screen composer
 and permission checks are preserved. A fixture-first recognition regression, persisted lifecycle
 test, `claude-wait-agent-panel` simulation and offline PTY dashboard regression
-cover the fix. Monitoring continues to the requested 07:00 cutoff; this finding
-does not expand permission rules or enable paid choices.
+cover the fix. Monitoring completed at 07:00 Europe/Berlin on 2026-10-17.
+Claude's wait cleared after its 02:10 reset, with fresh quota and subsequent
+usage evidence; no further persistent prompt alert was detected. This does not
+prove uninterrupted task progress or expand permission rules or paid choices.
+The maintainer requested renewed monitoring later that morning. The repeatable
+read-only inspection, evidence, regression and handoff procedure now lives in
+`AGENTS.md`; each monitoring period must state its own scope and deadline.
 
 | Trigger | Required response |
 | --- | --- |

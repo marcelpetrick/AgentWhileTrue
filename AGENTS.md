@@ -176,6 +176,64 @@ The maintainer's standing requests, collected from their sessions:
   reinstall the tagged version with pipx and restart the user service
   `agent-while-true.service` so the background watcher runs the new code.
 
+## Live monitoring and handoff
+
+Monitoring means actively inspecting the running supervisor and provider sessions,
+not assuming an installed release is the process controlling input. Keep the
+existing operator's selections, input lock and automation switches unchanged.
+
+1. Establish the scope and deadline from the maintainer's request, including the
+   timezone. For a renewed request, start a new observation period; do not reuse
+   an expired overnight deadline. Continue until that deadline, or explicitly
+   report when observation ends. Never imply monitoring continues after it stops.
+2. Inspect the worktree, installed `agent-while-true --version`, user-service
+   state, and the input controller's read-only `OP_STATUS` response. Record
+   controller PID, mode and version separately from the installed/service
+   version. An old dashboard retains its loaded code after a pipx reinstall.
+3. Run `doctor`, `status`, `quota`, `logs -n 50` and `summary`. Discover current
+   Konsole sessions through the adapter and process inspector, including default
+   and company profiles (`claude`, `claude-dmo`, `codex`, `codex-dmo`) where
+   present. Check the requested hot repositories, normally `~/repos/hr-doccontrol`
+   and `~/repos/mpt`, but do not mistake an exited agent or idle shell for a
+   blocked task. Bind every observation to service/session/PID/start time/TTY.
+4. Repeatedly read visible screens through the Konsole adapter and recognize
+   them with the code being validated; compare fresh process-bound quota and
+   structured lifecycle events. Inspect persistent approval/unknown prompts,
+   possible unanswered questions, failed or exhausted retries, and quota limits
+   misclassified as active. Attention heuristics may flag a screen for inspection;
+   they must never become permission or resume rules by themselves.
+5. Prefer a bounded read-only observer alongside the existing controller. The
+   supported CLI alternative is `agent-while-true run --observe --all`; it is a
+   complete second watcher, not an attach-only viewer, and contributes duplicate
+   observations to shared logs and summaries. Never press takeover, auto, auto-yes
+   or whip keys just to inspect. Keep individual waits at most 60 seconds and
+   check for new user instructions and alerts between waits.
+6. Store only metadata: timestamps, identity/profile identifiers, state, quota
+   availability, pattern/veto IDs and structured action outcomes. Use an
+   owner-only directory for temporary reports. Do not persist raw screens,
+   transcripts, draft text, account e-mails, credentials or environment values.
+   Inspect screens in memory; transcribe only a minimal privacy-redacted prompt
+   fixture when a reproducible bug warrants a regression test.
+7. On a new finding, capture the redacted fixture before changing recognition,
+   demonstrate a failing deterministic test, then fix the narrow responsible
+   layer. Add lifecycle, simulation and PTY coverage where affected, update the
+   behavior documents and plan, independently review, and run the complete gate.
+   New wording alone does not justify accepting arbitrary questions or relaxing
+   paid-choice, quota, identity or revalidation safeguards.
+8. Verify recovery from provider evidence, not a reset clock or an `ACTIVE`
+   label alone. Distinguish `armed-provider-wait`, actual post-reset activity and
+   completed task work. A cleared footer and fresh quota can support recovery;
+   neither proves uninterrupted progress or that every possible prompt is covered.
+9. End with the observation interval, findings, regression/release results,
+   remaining manual blockers and exact running versions. Do not silently restart
+   an operator dashboard: auto-yes intentionally resets to off. For a requested
+   deployment, restart the service after installation and tell the operator when
+   the dashboard needs restarting and its intended `A`/`y` switches re-enabling.
+
+Temporary monitoring scripts are not a supported installed interface. If one is
+kept as a reusable repository script, document its invocation, deadline, inputs,
+metadata output, privacy boundary and read-only guarantees, and test it normally.
+
 ## Required verification
 
 Before every commit and push, run the canonical pipeline:
