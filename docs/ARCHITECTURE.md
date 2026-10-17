@@ -34,7 +34,10 @@ flowchart LR
 ```
 
 Agent While True does not call paid model APIs. Provider quota, public service
-health, and terminal prompt state are separate evidence sources. No single
+health, and terminal prompt state are separate evidence sources.
+OpenAI health reads `/api/v2/components.json`: its summary endpoint omits
+grouped Codex components. The exact Codex API identity is required; unrelated
+API, desktop or aggregate health never substitutes for it. No single
 source authorizes input by itself.
 
 ## Containers

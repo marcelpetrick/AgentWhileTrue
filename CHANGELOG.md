@@ -13,6 +13,12 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.67.9] - 2026-10-17
+
+### Fixed
+
+- Read OpenAI health from its complete components endpoint: the summary endpoint omits grouped Codex API entries and caused component-not-found in deployed dashboards.
+
 ## [0.67.8] - 2026-10-17
 
 ### Changed

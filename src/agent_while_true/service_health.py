@@ -19,7 +19,8 @@ from typing import Any
 from urllib.parse import urlsplit
 
 STATUS_URLS = {
-    "openai": "https://status.openai.com/api/v2/summary.json",
+    # OpenAI summary omits grouped components, including Codex API.
+    "openai": "https://status.openai.com/api/v2/components.json",
     "anthropic": "https://status.claude.com/api/v2/summary.json",
 }
 

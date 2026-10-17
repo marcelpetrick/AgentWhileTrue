@@ -21,6 +21,7 @@ from agent_while_true.service_health import (
     parse_summary,
     unknown_health,
 )
+from tests.status_documents import OPENAI_COMPONENTS, OPENAI_SUMMARY
 
 NOW = datetime(2026, 9, 8, 10, 0, tzinfo=UTC)
 LATER = datetime(2026, 9, 8, 10, 0, 1, tzinfo=UTC)
@@ -166,6 +167,7 @@ def test_client_reuses_and_closes_persistent_connection(monkeypatch) -> None:
             connections.append(self)
 
         def request(self, method, path, *, headers) -> None:
+            assert path == "/api/v2/components.json"
             self.requests.append((method, path, headers))
 
         def getresponse(self):
@@ -384,3 +386,21 @@ def test_start_forgets_a_kept_thread_once_it_has_finished(monkeypatch) -> None:
     assert polled_again.wait(timeout=5), "monitor stayed inert after its kept thread finished"
     monitor.stop()
     assert monitor._threads == []
+
+
+def test_live_openai_components_endpoint_includes_grouped_codex() -> None:
+    """The summary drops grouped components; the full endpoint must be used."""
+    assert parse_summary("openai", OPENAI_SUMMARY, now=NOW).detail == "component-not-found"
+    requests = []
+
+    def opener(request, *, timeout):
+        requests.append(request.full_url)
+        document = (
+            OPENAI_COMPONENTS if request.full_url.endswith("/components.json") else OPENAI_SUMMARY
+        )
+        return _Response(json.dumps(document).encode(), {})
+
+    health = StatusPageClient("openai", opener=opener).fetch(now=NOW)
+    assert health.state is HealthState.ONLINE
+    assert health.detail == "Codex API=operational"
+    assert requests == ["https://status.openai.com/api/v2/components.json"]

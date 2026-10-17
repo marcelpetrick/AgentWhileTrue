@@ -195,7 +195,9 @@ Red or unknown data does not authorize input; the supervisor fails closed.
   Claude Code/API components, fetched independently every five minutes
   (`SERVICE_STATUS_INTERVAL=5m`) with gzip and ETag revalidation, re-rendered
   from cache at the display interval. `UNKNOWN` is shown whenever the network,
-  schema, component identity or status is unusable. These are not paid model
+  schema, component identity or status is unusable. OpenAI uses the complete
+  `/api/v2/components.json` endpoint because its summary omits grouped Codex
+  components; the exact Codex API identity is still required. These are not paid model
   calls.
 
 ### Details, history and layout

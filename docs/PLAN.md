@@ -36,7 +36,8 @@ The requested implementation is complete:
 - Official Codex API and Claude Code/API status components are polled
   independently on their own `SERVICE_STATUS_INTERVAL` (five minutes by
   default) with bounded, compressed, conditional requests; the dashboard
-  re-renders the cached answer without issuing one.
+  re-renders the cached answer without issuing one. OpenAI reads the complete
+  components endpoint because its summary omits grouped Codex components.
 - Observe, ask, and full-auto modes share the same supervisor and policy gate;
   uppercase `A` deliberately toggles full-auto and back to the previous
   observe or ask mode in the TUI.
