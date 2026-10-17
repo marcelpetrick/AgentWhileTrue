@@ -13,6 +13,17 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.67.8] - 2026-10-17
+
+### Changed
+
+- Updated the exact Ruff development pin from 0.17.0 to 0.17.1 and the
+  digest-pinned Dockerfile frontend from 1.27.1 to 1.28.0.
+- Rechecked every development/build dependency, GitHub Action and Python
+  container base against its stable upstream release; other pins remain current.
+- The release includes the live-monitoring contributor runbook and points the
+  installation command at `agentwhiletrue-v0.67.8`.
+
 ## [0.67.7] - 2026-10-17
 
 ### Documentation
