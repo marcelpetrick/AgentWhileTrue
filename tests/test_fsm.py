@@ -5,19 +5,61 @@
 """End-to-end tests of the supervisor loop, driven entirely by fakes."""
 
 from dataclasses import replace
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
 from agent_while_true.config import Config, Mode, Policy
 from agent_while_true.quota import Availability, QuotaSnapshot, QuotaWindow
+from agent_while_true.state_store import StateStore
 from agent_while_true.states import ActionState, SessionState
 from tests import harness as harness_module
 from tests import screens
 
 SESSION = "/Sessions/1"
 PID = 15102
+
+
+def test_stale_observer_cannot_prune_another_controllers_action_state(tmp_path: Path) -> None:
+    now = datetime.now(UTC)
+    seed = StateStore.in_directory(tmp_path)
+    seed.ensure_episode(
+        "settled",
+        provider="codex",
+        session="fake/old",
+        process="100:1",
+        prompt_key="a" * 64,
+        reset_at=(now - timedelta(hours=23, minutes=59)).isoformat(),
+        first_seen_at=(now - timedelta(days=1)).isoformat(),
+    )
+    seed.update_episode("settled", completed=True)
+    observer = harness_module.build(tmp_path, mode=Mode.OBSERVE, now=now)
+    controller = harness_module.build(tmp_path, now=now)
+    store = controller.supervisor.store
+    store.ensure_episode(
+        "live",
+        provider="codex",
+        session="fake/live",
+        process="200:2",
+        prompt_key="b" * 64,
+        reset_at=now.isoformat(),
+        first_seen_at=now.isoformat(),
+    )
+    store.plan_episode_attempt(
+        "live", "intent", provider="codex", session="fake/live", process="200:2"
+    )
+    durable = store.path.read_bytes()
+
+    observer.clock.advance(120)
+    observer.supervisor.prune_and_rebind()
+
+    assert store.path.read_bytes() == durable
+    restarted = StateStore.in_directory(tmp_path).load(now=observer.clock.now())
+    assert restarted.records["intent"].state is ActionState.PLANNED
+    assert restarted.episodes["live"].attempts == 1
+    assert restarted.episodes["live"].pending_key == "intent"
+    assert observer.sent == []
 
 
 def _claude_session(

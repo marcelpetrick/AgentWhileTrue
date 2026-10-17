@@ -328,6 +328,10 @@ def command_run(
                 "arming as soon as it lets go; press Shift+A to take input control over now.\n"
             )
             supervisor.log.info("input_arming_deferred", requested=deferred.mode.value)
+        else:
+            # Discovery and the picker ran before ownership was acquired.
+            # The previous controller may have persisted an action meanwhile.
+            supervisor.store.load()
     try:
         return _loop(supervisor, config, args, stream, lock, deferred=deferred)
     finally:

@@ -147,6 +147,11 @@ agent-while-true --observe
 ```
 
 No terminal input is ever sent.
+Observe mode also leaves the persisted action lifecycle and retry budgets
+unchanged, including during rediscovery cleanup. A second watcher may hold an
+older snapshot and must never overwrite the input controller's durable state.
+Every acquisition of input control reloads that state after taking the lock,
+including initial startup after session discovery and selection.
 
 Example:
 

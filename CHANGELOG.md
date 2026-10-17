@@ -13,6 +13,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.67.10] - 2026-10-17
+
+### Fixed
+
+- Observe-mode rediscovery no longer writes stale action and retry snapshots while pruning expired episodes. A stale observer can no longer erase another controller’s durable pending actions or spent retry budget.
+- Initial input-lock acquisition reloads lifecycle state after discovery and selection, preserving updates written by the previous controller while the picker was open.
+
 ## [0.67.9] - 2026-10-17
 
 ### Fixed

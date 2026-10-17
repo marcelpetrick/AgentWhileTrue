@@ -303,8 +303,14 @@ an already attempted or completed anchor for the same process and prompt.
 Malformed retry state disables timed trials; pending `PLANNED` attempts are not
 replayed after restart. A pending `SENT` can be verified without another send.
 An episode that ended in a verified resume with nothing pending is dropped 24 h
-after its reset, on load and at every rediscovery; an exhausted episode is kept,
+after its reset, on load and at input-controller rediscovery; an exhausted episode is kept,
 because it is what stops the same process minting a fresh budget.
+Observe-mode rediscovery never persists episode cleanup: its older in-memory
+snapshot must not overwrite the controller's newer action intent or retry budget.
+Loading an observer's state only filters its in-memory view.
+Each acquisition of input control reloads persisted state, including initial
+startup after discovery and selection, so work done by the previous controller
+while the picker was open remains authoritative.
 The event log records identifiers, pattern IDs, decisions,
 and lifecycle states, but never screen contents, prompts, credentials, or
 environment values.

@@ -382,6 +382,11 @@ a non-overlapping report. A dashboard opened beside the background service is
 such a second observer: both write every state change to the same log, so the
 lines appear twice (see
 [Opening the dashboard while the service runs](#opening-the-dashboard-while-the-service-runs)).
+Observe watchers never persist action or retry-state cleanup. Their stale
+snapshots cannot replace the input controller's pending actions or spent budget;
+the input controller performs durable episode cleanup.
+Acquiring input control reloads the latest persisted action and retry state,
+including when another controller finished work while the session picker was open.
 
 ## 7. Codex specifics
 

@@ -43,6 +43,10 @@ The requested implementation is complete:
   observe or ask mode in the TUI.
 - The action lifecycle is persisted as `PLANNED -> SENT -> VERIFIED|FAILED` and
   the TUI retains the latest 50 privacy-preserving history entries.
+- Observe-mode rediscovery leaves persisted action and retry state untouched;
+  a stale observer cannot prune away the controller's pending intent or spent
+  attempts. A two-watcher regression and safety simulation cover this boundary.
+  Initial input-lock acquisition reloads state written during session selection.
 - Generic and timed Claude automatic-wait confirmations both verify as
   provider-armed waits; current extra-usage, early-reset and lower-priority
   choices are explicit non-automatable vetoes.

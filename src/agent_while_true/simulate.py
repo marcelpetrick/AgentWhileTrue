@@ -20,7 +20,7 @@ types into terminals than reading its source.
 import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from agent_while_true.config import Config, Mode, Policy
@@ -812,6 +812,53 @@ def scenario_codex_transient_recovery(directory: Path) -> Result:
     )
 
 
+def scenario_observer_preserves_retry_state(directory: Path) -> Result:
+    controller = _world(directory)
+    now = datetime.now(UTC)
+    store = controller.supervisor.store
+    store.ensure_episode(
+        "settled",
+        provider="codex",
+        session="fake/old",
+        process="100:1",
+        prompt_key="a" * 64,
+        reset_at=(now - timedelta(hours=23, minutes=59)).isoformat(),
+        first_seen_at=(now - timedelta(days=1)).isoformat(),
+    )
+    store.update_episode("settled", completed=True)
+    observer = _world(directory, mode=Mode.OBSERVE)
+    store.ensure_episode(
+        "live",
+        provider="codex",
+        session="fake/live",
+        process="200:2",
+        prompt_key="b" * 64,
+        reset_at=now.isoformat(),
+        first_seen_at=now.isoformat(),
+    )
+    store.plan_episode_attempt(
+        "live", "intent", provider="codex", session="fake/live", process="200:2"
+    )
+    durable = store.path.read_bytes()
+    observer.clock.wall = now + timedelta(seconds=120)
+    observer.supervisor.prune_and_rebind()
+    unchanged = store.path.read_bytes() == durable
+    observer.steps.append(
+        Step(
+            label="stale observer rescans after a completed episode expires",
+            decision_reason="controller-state-preserved" if unchanged else "state-overwritten",
+            sent=len(observer.terminal.sent),
+        )
+    )
+    return _result(
+        "observer-preserves-retry-state",
+        "A stale observer cannot erase the input controller's durable state.",
+        "Preserve pending action intent and spent retry budget without sending input.",
+        observer,
+        passed=unchanged and not observer.terminal.sent,
+    )
+
+
 def scenario_observe_mode(directory: Path) -> Result:
     world = _ready_world(directory, mode=Mode.OBSERVE)
     world.step("ready prompt in observe mode")
@@ -944,6 +991,7 @@ SCENARIOS: dict[str, ScenarioFn] = {
     "codex-needs-opt-in": scenario_codex_needs_opt_in,
     "codex-transient-recovery": scenario_codex_transient_recovery,
     "observe-mode": scenario_observe_mode,
+    "observer-preserves-retry-state": scenario_observer_preserves_retry_state,
     "approval-waits-for-operator": scenario_approval_waits_for_the_operator,
     "auto-yes-answers-once": scenario_auto_yes_answers_once,
     "codex-auto-yes-answers-once": scenario_codex_auto_yes_answers_once,

@@ -1331,7 +1331,11 @@ class Supervisor:
         except TerminalError:
             self.log.warning("rediscovery_failed", adapter=self.terminal.name)
             return
-        self.store.prune_episodes(now=self.now_fn())
+        # Observers can hold an older snapshot than the input controller.
+        # Pruning saves the entire store, so even housekeeping could erase
+        # another watcher's durable action intent and spent retry budget.
+        if self.config.mode is not Mode.OBSERVE:
+            self.store.prune_episodes(now=self.now_fn())
         for key, session in list(self.sessions.items()):
             if key not in live:
                 self.log.info(

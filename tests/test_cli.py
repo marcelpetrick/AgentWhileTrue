@@ -22,6 +22,8 @@ from agent_while_true.cli import EXIT_ERROR, EXIT_INTERRUPTED, EXIT_OK, main
 from agent_while_true.config import Config, Mode
 from agent_while_true.lock import LockHeldError, SingleInstanceLock
 from agent_while_true.quota import Availability, QuotaSnapshot
+from agent_while_true.state_store import StateStore
+from agent_while_true.states import ActionState
 from agent_while_true.terminal.fake import FakeAdapter
 from agent_while_true.version import __version__
 from tests import harness as harness_module
@@ -186,6 +188,39 @@ def test_all_mode_discovers_new_agents(tmp_path: Path) -> None:
     selected = next(iter(supervisor.sessions.values()))
     assert selected.identity == info.identity
     assert selected.provider_name == "claude"
+
+
+@pytest.mark.parametrize("mode_flag", ["--ask", "--auto"])
+def test_initial_input_lock_reloads_state_written_during_selection(
+    sandbox: Path, out: io.StringIO, monkeypatch, mode_flag: str
+) -> None:
+    from agent_while_true.config import load
+
+    terminal = _fake_world(monkeypatch)
+    config = load()
+    previous = SingleInstanceLock.in_directory(config.resolved_runtime_dir())
+    previous.acquire()
+    original_select = cli._select_sessions
+
+    def select_with_previous_controller_write(*args, **kwargs):
+        chosen = original_select(*args, **kwargs)
+        store = StateStore.in_directory(config.resolved_state_dir()).load()
+        store.plan("previous-intent", provider="claude", session="fake/previous", process="99:1")
+        previous.release()
+        return chosen
+
+    def loop_after_ownership(supervisor, config, args, stream, lock, **kwargs):
+        assert lock.held
+        assert supervisor.store.records["previous-intent"].state is ActionState.PLANNED
+        return EXIT_OK
+
+    monkeypatch.setattr(cli, "_select_sessions", select_with_previous_controller_write)
+    monkeypatch.setattr(cli, "_loop", loop_after_ownership)
+    try:
+        assert main(["run", "--all", "--once", mode_flag], stream=out) == EXIT_OK
+    finally:
+        previous.release()
+    assert terminal.sent == []
 
 
 def test_a_second_instance_watches_read_only_until_the_lock_is_free(
