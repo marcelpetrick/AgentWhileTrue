@@ -4,7 +4,8 @@
 
 """Offline PTY driver for permission diagnostics.
 
-Invoked by Dashboard(driver=...) with its temporary-home argument. Fake terminal,
+Invoked by Dashboard(driver=...) with its temporary-home argument and optional
+``conflict`` case argument. Fake terminal,
 process and quota inputs exercise the real observe dashboard; output is its UI.
 No host terminal, credentials or provider settings are read, and no input is sent.
 """
@@ -21,12 +22,16 @@ from tests import harness, screens
 def main() -> int:
     home = Path(sys.argv[1])
     kit = harness.build(home, mode=Mode.OBSERVE)
+    screen = list(screens.CLAUDE_APPROVAL_CURSOR_ON_TWO)
+    if len(sys.argv) > 2 and sys.argv[2] == "conflict":
+        screen = list(screens.CLAUDE_APPROVAL_YES_NO)
+        screen.insert(2, "Switch to another model")
     info = kit.inspector.add_claude(4101)
     ref = kit.terminal.add(
         "/Sessions/1",
         shell_pid=100,
         foreground_pid=info.pid,
-        screen=list(screens.CLAUDE_APPROVAL_CURSOR_ON_TWO),
+        screen=screen,
     )
     kit.supervisor.select(ref, info.identity, "claude", "synthetic permission")
     args = cli.build_parser().parse_args(["run", "--observe"])

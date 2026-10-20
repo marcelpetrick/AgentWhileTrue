@@ -1143,6 +1143,8 @@ class Supervisor:
             return "no-pending-approval"
         if not session.approval_exact:
             return "unsupported-permission-layout"
+        if session.matched_ids != (f"{session.provider_name}/tool-approval",):
+            return "conflicting-permission-context"
         if not auto_yes:
             return "auto-yes-off"
         if self.config.mode is not Mode.AUTO:

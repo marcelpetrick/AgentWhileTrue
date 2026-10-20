@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.68.1] - 2026-10-20
+
+### Fixed
+
+- Approval diagnostics no longer label an exact permission box eligible when
+  other recognized paid/model context makes the real approval gate refuse it.
+  The detail view reports `conflicting-permission-context`; no input gate changed.
+- Added failing-first paid/model context regressions and a safety simulation.
+
 ## [0.68.0] - 2026-10-20
 
 ### Added

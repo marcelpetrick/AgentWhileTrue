@@ -409,7 +409,8 @@ event follows a pending prompt; unchanged scans do not spam the log. This is
 diagnostic evidence only and never grants permission.
 
 Open the `d` detail view to see `Approval automation: auto-yes-off`,
-`unsupported-permission-layout`, `dashboard-paused`, `no-input-control` or the
+`unsupported-permission-layout`, `conflicting-permission-context`,
+`dashboard-paused`, `no-input-control` or the
 other current gate. An exact box that was answered is distinguished from one
 that exhausted its allowed resend. The displayed context is cached; when
 observations are stale or paused it is not a fresh terminal verdict. Historical

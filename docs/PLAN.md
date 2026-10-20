@@ -162,6 +162,11 @@ without the corresponding maintainer request.
   regressions now match the real approval gate. Final delivery is conditional
   on the canonical gate passing on this exact committed source. Public metadata
   remains unchanged; existing About wording/topics are evidence-backed.
+  A subsequent committed-state review also reproduced exact-box diagnostics
+  claiming eligibility despite additional paid/model matches. The diagnostic
+  singleton-pattern check now mirrors the existing approval gate and reports
+  `conflicting-permission-context`; paid/model regressions and a simulation
+  prove no input is sent.
 
 Evidence-limited follow-up: a complete live same-model decline dialog and new
 affirmative provider-menu layouts were not available. Their automation is not

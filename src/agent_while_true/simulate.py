@@ -973,6 +973,26 @@ def scenario_approval_diagnostics(directory: Path) -> Result:
     )
 
 
+def scenario_approval_context_conflict(directory: Path) -> Result:
+    screen = list(APPROVAL_SCREEN)
+    screen.insert(2, "Switch to another model")
+    world = _world(directory, screen=screen)
+    world.step("An exact permission box shares the current turn with a model offer")
+    session = next(iter(world.supervisor.sessions.values()))
+    world.supervisor.report_approval_status(auto_yes=True, paused=False, input_control=True)
+    outcomes = world.supervisor.approve_pending()
+    return _result(
+        "approval-context-conflict",
+        "Exact permission-menu shape alone cannot clear conflicting provider context.",
+        "diagnostics report the conflict and the input gate sends nothing",
+        world,
+        passed=session.approval_exact
+        and session.approval_status == "conflicting-permission-context"
+        and outcomes == {session.ref.key(): "no-exact-approval-prompt"}
+        and not world.terminal.sent,
+    )
+
+
 def scenario_auto_yes_answers_once(directory: Path) -> Result:
     world = _world(directory, screen=APPROVAL_CURSOR_MOVED_SCREEN)
     world.approve("the cursor was moved off Yes")
@@ -1082,6 +1102,7 @@ SCENARIOS: dict[str, ScenarioFn] = {
     "observer-preserves-retry-state": scenario_observer_preserves_retry_state,
     "approval-waits-for-operator": scenario_approval_waits_for_the_operator,
     "approval-diagnostics": scenario_approval_diagnostics,
+    "approval-context-conflict": scenario_approval_context_conflict,
     "human-only-policy": scenario_human_only_policy,
     "auto-yes-answers-once": scenario_auto_yes_answers_once,
     "codex-auto-yes-answers-once": scenario_codex_auto_yes_answers_once,

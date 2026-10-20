@@ -98,6 +98,29 @@ def test_unsupported_shape_is_visible_even_when_auto_yes_enabled(tmp_path: Path)
     assert kit.sent == []
 
 
+@pytest.mark.parametrize(
+    "warning",
+    ["Switch to another model", "Run /usage-credits to continue now"],
+)
+def test_exact_box_with_conflicting_context_never_looks_eligible(
+    tmp_path: Path, warning: str
+) -> None:
+    kit, session = _kit(tmp_path)
+    screen = list(screens.CLAUDE_APPROVAL_YES_NO)
+    screen.insert(2, warning)  # Same current turn, not historical output.
+    kit.terminal.set_screen("/Sessions/1", screen)
+    kit.supervisor.tick()
+    assert session.approval_exact
+    assert len(session.matched_ids) == 2
+    kit.supervisor.report_approval_status(auto_yes=True, paused=False, input_control=True)
+    assert session.approval_status == "conflicting-permission-context"
+    assert "conflicting-permission-context" in "\n".join(
+        session_details(session, kit.clock.wall, 1)
+    )
+    assert kit.supervisor.approve_pending()[session.ref.key()] == "no-exact-approval-prompt"
+    assert kit.sent == []
+
+
 @pytest.mark.parametrize("condition", ["unsafe", "verifying", "stuck", "answered"])
 def test_cached_session_blockers_do_not_look_eligible(tmp_path: Path, condition: str) -> None:
     kit, session = _kit(tmp_path)
@@ -121,12 +144,18 @@ def test_cached_session_blockers_do_not_look_eligible(tmp_path: Path, condition:
 
 
 @pytest.mark.e2e
-def test_real_dashboard_explains_unsupported_permission(tmp_path: Path) -> None:
-    dashboard = Dashboard(tmp_path, driver=Path(__file__).with_name("pty_approval_status.py"))
+@pytest.mark.parametrize("case", ["unsupported", "conflict"])
+def test_real_dashboard_explains_unsupported_permission(tmp_path: Path, case: str) -> None:
+    dashboard = Dashboard(tmp_path, case, driver=Path(__file__).with_name("pty_approval_status.py"))
+    expected = (
+        "unsupported-permission-layout"
+        if case == "unsupported"
+        else "conflicting-permission-context"
+    )
     try:
         dashboard.read_until(lambda text: "APPROVAL_PENDING" in text)
         dashboard.press("d")
-        dashboard.read_until(lambda text: "unsupported-permission-layout" in text)
+        dashboard.read_until(lambda text: expected in text)
         dashboard.read_until(lambda text: "stay with same model" in text)
     finally:
         assert dashboard.quit() == 0
