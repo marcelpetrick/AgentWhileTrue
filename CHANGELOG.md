@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.67.11] - 2026-10-20
+
+### Changed
+
+- Updated the exact setuptools build-backend and dependency-audit environment
+  pins from 84.0.0 to 84.2.0 after checking the stable, non-yanked PyPI release.
+- Updated the dependency-audit pip pin from 26.2.1 to 26.2.2.
+
 ## [0.67.10] - 2026-10-17
 
 ### Fixed
