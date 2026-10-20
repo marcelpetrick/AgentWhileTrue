@@ -23,6 +23,8 @@ from io import TextIOWrapper
 from pathlib import Path
 from typing import Any, cast
 
+from agent_while_true.version import __version__
+
 LOGGER_NAME = "agent_while_true"
 
 #: Vision section 31.
@@ -118,6 +120,9 @@ class EventLogger:
         self._logger = logger
 
     def event(self, level: int, event: str, /, **fields: Any) -> None:
+        # Read at emission (also correct after fork); callers cannot impersonate
+        # a different controller when several watchers share one event file.
+        fields.update(controller_pid=os.getpid(), controller_version=__version__)
         self._logger.log(level, format_event(event, fields))
 
     def debug(self, event: str, /, **fields: Any) -> None:

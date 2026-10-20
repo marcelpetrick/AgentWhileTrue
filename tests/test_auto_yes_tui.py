@@ -189,6 +189,17 @@ def test_without_the_key_nothing_is_approved(tmp_path: Path, monkeypatch) -> Non
 
     assert kit.sent == []
     assert "auto-yes on permission prompts: OFF" in output
+    log = (tmp_path / "agent-while-true.log").read_text()
+    assert "event=approval_status " in log
+    assert "auto_yes=false mode=auto paused=false input_control=true reason=auto-yes-off" in log
+
+
+def test_pausing_updates_approval_diagnostics_without_scanning(tmp_path: Path, monkeypatch) -> None:
+    kit = _kit(tmp_path, Mode.AUTO, screens.CLAUDE_APPROVAL_YES_NO)
+    _run(tmp_path, monkeypatch, kit, ["p", "y", "d", "q"], hold_lock=True)
+    log = (tmp_path / "agent-while-true.log").read_text()
+    assert "auto_yes=true mode=auto paused=true input_control=true reason=dashboard-paused" in log
+    assert kit.sent == []
 
 
 def test_pressing_y_twice_switches_it_off_again(tmp_path: Path, monkeypatch) -> None:

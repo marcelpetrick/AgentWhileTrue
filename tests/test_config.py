@@ -10,7 +10,15 @@ from pathlib import Path
 import pytest
 
 from agent_while_true import config as config_module
-from agent_while_true.config import Config, ConfigError, Mode, load, parse_bool, parse_duration
+from agent_while_true.config import (
+    Config,
+    ConfigError,
+    Mode,
+    Policy,
+    load,
+    parse_bool,
+    parse_duration,
+)
 
 
 @pytest.mark.parametrize(
@@ -47,6 +55,40 @@ def test_defaults_are_conservative() -> None:
     assert not config.policy.auto_consume_reset_credit
     assert not config.policy.allow_codex_auto_resume
     assert not config.allow_root
+
+
+@pytest.mark.parametrize(
+    "flag",
+    [
+        "auto_accept_model_downgrade",
+        "auto_use_paid_credits",
+        "auto_buy_credits",
+        "auto_consume_reset_credit",
+    ],
+)
+def test_human_only_actions_cannot_be_enabled_programmatically(flag: str) -> None:
+    with pytest.raises(ConfigError, match="human-only"):
+        Policy(**{flag: True})
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "AUTO_ACCEPT_MODEL_DOWNGRADE",
+        "AUTO_USE_PAID_CREDITS",
+        "AUTO_BUY_CREDITS",
+        "AUTO_CONSUME_RESET_CREDIT",
+    ],
+)
+@pytest.mark.parametrize("source", ["file", "environment"])
+def test_human_only_flags_cannot_be_enabled_by_configuration(
+    tmp_path: Path, key: str, source: str
+) -> None:
+    path = tmp_path / "config"
+    path.write_text(f"{key}=true\n" if source == "file" else "", encoding="utf-8")
+    env = {f"AGENT_WHILE_TRUE_{key}": "true"} if source == "environment" else {}
+    with pytest.raises(ConfigError, match="human-only"):
+        load(config_path=path, environ=env)
 
 
 def test_config_file_is_parsed_not_executed(tmp_path: Path) -> None:

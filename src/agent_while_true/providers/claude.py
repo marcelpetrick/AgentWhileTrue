@@ -37,7 +37,7 @@ from agent_while_true.providers.base import (
 )
 
 NAME: Final = "claude"
-PATTERNS_VERSION: Final = "claude-2.1.x/12"
+PATTERNS_VERSION: Final = "claude-2.1.x/13"
 #: The latest release whose screens and strings were read. Only the newest
 #: Claude Code release is supported; older ones are not tracked.
 VERIFIED_VERSIONS: Final = ("2.1.300",)
@@ -325,8 +325,13 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
         provider=NAME,
         kind=PromptKind.MODEL_DOWNGRADE_OFFER,
         scope="model",
-        all_of=(_pattern(r"Switch to another model"),),
-        note="Silently changes output quality. Never automated.",
+        all_of=(
+            _pattern(
+                r"Switch to another model|No, keep my current model"
+                r"|You're resuming .{0,80}session\. Continue with"
+            ),
+        ),
+        note="Refuse model changes, including resume upgrades; never guess a decline key.",
         verified_against=VERIFIED_AGAINST,
     ),
 )

@@ -90,7 +90,7 @@ def default_runtime_dir() -> Path:
 class Policy:
     """What classes of action are permitted, independently of the mode.
 
-    Everything that costs money or silently degrades the model stays off.
+    Paid capacity and model changes are human-only, not configurable automation.
     """
 
     resume_after_reset: bool = True
@@ -105,6 +105,18 @@ class Policy:
     #: affordance. Codex has no such affordance: resuming means typing text into
     #: the composer, which is strictly more dangerous, so it stays opt-in.
     allow_codex_auto_resume: bool = False
+
+    def __post_init__(self) -> None:
+        # Keep false legacy keys readable, but never advertise a working opt-in
+        # for actions the supervisor must leave to the human operator.
+        for name in (
+            "auto_accept_model_downgrade",
+            "auto_use_paid_credits",
+            "auto_buy_credits",
+            "auto_consume_reset_credit",
+        ):
+            if getattr(self, name):
+                raise ConfigError(f"{name.upper()} is human-only and must remain false")
 
 
 @dataclass(frozen=True, slots=True)

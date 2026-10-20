@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from agent_while_true.config import Config, Mode, Policy
+from agent_while_true.config import Config, ConfigError, Mode, Policy
 from agent_while_true.fsm import APPROVAL_RECHECK_SECONDS, Supervisor
 from agent_while_true.logging_setup import setup
 from agent_while_true.proc import ProcessIdentity, ProcessInfo
@@ -635,6 +635,50 @@ def scenario_weekly_limit_still_blocked(directory: Path) -> Result:
     )
 
 
+def scenario_budget_renewal(directory: Path) -> Result:
+    world = _world(directory)
+    quota = world.quota["claude"]
+    quota.availability = Availability.EXHAUSTED
+    later_reset = START + timedelta(days=7)
+    quota.windows = (
+        QuotaWindow("session", 100.0, START + timedelta(hours=5)),
+        QuotaWindow("weekly", 100.0, later_reset),
+        QuotaWindow("opus", 100.0, later_reset),
+    )
+    world.step("three usage windows exhausted")
+    world.clock.advance(5 * 3600 + 60)
+    world.screen(READY_SCREEN)
+    quota.windows = (
+        QuotaWindow("session", 0.0, None),
+        QuotaWindow("weekly", 100.0, later_reset),
+        QuotaWindow("opus", 100.0, later_reset),
+    )
+    world.step("five-hour renewal cannot clear week/model limits")
+    world.clock.advance((later_reset - world.clock.wall).total_seconds() + 61)
+    world.step("reset plus grace passed; provider still exhausted")
+    quota.availability = Availability.AVAILABLE
+    quota.windows = (
+        QuotaWindow("session", 1.0, None),
+        QuotaWindow("weekly", 0.0, None),
+        QuotaWindow("opus", 0.0, None),
+    )
+    world.step("fresh provider evidence confirms all budgets renewed")
+    world.screen(ACTIVE_SCREEN)
+    world.clock.advance(5)
+    world.step("verify same-model task continuation")
+    return _result(
+        "budget-renewal",
+        "Five-hour renewal waits for weekly and model budgets before continuing.",
+        "clock alone sends nothing; fresh renewal resumes once without changing model",
+        world,
+        passed=world.terminal.sent == [(SESSION, "\r")]
+        and all(step.sent == 0 for step in world.steps[:3])
+        and world.steps[1].decision_reason == "other-limit-still-exhausted:opus,weekly"
+        and world.steps[2].decision_reason == "other-limit-still-exhausted:opus,weekly"
+        and world.steps[-1].decision_reason == "resume-verified",
+    )
+
+
 def scenario_provider_unavailable(directory: Path) -> Result:
     world = _world(directory)
     world.quota["claude"].availability = Availability.UNKNOWN
@@ -886,6 +930,49 @@ def scenario_approval_waits_for_the_operator(directory: Path) -> Result:
     )
 
 
+def scenario_human_only_policy(directory: Path) -> Result:
+    world = _world(directory, screen=MODEL_DOWNGRADE_SCREEN)
+    refused = 0
+    for flag in (
+        "auto_accept_model_downgrade",
+        "auto_use_paid_credits",
+        "auto_buy_credits",
+        "auto_consume_reset_credit",
+    ):
+        try:
+            Policy(**{flag: True})
+        except ConfigError:
+            refused += 1
+    world.step("model and paid opt-ins are invalid; the model offer remains untouched")
+    return _result(
+        "human-only-policy",
+        "Configuration cannot enable model changes, paid usage or reset-credit consumption.",
+        "all forbidden opt-ins fail configuration and no model-choice input is sent",
+        world,
+        passed=refused == 4 and not world.terminal.sent,
+    )
+
+
+def scenario_approval_diagnostics(directory: Path) -> Result:
+    world = _world(directory, screen=APPROVAL_SCREEN)
+    world.step("Observe an exact permission prompt without enabling auto-yes")
+    world.supervisor.report_approval_status(auto_yes=False, paused=False, input_control=True)
+    session = next(iter(world.supervisor.sessions.values()))
+    disabled = session.approval_status == "auto-yes-off"
+    world.screen(APPROVAL_CURSOR_MOVED_SCREEN)
+    world.step("The cursor moved; enabling auto-yes cannot authorize an unsupported layout")
+    world.supervisor.report_approval_status(auto_yes=True, paused=False, input_control=True)
+    return _result(
+        "approval-diagnostics",
+        "Pending permission menus expose the controller context and refusal reason.",
+        "diagnostics explain auto-yes-off versus unsupported layout, without sending input",
+        world,
+        passed=disabled
+        and session.approval_status == "unsupported-permission-layout"
+        and not world.terminal.sent,
+    )
+
+
 def scenario_auto_yes_answers_once(directory: Path) -> Result:
     world = _world(directory, screen=APPROVAL_CURSOR_MOVED_SCREEN)
     world.approve("the cursor was moved off Yes")
@@ -981,6 +1068,7 @@ SCENARIOS: dict[str, ScenarioFn] = {
     "suspend-across-reset": scenario_suspend_across_reset,
     "stale-banner": scenario_stale_banner,
     "weekly-limit-still-blocked": scenario_weekly_limit_still_blocked,
+    "budget-renewal": scenario_budget_renewal,
     "provider-unavailable": scenario_provider_unavailable,
     "self-healing-provider": scenario_self_healing_provider,
     "wait-menu-gauge-says-available": scenario_wait_menu_gauge_says_available,
@@ -993,6 +1081,8 @@ SCENARIOS: dict[str, ScenarioFn] = {
     "observe-mode": scenario_observe_mode,
     "observer-preserves-retry-state": scenario_observer_preserves_retry_state,
     "approval-waits-for-operator": scenario_approval_waits_for_the_operator,
+    "approval-diagnostics": scenario_approval_diagnostics,
+    "human-only-policy": scenario_human_only_policy,
     "auto-yes-answers-once": scenario_auto_yes_answers_once,
     "codex-auto-yes-answers-once": scenario_codex_auto_yes_answers_once,
     "auto-yes-resends-once": scenario_auto_yes_resends_once,

@@ -313,7 +313,7 @@ environment < command line. Durations accept `ms`, `s`, `m`, `h`.
 | `RESUME_AFTER_RESET` | `true` | Master switch for any continuation |
 | `ALLOW_CLAUDE_AUTO_WAIT` | `true` | May arm Claude's own "wait, then continue" menu item |
 | `ALLOW_CODEX_AUTO_RESUME` | `false` | May type `continue` into Codex's composer |
-| `AUTO_ACCEPT_MODEL_DOWNGRADE`, `AUTO_USE_PAID_CREDITS`, `AUTO_BUY_CREDITS`, `AUTO_CONSUME_RESET_CREDIT` | `false` | Never enabled by the supplied configuration |
+| `AUTO_ACCEPT_MODEL_DOWNGRADE`, `AUTO_USE_PAID_CREDITS`, `AUTO_BUY_CREDITS`, `AUTO_CONSUME_RESET_CREDIT` | `false` | Human-only actions: setting any to `true` is a configuration error |
 | `LOG_FILE`, `STATE_DIR`, `RUNTIME_DIR` | XDG defaults | Paths |
 | `ALLOW_ROOT`, `USE_FZF` | `false`, `true` | Diagnostics-only root; optional fzf picker |
 
@@ -339,6 +339,35 @@ Permission approvals require a selected session and an unpaused, input-owning
 full-auto dashboard with `y` enabled. A headless service cannot enable auto-yes.
 Unknown questions, MCP elicitation and paid or model-changing choices remain
 manual. An idle shell or exited agent cannot be continued.
+
+### Keep the same model; paid choices are human-only
+
+Agent While True never authorizes a model change, including a newer model,
+fallback or downgrade, and never buys or enables paid capacity or consumes reset
+credits. Its cached detail view states `stay with same model` and
+`Paid choices: human only`. The old paid/model policy keys remain readable as
+`false`; attempting to enable any of them fails configuration validation, even
+through the environment or programmatic policy construction.
+
+That policy does not prevent a human or provider-internal fallback from changing
+a model independently. AWT does not modify provider settings to enforce it.
+It governs the provider choices AWT selects, not the semantics of arbitrary
+tool commands authorized by the operator's auto-yes switch; that switch still
+approves whatever tool use is requested, as explained below.
+It also does not type `stay with same model` into arbitrary questions. No full
+live stay-choice dialog was available during the current audit; model dialogs
+remain manual. Binary strings alone cannot establish the right key: `Keep
+current model (never show again)` changes settings, and another provider's
+decline choice can itself switch models. Only a future observed, exact tested
+stay choice could qualify for a narrowly gated action.
+
+Renewal is checked against provider-reported windows and reset timestamps, not a
+hard-coded five-hour/week timer. Five-hour availability cannot bypass a still
+exhausted weekly or model-specific budget. When every relevant budget has
+renewed and the tested continuation prompt, identity and policy still agree,
+normal auto-resume continues the session. An already-armed Claude wait stays
+with Claude; a reset timestamp alone never proves available usage. Finite Codex
+retry exhaustion still requires operator attention rather than unlimited input.
 
 ## 6. Logs and summaries
 
@@ -370,6 +399,22 @@ operator's behalf:
 Auto-yes: approved=4 resent=0 refused=0 sessions=2
 Whip: cracks=4 reminders=2
 ```
+
+Each new structured event also includes `controller_pid` and
+`controller_version`: these identify the emitting watcher, which may be an
+observer, not necessarily the input owner. The dashboard emits deduplicated
+`approval_status` changes with session/process identity, pending/exact-menu
+flags, `auto_yes`, mode, pause state, input ownership and a reason. One clearing
+event follows a pending prompt; unchanged scans do not spam the log. This is
+diagnostic evidence only and never grants permission.
+
+Open the `d` detail view to see `Approval automation: auto-yes-off`,
+`unsupported-permission-layout`, `dashboard-paused`, `no-input-control` or the
+other current gate. An exact box that was answered is distinguished from one
+that exhausted its allowed resend. The displayed context is cached; when
+observations are stale or paused it is not a fresh terminal verdict. Historical
+logs without these fields cannot reliably attribute a delay to a particular
+controller or auto-yes setting.
 
 Measured blocked and observed session-time sums intervals between consecutive
 known observations across watched sessions. It is sampled supervision time, not

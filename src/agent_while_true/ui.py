@@ -429,7 +429,14 @@ def session_details(
         f"Observation: {age(session.observed_at)}{'; STALE' if stale else ''}",
         f"Recognized state: {session.observed_state}",
         f"Patterns: {', '.join(session.matched_ids) or 'none'}",
-        *(["Approval: " + approval_detail] if session.observed_state == "APPROVAL_PENDING" else []),
+        *(
+            ["Approval: " + approval_detail, "Approval automation: " + session.approval_status]
+            if session.observed_state == "APPROVAL_PENDING"
+            else []
+        ),
+        "Model policy: stay with same model; model dialogs stay manual unless an exact stay "
+        "choice is tested.",
+        "Paid choices: human only; never selected by automation.",
         f"Quota: {quota_state(session.quota, now)}; source={session.quota.source}; "
         f"age={age(session.quota.observed_at)}",
         f"Quota detail: {session.quota.note or 'none'}",

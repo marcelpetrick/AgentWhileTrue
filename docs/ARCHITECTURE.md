@@ -117,6 +117,14 @@ pauses and gaps. `summary.py` streams retained structured logs, including rotate
 backups, to report event counts and sampled session-time. Both are independent
 of the persisted action lifecycle; reports explicitly describe partial coverage.
 
+Every structured event is tagged at emission with the watcher's PID and loaded
+package version (`controller_pid`, `controller_version`); these fields describe
+the emitter even when it is an observer. After scans and dashboard state
+changes, a metadata-only `approval_status` snapshot correlates the session and
+process with exact-menu recognition, auto-yes, mode, pause and input ownership.
+Unchanged snapshots are suppressed, and a clearing transition is emitted once.
+The cached reason is shown in details and is never an authorization source.
+
 ## Runtime components
 
 ```mermaid
@@ -350,6 +358,10 @@ and ambiguous process ancestry are non-automatable.
 ## Architectural decisions
 
 - Keep provider quota state distinct from terminal prompt state.
+- Keep the existing model and leave all paid/credit decisions to the human.
+  Legacy opt-in fields may remain false but cannot enable these actions.
+  Unknown model dialogs stay manual; a status hint is not injected text.
+  Provider-internal model remapping is outside AWT's input-control boundary.
 - Bind selection to immutable process evidence, not a tab number or project path.
 - Revalidate every safety input immediately before terminal input.
 - Prefer refusal over inference; allow only the documented, explicitly opted-in

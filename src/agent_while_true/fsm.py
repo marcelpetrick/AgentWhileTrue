@@ -191,6 +191,9 @@ class SupervisedSession:
     approval_resent: bool = False
     #: The box outlived the extra Enter too, and that was reported once.
     approval_stuck: bool = False
+    #: Cached presentation/diagnostic reason; never an authorization decision.
+    approval_status: str = "not-evaluated"
+    approval_context: tuple[object, ...] = ()
     quota: QuotaSnapshot = field(
         default_factory=lambda: unknown("unknown", "none", "not-observed-yet")
     )
@@ -1094,6 +1097,70 @@ class Supervisor:
                     reason=outcomes[key],
                 )
         return outcomes
+
+    def report_approval_status(self, *, auto_yes: bool, paused: bool, input_control: bool) -> None:
+        """Explain pending approvals without polling, authorizing or typing.
+
+        Emit only changed metadata, including a clearing observation. The cached
+        reason is presentation evidence, never an alternative input gate.
+        """
+        for session in self.sessions.values():
+            pending = session.observed_state == "APPROVAL_PENDING"
+            reason = self._approval_status_reason(session, auto_yes, paused, input_control)
+            context = (
+                pending,
+                session.approval_exact,
+                auto_yes,
+                self.config.mode.value,
+                paused,
+                input_control,
+                reason,
+            )
+            session.approval_status = reason
+            if not pending and not session.approval_context:
+                continue
+            if context == session.approval_context:
+                continue
+            session.approval_context = context if pending else ()
+            self.log.info(
+                "approval_status",
+                provider=session.provider_name,
+                session=session.ref.key(),
+                process=session.describe_process(),
+                pending=pending,
+                exact=session.approval_exact,
+                auto_yes=auto_yes,
+                mode=self.config.mode.value,
+                paused=paused,
+                input_control=input_control,
+                reason=reason,
+            )
+
+    def _approval_status_reason(
+        self, session: SupervisedSession, auto_yes: bool, paused: bool, input_control: bool
+    ) -> str:
+        if session.observed_state != "APPROVAL_PENDING":
+            return "no-pending-approval"
+        if not session.approval_exact:
+            return "unsupported-permission-layout"
+        if not auto_yes:
+            return "auto-yes-off"
+        if self.config.mode is not Mode.AUTO:
+            return "observe-mode" if self.config.mode is Mode.OBSERVE else "ask-mode-confirms-each"
+        if paused:
+            return "dashboard-paused"
+        if not input_control:
+            return "no-input-control"
+        if session.marked_unsafe:
+            return "session-unsafe"
+        pending = self.store.records.get(session.pending_key)
+        if session.verify_after is not None or (pending is not None and not pending.is_settled):
+            return "action-in-flight"
+        if session.approval_stuck:
+            return "unanswered-manual-required"
+        if session.approved_fingerprint == session.approval_fingerprint:
+            return "answered-awaiting-transition"
+        return "eligible-on-next-scan"
 
     def approve(self, key: str, expected_fingerprint: str) -> str:
         """Answer the selected one-turn item on one exact permission prompt.

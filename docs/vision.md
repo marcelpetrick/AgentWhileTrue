@@ -194,7 +194,7 @@ Default policy:
 
 ```text
 normal continuation after reset = allowed
-model downgrade                 = not allowed
+any model change                = not allowed
 paid credits                    = not allowed
 purchase credits                = not allowed
 reset credits                   = not allowed
@@ -1639,7 +1639,8 @@ A fuller v1 should additionally prove:
 9. crash recovery avoids duplicate input;
 10. systemd user service works;
 11. `doctor` explains unsupported states;
-12. model downgrade and paid credits remain opt-in;
+12. model changes and paid-credit choices remain human-only and cannot be enabled
+    through supervisor configuration;
 13. state survives watcher restart;
 14. D-Bus reconnection works;
 15. unsupported tmux/SSH/container cases are identified clearly.

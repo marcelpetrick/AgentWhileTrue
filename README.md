@@ -36,7 +36,7 @@ before publication. See [Keeping your agents unblocked](#keeping-your-agents-unb
 
 It is built to refuse rather than guess: only sessions you selected, only exact
 tested prompts, only after fresh provider evidence, and never a paid, upgrade,
-reset-credit or model-downgrade choice. Start in observe mode, read why a
+reset-credit or model-changing choice. Start in observe mode, read why a
 session is waiting, and switch automation on when you trust it.
 
 ![Agent While True watching six sessions through a limit and a resume](media/agentWhileTrue_demo_v0.48.1.gif)
@@ -101,6 +101,13 @@ Enable `A` for auto-resume after five-hour or weekly limits, and `y` separately
 for supported one-time tool permissions. A five-hour reset does not clear an
 exhausted weekly budget. Arbitrary decisions, persistent permission changes,
 paid choices and requests with hidden previews still need the operator.
+
+The detail view explains why an approval is waiting (for example auto-yes off,
+paused, no input control or an unsupported layout). New structured events
+identify the emitting watcher/version and its approval context. AWT's policy is
+`stay with same model`: it never selects model changes or paid capacity, and
+configuration cannot enable those choices. Unknown model dialogs remain manual;
+the policy message is not typed into arbitrary questions.
 
 For unattended work, open `agent-while-true run --observe --all`, press `A`
 to take input control and enable Codex continuation, then `y` for one-time

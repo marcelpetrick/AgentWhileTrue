@@ -130,25 +130,44 @@ without the corresponding maintainer request.
 - [x] Record the maintainer's invariants in `AGENTS.md`: preserve the same model,
   never select paid choices, and continue quota-blocked work only after the
   relevant budget returns through the normal provider/prompt/identity gate.
-- [ ] Inspect current live Claude/Codex screens read-only and verify current
+- [x] Inspect current live Claude/Codex screens read-only and verify current
   binaries; transcribe only genuinely observed new menus into redacted fixtures.
   The Oct 17–20 MPT audit found successful approvals and explicit policy denials,
   not an unsupported menu. EasyAnalyzer has no recent evidence to extrapolate.
-- [ ] Add correlated, privacy-preserving controller/version/mode/auto-yes
+  Installed binaries are Claude 2.1.304 and Codex 0.163.0; existing Claude
+  sessions retained 2.1.303. No full permission/model-choice menu was visible,
+  so this audit does not certify all newer menus or change `VERIFIED_VERSIONS`.
+- [x] Add correlated, privacy-preserving controller/version/mode/auto-yes
   diagnostics and an explicit reason for recognized but unsupported permission
   layouts, including visible dashboard details. Never log command or prompt text.
-- [ ] Audit and test five-hour, weekly and model-specific budget renewal,
+- [x] Audit and test five-hour, weekly and model-specific budget renewal,
   provider-armed waits, grace periods and bounded retries. Fix demonstrated gaps
   without inferring availability or abandoning other exhausted windows.
-- [ ] Enforce fixed-model and human-only paid decisions in every input path,
+  Seven new lifecycle contracts and `budget-renewal` confirm the existing
+  runtime gate; no quota-runtime defect required a change.
+- [x] Enforce fixed-model and human-only paid decisions in every input path,
   including configurations that request otherwise. Prefer an exact tested
   stay/decline choice only when observed; otherwise show `stay with same model`
   and require the operator, rather than typing into an arbitrary question.
-- [ ] Update usage, architecture and safety documentation; cover behavior with
+  Legacy opt-ins now reject `true`; model labels add veto-only coverage.
+  No full live stay-choice dialog was observed, so automatic model-decline input
+  remains evidence-blocked. The message is visible policy, not a typed reply.
+- [x] Update usage, architecture and safety documentation; cover behavior with
   unit/lifecycle/dashboard tests, simulations and real offline PTY tests.
-- [ ] Run the full local pipeline, `/reviewBranch` against `b224585`, fix every
+- [x] Run the full local pipeline, `/reviewBranch` against `b224585`, fix every
   finding, check `/githubAbout` evidence without changing public metadata, and
   hand off commits, running versions and any evidence-limited manual prompts.
+  The review reproduced and fixed a cached diagnostic mismatch for unsettled
+  persisted actions after clock-jump schedule invalidation; `PLANNED` and `SENT`
+  regressions now match the real approval gate. Final delivery is conditional
+  on the canonical gate passing on this exact committed source. Public metadata
+  remains unchanged; existing About wording/topics are evidence-backed.
+
+Evidence-limited follow-up: a complete live same-model decline dialog and new
+affirmative provider-menu layouts were not available. Their automation is not
+claimed implemented; capture the actual menu before adding any such action.
+The operator's installed service/dashboard is not upgraded as a side effect of
+this development task; install the verified version and restart intentionally.
 
 ## Maintenance plan
 

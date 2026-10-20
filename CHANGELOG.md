@@ -13,6 +13,26 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.68.0] - 2026-10-20
+
+### Added
+
+- Correlated controller PID/version metadata on structured events and deduplicated
+  approval diagnostics explaining auto-yes, mode, pause, input ownership and
+  unsupported permission layouts in logs and dashboard details.
+- Explicit fixed-model and human-only paid-choice guidance; legacy paid/model
+  automation flags now reject `true` rather than suggesting a supported opt-in.
+- Deterministic renewal contracts for five-hour, weekly and model-specific
+  budgets, including exactly-once continuation and untouched provider waits.
+
+### Safety
+
+- Public model-choice wording adds refusal coverage only. No unseen model
+  dialog is answered, and no persistent stay-model preference is selected.
+- No new affirmative permission rule was inferred from transcripts or binary
+  strings; exact tested menus, identity checks and provider confirmation remain
+  required. Unknown model dialogs display `stay with same model` and stay manual.
+
 ## [0.67.12] - 2026-10-20
 
 ### Documentation

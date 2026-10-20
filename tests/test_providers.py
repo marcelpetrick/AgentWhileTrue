@@ -198,6 +198,22 @@ def test_claude_model_downgrade_offer_is_vetoed() -> None:
     assert any(veto.startswith("model-downgrade-offer") for veto in result.vetoes)
 
 
+@pytest.mark.parametrize(
+    "label",
+    [
+        "No, keep my current model",
+        "You're resuming an older session. Continue with a newer model?",
+    ],
+)
+def test_claude_public_model_choice_literals_are_refusals_not_actions(label: str) -> None:
+    # Public UI literals checked in the installed binary, not a live dialog
+    # fixture. This synthetic screen can only add a refusal, never an action.
+    result = providers.CLAUDE.recognise([label], now=NOW)
+    assert "model-downgrade-offer:claude/model-downgrade" in result.vetoes
+    assert result.action is None
+    assert not result.approval_prompt
+
+
 def test_claude_extra_usage_offer_is_vetoed() -> None:
     result = providers.CLAUDE.recognise(screens.CLAUDE_EXTRA_USAGE, now=NOW)
     assert result.vetoes == ("paid-action-required:claude/usage-credits-offer",)

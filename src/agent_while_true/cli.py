@@ -720,6 +720,9 @@ def _loop(
                 # reads. Schedule from completion so slow scans never catch up in
                 # a busy loop. Input authorization still revalidates in Supervisor.
                 next_scan = time.monotonic() + _scan_delay(supervisor, dashboard.interval)
+            supervisor.report_approval_status(
+                auto_yes=dashboard.auto_yes, paused=dashboard.paused, input_control=lock.held
+            )
             now = datetime.now(UTC)
             if interactive or (args.once and config.mode is not Mode.OBSERVE):
                 if interactive:

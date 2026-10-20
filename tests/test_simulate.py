@@ -32,6 +32,7 @@ def test_the_happy_path_actually_sends_something(tmp_path: Path) -> None:
 #: The only scenarios that are supposed to type, and exactly what they type.
 TALKATIVE = {
     "reset-and-resume": [(simulate.SESSION, "\r")],
+    "budget-renewal": [(simulate.SESSION, "\r")],
     "reset-delayed-90s": [(simulate.SESSION, "\r")],
     "continue-still-blocked": [(simulate.SESSION, "\r")],
     "duplicate-prompt": [(simulate.SESSION, "\r")],
