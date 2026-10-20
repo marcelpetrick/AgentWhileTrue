@@ -19,7 +19,7 @@ GitHub quality job, release workflow and container intentionally share that one
 runtime; older and unreviewed future Python minors are outside the support
 contract.
 
-The requested implementation is complete:
+The implemented baseline includes:
 
 - Konsole sessions are discovered through D-Bus and bound to service, session,
   PID, process start time, and TTY.
@@ -100,7 +100,7 @@ The requested implementation is complete:
 
 ## Acceptance status
 
-No known feature implementation is pending. Natural reset acceptance is
+The current maintainer follow-up is tracked below. Natural reset acceptance is
 witnessed for Codex on 2026-09-18 and Claude on 2026-10-15
 ([OPEN_ISSUES.md](OPEN_ISSUES.md) O1). The latter used a provider-confirmed
 Enter and verified active transition, not merely an automatic-wait selection.
@@ -119,6 +119,36 @@ For subsequent provider changes, repeat the same evidence standard:
 This gate must not be forced with a paid choice, model downgrade, fabricated
 provider state, or input to an unrelated live session. Simulated reset tests
 remain the deterministic regression mechanism.
+
+## Active follow-up: exact approvals, renewal and fixed-model policy
+
+Baseline: `b224585` (2026-10-20). Work on the current branch, use atomic green
+commits, and review all follow-up changes against that baseline before delivery.
+Do not push, tag, restart an operator dashboard or change provider settings
+without the corresponding maintainer request.
+
+- [x] Record the maintainer's invariants in `AGENTS.md`: preserve the same model,
+  never select paid choices, and continue quota-blocked work only after the
+  relevant budget returns through the normal provider/prompt/identity gate.
+- [ ] Inspect current live Claude/Codex screens read-only and verify current
+  binaries; transcribe only genuinely observed new menus into redacted fixtures.
+  The Oct 17–20 MPT audit found successful approvals and explicit policy denials,
+  not an unsupported menu. EasyAnalyzer has no recent evidence to extrapolate.
+- [ ] Add correlated, privacy-preserving controller/version/mode/auto-yes
+  diagnostics and an explicit reason for recognized but unsupported permission
+  layouts, including visible dashboard details. Never log command or prompt text.
+- [ ] Audit and test five-hour, weekly and model-specific budget renewal,
+  provider-armed waits, grace periods and bounded retries. Fix demonstrated gaps
+  without inferring availability or abandoning other exhausted windows.
+- [ ] Enforce fixed-model and human-only paid decisions in every input path,
+  including configurations that request otherwise. Prefer an exact tested
+  stay/decline choice only when observed; otherwise show `stay with same model`
+  and require the operator, rather than typing into an arbitrary question.
+- [ ] Update usage, architecture and safety documentation; cover behavior with
+  unit/lifecycle/dashboard tests, simulations and real offline PTY tests.
+- [ ] Run the full local pipeline, `/reviewBranch` against `b224585`, fix every
+  finding, check `/githubAbout` evidence without changing public metadata, and
+  hand off commits, running versions and any evidence-limited manual prompts.
 
 ## Maintenance plan
 

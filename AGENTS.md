@@ -45,8 +45,20 @@ when recognizer behavior changes.
   TTY; never transfer an interactive selection to a replacement process.
 - Re-read session identity, process class, visible prompt, and policy directly
   before `sendText`.
-- Never automate upgrades, purchases, paid credits, reset credits, or model
-  downgrades.
+- Never automate upgrades, purchases, paid credits, reset credits, or any model
+  change (including upgrades, downgrades and fallbacks). Paid choices belong to
+  the human operator; no configuration flag may authorize the supervisor to
+  make them. A tested model-choice dialog may only retain the existing model
+  through its exact safe decline/stay choice, never by guessing an answer or
+  typing free text into an arbitrary question. Without an observed, regression-
+  tested stay choice, report `stay with same model` and leave the dialog manual.
+- Quota exhaustion means wait for the relevant provider-confirmed budget
+  renewal, not switch model or buy capacity. Respect every exhausted window
+  (including weekly/model-specific limits), provider reset and grace period;
+  resume only a still-bound tested limit continuation after fresh availability,
+  or the existing explicitly opted-in bounded Codex exception. An already-armed
+  Claude wait is left to Claude. Never infer task completion or renewed budget
+  from the reset clock alone.
 - Select Claude's automatic-wait item only for the exact tested menu with the
   cursor visibly on item 1, safe item 2, `allow_claude_auto_wait`, and evidence
   that usage is spent: either fresh exhausted quota or Claude's own limit banner
