@@ -13,6 +13,23 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.69.0] - 2026-10-20
+
+### Fixed
+
+- Codex sessions using a detached/shared app-server no longer depend on an
+  open rollout descriptor in the terminal process tree. A bounded read-only
+  quota fallback checks the selected process profile, unchanged identity and
+  matching provider account before accepting explicit ordinary-usage evidence.
+- No shared server rollout is guessed from its timestamp or project. Unknown,
+  mismatched or malformed quota remains unavailable; model and paid choices
+  are never selected.
+
+### Release
+
+- Includes the reviewed fixed-model policy, approval-context diagnostics and
+  multi-window renewal regressions; installation points at `agentwhiletrue-v0.69.0`.
+
 ## [0.68.1] - 2026-10-20
 
 ### Fixed

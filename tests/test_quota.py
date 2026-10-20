@@ -163,6 +163,36 @@ def test_codex_worker_discovery_preserves_profile_boundary(tmp_path: Path, monke
     assert CodexRolloutSource().snapshot(pid=123).note == "no-rollout-file"
 
 
+def test_detached_codex_server_does_not_require_guessing_its_shared_rollout(
+    tmp_path: Path, monkeypatch
+) -> None:
+    # 2026-10-20 live process topology, with private identifiers removed:
+    # selected TUI 123 -> native 456 (no rollout FDs); detached daemon 789
+    # has a rollout, but is deliberately not a child of either selected PID.
+    home = tmp_path / ".codex"
+    shared = _write_account_rollout(home, "test-account", CODEX_EVENT)
+    proc = tmp_path / "proc"
+    _attach_rollouts(proc, 123, codex_home=home)
+    _attach_rollouts(proc, 456, codex_home=home)
+    _attach_rollouts(proc, 789, shared, codex_home=home)
+    (proc / "123/task/123/children").write_text("456")
+    monkeypatch.setattr(quota, "PROC", proc)
+    assert quota.find_codex_rollout(123) is None
+    calls = []
+
+    class BoundQuota(quota.QuotaSource):
+        def snapshot(self, *, pid=None):
+            calls.append(pid)
+            return QuotaSnapshot(
+                "codex", Availability.AVAILABLE, "codex-app-server", observed_at=NOW
+            )
+
+    result = CodexRolloutSource(fallback=BoundQuota()).snapshot(pid=123)
+    assert result.source == "codex-app-server"
+    assert result.availability is Availability.AVAILABLE
+    assert calls == [123]
+
+
 def test_codex_thread_scan_is_bounded_and_always_reads_main_thread(
     tmp_path: Path, monkeypatch
 ) -> None:

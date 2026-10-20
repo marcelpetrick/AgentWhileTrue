@@ -30,6 +30,8 @@ The implemented baseline includes:
 - Codex quota is read from its local rollout stream and bound to a validated
   account/rate-limit identity. Bounded main/worker-thread child discovery fixes
   the live default/company-profile `no-rollout-file` failure found on 2026-10-16.
+  The detached app-server layout uses a bounded read-only quota RPC instead,
+  revalidating the selected process/profile/account and explicit usage allowance.
 - Claude quota is projected by the owner-only status-line bridge into
   idle-refreshed, hashed-session files bound to PID and process start time.
 - Five-hour and weekly usage meters show compact reset countdowns.
@@ -173,6 +175,29 @@ affirmative provider-menu layouts were not available. Their automation is not
 claimed implemented; capture the actual menu before adding any such action.
 The operator's installed service/dashboard is not upgraded as a side effect of
 this development task; install the verified version and restart intentionally.
+
+## Public release and local full-auto handoff — 2026-10-20
+
+- [x] Audit 20:05–23:07 Europe/Berlin events and current sessions: 21 successful
+  approvals (10 MPT, 11 hr-doccontrol), no failed resends or new unanswered
+  permission prompts. Eight shell/exited-process and two paid-credit refusals
+  were expected. No current EasyAnalyzer session was present.
+- [x] Reproduce Codex `no-rollout-file`: the selected TUI uses a detached/shared
+  app-server holding multiple rollouts outside its child tree. A timestamp/cwd
+  guess cannot safely bind one of those files to this terminal.
+- [x] Verify the existing daemon's read-only `account/rateLimits/read` response
+  through its proxy: account matches the selected profile, and the backend
+  provides explicit `ordinaryUsageAllowed`. No turn/model/payment RPC was sent.
+- [x] Implement bounded proxy transport and profile/account/identity checks,
+  strict availability parsing and cache; add fixture-first regressions,
+  lifecycle/simulation tests and review. Never manage/start/restart Codex daemons.
+- [ ] Run the complete local gate, commit/push, publish the annotated verified
+  tag and require green quality, security and release jobs plus image smoke tests.
+- [ ] Install that exact public tag, restart the background user service, and
+  replace the old dashboard intentionally under the maintainer's authorization.
+  Re-enable `A` and dashboard-only `y` for all selected supported sessions;
+  paid/model choices and unknown questions remain manual and switches stay
+  non-persistent. Verify the same version and both controls after deployment.
 
 ## Maintenance plan
 

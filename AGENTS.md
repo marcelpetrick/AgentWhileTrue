@@ -95,6 +95,12 @@ when recognizer behavior changes.
   Never answer MCP elicitation,
   user-verification, arbitrary questions or an unknown/reworded menu.
 - Never log terminal contents, environment values, credentials, or prompt text.
+- Detached Codex quota may use only the bounded read-only existing-daemon proxy:
+  initialize/initialized and account/rateLimits/read, with explicit OAuth and
+  no login, turn, thread, model, payment or reset operation. Revalidate the
+  selected process start time, profile and private account identity before and
+  after each read (including cache hits); require a matching response account
+  and explicit ordinary-usage allowance. Never guess a shared daemon rollout.
 - Claude's exact trailing background-agent panel may be excluded from turn
   scoping only to recover a recognized already-armed waiting footer with no
   action. Never expose a historical actionable menu or reset prompt this way.

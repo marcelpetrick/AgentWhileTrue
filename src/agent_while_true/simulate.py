@@ -17,15 +17,20 @@ supervisor made, which is a far better way to gain confidence in a tool that
 types into terminals than reading its source.
 """
 
+import hashlib
 import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from agent_while_true import providers
+from agent_while_true.classify import classify
+from agent_while_true.codex_daemon_quota import _snapshot as daemon_snapshot
 from agent_while_true.config import Config, ConfigError, Mode, Policy
 from agent_while_true.fsm import APPROVAL_RECHECK_SECONDS, Supervisor
 from agent_while_true.logging_setup import setup
+from agent_while_true.policy import Authorization, ResumeRequest, evaluate
 from agent_while_true.proc import ProcessIdentity, ProcessInfo
 from agent_while_true.quota import Availability, QuotaSnapshot, QuotaSource, QuotaWindow, unknown
 from agent_while_true.state_store import StateStore
@@ -818,6 +823,83 @@ def scenario_codex_needs_opt_in(directory: Path) -> Result:
     )
 
 
+def scenario_codex_daemon_quota_gate(directory: Path) -> Result:
+    world = _world(directory, provider="codex", screen=CODEX_BLOCKED_SCREEN)
+    # All data is synthetic. Exercise the same response decoder as the bound
+    # source, without querying a real daemon or touching process credentials.
+    account = hashlib.sha256(b"codex-account\0simulation-account").hexdigest()
+    bucket: dict[str, object] = {
+        "primary": {
+            "usedPercent": 12,
+            "windowDurationMins": 300,
+            "resetsAt": int((START + timedelta(hours=5)).timestamp()),
+        },
+        "spendControlReached": False,
+        "rateLimitReachedType": None,
+    }
+    recognition = providers.CODEX.recognise(CODEX_BLOCKED_SCREEN, now=START)
+    assert recognition.reset_at is not None
+    now = recognition.reset_at + timedelta(seconds=61)
+    info = world.processes.table[AGENT_PID]
+    reference = world.terminal.ref(SESSION)
+    expected = [
+        (True, "simulation-account", Availability.AVAILABLE, True),
+        (False, "simulation-account", Availability.EXHAUSTED, False),
+        (None, "simulation-account", Availability.UNKNOWN, False),
+        (True, "other-account", Availability.UNKNOWN, False),
+    ]
+    passed = True
+    for allowed, identifier, availability, permitted in expected:
+        document: dict[str, object] = {
+            "accountId": identifier,
+            "ordinaryUsageAllowed": allowed,
+            "rateLimits": bucket,
+            "rateLimitsByLimitId": {"codex": bucket},
+        }
+        try:
+            quota = daemon_snapshot(document, account, now)
+        except ValueError:
+            quota = unknown("codex", "codex-app-server", "synthetic-invalid-response")
+        decision = evaluate(
+            ResumeRequest(
+                now=now,
+                config=Config(mode=Mode.AUTO, policy=Policy(allow_codex_auto_resume=True)),
+                selected=True,
+                selected_ref=reference,
+                live_ref=reference,
+                selected_identity=info.identity,
+                live_identity=info.identity,
+                classification=classify(info),
+                recognition=recognition,
+                quota=quota,
+                limit_seen=True,
+                # This is the ordinary provider-confirmed path, not the
+                # independently opted-in persistent timed retry exception.
+                codex_retry=False,
+            )
+        )
+        passed &= quota.availability is availability and decision.allowed is permitted
+        if permitted:
+            passed &= decision.authorization is Authorization.PROVIDER_CONFIRMED
+        world.steps.append(
+            Step(
+                label=(
+                    f"ordinary={allowed!r}; "
+                    f"account={'bound' if identifier == 'simulation-account' else 'mismatch'}"
+                ),
+                decision_reason=decision.reason,
+                sent=0,
+            )
+        )
+    return _result(
+        "codex-daemon-quota-gate",
+        "Read-only daemon quota distinguishes ordinary allowance, denial and unknown identity.",
+        "only account-bound true allowance authorizes the ordinary continuation gate",
+        world,
+        passed=passed and not world.terminal.sent,
+    )
+
+
 def scenario_codex_transient_recovery(directory: Path) -> Result:
     world = _world(
         directory,
@@ -1097,6 +1179,7 @@ SCENARIOS: dict[str, ScenarioFn] = {
     "duplicate-prompt": scenario_duplicate_prompt,
     "crash-recovery": scenario_crash_between_send_and_persist,
     "codex-needs-opt-in": scenario_codex_needs_opt_in,
+    "codex-daemon-quota-gate": scenario_codex_daemon_quota_gate,
     "codex-transient-recovery": scenario_codex_transient_recovery,
     "observe-mode": scenario_observe_mode,
     "observer-preserves-retry-state": scenario_observer_preserves_retry_state,

@@ -51,7 +51,7 @@ flowchart TB
         cli["CLI and TUI<br/>Python<br/>Commands, selection, modes, dashboard"]
         supervisor["Supervisor<br/>Python<br/>Observation and action state machine"]
         adapters["Terminal and provider adapters<br/>Python<br/>Konsole, Codex, Claude"]
-        quota["Quota readers<br/>Python<br/>Codex rollout and Claude bridge files"]
+        quota["Quota readers<br/>Python<br/>Codex rollout / account RPC and Claude bridge files"]
         health["Health monitor<br/>Python threads<br/>Independent conditional HTTP polling"]
         policy["Policy gate<br/>Python<br/>Fail-closed authorization"]
         state["State and event store<br/>Owner-only local files<br/>Lifecycle, retries, history"]
@@ -211,6 +211,23 @@ Discovery reads child lists from the main thread and up to 255 worker threads
 per process, with a 64-process traversal cap. Linux assigns children to their
 spawning thread; inspecting only the leader misses Codex's rollout writers.
 Profile filtering still applies to every discovered process and rollout.
+
+If the selected Codex process has no rollout descriptor, `CodexRolloutSource`
+delegates to `CodexDaemonSource`, not a guessed shared daemon rollout. The source
+binds PID/start time, process `CODEX_HOME` and the opaque account hash from the
+owner-private auth file before and after reading. Its bounded LRU cache retains
+the actual observation time (60-second successes, 10-second failures), and every
+cache hit revalidates that binding. No raw account or environment value is logged.
+`codex_rpc` starts only `codex app-server proxy` against the existing local
+daemon and speaks its WebSocket transport over pipes. Its only application RPCs
+are initialize/initialized and `account/rateLimits/read`; initialization requests
+explicit OAuth so it cannot launch an automatic sign-in flow. The five-second,
+512-KiB, 64-frame read cleans up only its own proxy. It never opens a thread,
+submits a turn or changes provider settings. Every returned window/bucket is
+validated conservatively, the response account must match, and ordinary usage
+must be explicitly allowed. Missing permission or unsupported caps are UNKNOWN;
+an explicit denial, exhausted window or spending-control block is EXHAUSTED.
+Reset clocks never turn either state into AVAILABLE.
 
 ## Auto-yes
 

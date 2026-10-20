@@ -113,7 +113,10 @@ For unattended work, open `agent-while-true run --observe --all`, press `A`
 to take input control and enable Codex continuation, then `y` for one-time
 permissions. Check that both switches show ON and the dashboard is unpaused.
 The background service alone cannot enable auto-yes. Both Codex profiles'
-quota meters follow the native process's worker-spawned rollout writers.
+quota meters follow the native process's worker-spawned rollout writers. When
+the current Codex keeps those writers in its detached app server, a bounded
+read-only quota request uses the selected process's profile and verifies its
+account before accepting the response. Unknown allowance remains unknown.
 
 Use the [latest public release](https://github.com/marcelpetrick/AgentWhileTrue/releases/latest)
 and run `agent-while-true doctor` after updating either provider. Restart the
@@ -188,7 +191,7 @@ in [docs/USAGE.md](docs/USAGE.md#the-whip).
 ## Install
 
 ```bash
-pipx install --python python3.14 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.67.8'
+pipx install --python python3.14 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.69.0'
 agent-while-true --version
 agent-while-true doctor
 ```

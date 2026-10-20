@@ -420,6 +420,7 @@ class CodexRolloutSource(QuotaSource):
 
     provider: str = "codex"
     name: str = "codex-rollout"
+    fallback: QuotaSource | None = None
     _account_snapshots: dict[tuple[str, str], QuotaSnapshot] = field(
         default_factory=dict, init=False, repr=False
     )
@@ -430,6 +431,8 @@ class CodexRolloutSource(QuotaSource):
         try:
             path = find_codex_rollout(pid)
             if path is None:
+                if self.fallback is not None:
+                    return self.fallback.snapshot(pid=pid)
                 return unknown(self.provider, self.name, "no-rollout-file")
             found = _last_rate_limits(path)
             if found is None:
@@ -567,7 +570,11 @@ class NullSource(QuotaSource):
 
 def default_sources(state_dir: Path) -> dict[str, QuotaSource]:
     """Build the standard source per provider."""
+    # Loaded here to keep the quota data model independent of the optional
+    # local-daemon transport. Direct rollout readers remain usable on their own.
+    from agent_while_true.codex_daemon_quota import CodexDaemonSource
+
     return {
-        "codex": CodexRolloutSource(),
+        "codex": CodexRolloutSource(fallback=CodexDaemonSource()),
         "claude": ClaudeStatuslineSource(path=state_dir / "quota" / "claude.json"),
     }

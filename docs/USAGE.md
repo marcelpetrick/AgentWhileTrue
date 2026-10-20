@@ -76,6 +76,17 @@ process tree, classifies the native Codex process, reads quota from that
 process, and presents the session as `Codex`.
 Quota discovery also follows children spawned by native runtime worker threads;
 both the default and `codex-dmo` profile retain their own quota/account binding.
+When the selected process has no rollout file (the detached Codex app-server
+layout), AWT uses `codex app-server proxy` for a read-only account quota request.
+It does not start a server, log in, submit work, spend reset credits or change
+models. The response must match the process's private local account identity;
+the process start time, profile and account are checked again after the read.
+An explicit ordinary-usage allowance and valid windows are required. Missing
+allowance, unsupported caps or any binding mismatch fail closed. Any exhausted
+window or spending-control denial blocks availability, even after its reset time.
+Results are cached for at most 60 seconds (10 seconds for failed reads), without
+refreshing their observation timestamp. The request has a five-second deadline
+and bounded response size; only its temporary proxy process is cleaned up.
 If data still reports `UNKNOWN`, inspect its reason and freshness with `quota`
 or the dashboard's `d` panel; missing data never becomes an available budget.
 

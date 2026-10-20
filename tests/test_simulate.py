@@ -29,6 +29,16 @@ def test_the_happy_path_actually_sends_something(tmp_path: Path) -> None:
     assert result.sent == [(simulate.SESSION, "\r")]
 
 
+def test_daemon_quota_requires_bound_explicit_allowance(tmp_path: Path) -> None:
+    result = simulate.run("codex-daemon-quota-gate", tmp_path)
+    assert result.passed, result.render()
+    assert len(result.steps) == 4
+    assert result.steps[0].decision_reason == "all-conditions-met"
+    assert all(step.decision_reason != "all-conditions-met" for step in result.steps[1:])
+    # Policy authorization is not permission to skip supervisor revalidation.
+    assert result.sent == []
+
+
 #: The only scenarios that are supposed to type, and exactly what they type.
 TALKATIVE = {
     "reset-and-resume": [(simulate.SESSION, "\r")],
