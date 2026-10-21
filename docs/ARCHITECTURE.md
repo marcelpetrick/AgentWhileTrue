@@ -180,6 +180,9 @@ flowchart LR
 The abstractions in `terminal/base.py` and `providers/base.py` keep terminal
 transport separate from provider-specific prompts. Deterministic fake-terminal
 tests exercise the same supervisor and policy paths as the Konsole adapter.
+Headless discovery and selection pruning use title-free enumeration: all session
+and foreground-process reads remain fresh; only optional display-title RPCs are
+omitted. Existing terminal adapters inherit a compatible full-enumeration fallback.
 
 Claude's status-line bridge hashes the stable Claude session identifier and
 writes one owner-only quota document per session. The document also carries the
@@ -189,6 +192,12 @@ a 60-second status-line refresh while preserving existing status-line options,
 preventing idle quota evidence from silently crossing the 15-minute freshness
 limit. A legacy unbound file may be displayed only when no process is supplied
 and can never authorize an action for a selected session.
+Decoded Claude quota records are bounded to 512 normalized entries keyed by
+device/inode/size/mtime/ctime. Each snapshot still checks current directory,
+file versions and PID/start identity; original observation times are retained.
+Atomic replacement, in-place updates and new files invalidate evidence; excess
+files are freshly decoded rather than evicting the entire cache repeatedly.
+No raw quota payload or authorization decision is cached.
 
 ## Guarded resume flow
 
@@ -391,6 +400,14 @@ the successor exits, which keeps the single-writer guarantee that the lock, not
 the protocol, enforces. D-Bus access, state files, and the service all remain
 within the desktop user account; root execution, SSH, containers, tmux/screen,
 and ambiguous process ancestry are non-automatable.
+
+A continuous headless input-capable fallback in deferred observe mode is in
+standby, not a second observer. It checks the lock once per second without
+terminal/quota/discovery/history/health work. On ownership acquisition it reloads
+durable state, resets metric gaps, rediscovers/rebinds and scans before acting.
+Explicit observe watchers and interactive dashboards retain normal observation.
+Headless operation never starts unused provider-health workers or reads the
+presentation activity feed. Automation policy and pre-send checks are unchanged.
 
 ## Architectural decisions
 

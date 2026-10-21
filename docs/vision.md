@@ -170,6 +170,11 @@ unchanged, including during rediscovery cleanup. A second watcher may hold an
 older snapshot and must never overwrite the input controller's durable state.
 Every acquisition of input control reloads that state after taking the lock,
 including initial startup after session discovery and selection.
+Performance optimizations must preserve this contract. A headless fallback that
+intends to regain input control may stand by instead of duplicating observations;
+it must reload durable state and freshly rediscover/revalidate on ownership
+acquisition. Explicit observers still observe. Quota file-version caches retain
+the provider's original timestamps and never replace action-time validation.
 
 Example:
 

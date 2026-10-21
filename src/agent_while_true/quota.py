@@ -474,78 +474,172 @@ _CLAUDE_SCOPES = {
     "seven_day_opus": "opus",
     "seven_day_sonnet": "sonnet",
 }
+_CLAUDE_CACHE_LIMIT = 512
+_CLAUDE_FILE_BYTES = 64 * 1024
+type _FileVersion = tuple[int, int, int, int, int]
+
+
+def _file_version(path: Path) -> _FileVersion:
+    status = path.stat()
+    return (status.st_dev, status.st_ino, status.st_size, status.st_mtime_ns, status.st_ctime_ns)
+
+
+@dataclass(frozen=True, slots=True)
+class _ClaudeQuotaDocument:
+    """Only normalized quota and process metadata; never retain the raw payload."""
+
+    pid: int | None
+    start_time: int | None
+    snapshot: QuotaSnapshot
+    invalid_timestamp: bool = False
+
+
+def _claude_document(document: object, provider: str, source: str) -> _ClaudeQuotaDocument | None:
+    if not isinstance(document, dict) or document.get("source") != "claude":
+        return None
+    process = document.get("process")
+    process = process if isinstance(process, dict) else {}
+    pid = process.get("pid")
+    start = process.get("start_time")
+    try:
+        observed_at = _timestamp(document.get("updated_at"))
+    except Exception as exc:
+        return _ClaudeQuotaDocument(
+            pid if type(pid) is int else None,
+            start if type(start) is int else None,
+            unknown(provider, source, f"error:{type(exc).__name__}"),
+            invalid_timestamp=True,
+        )
+    try:
+        windows = []
+        for key, scope in _CLAUDE_SCOPES.items():
+            entry = document.get(key)
+            if not isinstance(entry, dict):
+                continue
+            used = _percent(entry.get("used_percentage"))
+            if used is None:
+                used = _percent(entry.get("utilization"))
+            if used is not None:
+                windows.append(QuotaWindow(scope, used, _timestamp(entry.get("resets_at"))))
+        snapshot = QuotaSnapshot(
+            provider,
+            _availability(windows),
+            source,
+            observed_at=observed_at,
+            windows=tuple(windows),
+            note="" if windows else "no-usable-windows",
+        )
+    except Exception as exc:
+        snapshot = QuotaSnapshot(
+            provider,
+            Availability.UNKNOWN,
+            source,
+            observed_at=observed_at,
+            note=f"error:{type(exc).__name__}",
+        )
+    return _ClaudeQuotaDocument(
+        pid if type(pid) is int else None,
+        start if type(start) is int else None,
+        snapshot,
+    )
 
 
 @dataclass(slots=True)
 class ClaudeStatuslineSource(QuotaSource):
-    """Read process-bound files written by the status-line proxy in ``scripts/``."""
+    """Read process-bound bridge files with a bounded, stat-version parsed index.
+
+    Every call still enumerates and validates current files and process identity.
+    Only decoding is cached: observation timestamps and quota decisions are not
+    refreshed, and changed files/directories during a scan produce UNKNOWN.
+    """
 
     path: Path
     provider: str = "claude"
     name: str = "claude-statusline"
+    _parsed: dict[Path, tuple[_FileVersion, _ClaudeQuotaDocument | None]] = field(
+        default_factory=dict, init=False, repr=False
+    )
+
+    def _read_document(self, path: Path, version: _FileVersion) -> _ClaudeQuotaDocument | None:
+        cached = self._parsed.get(path)
+        if cached is not None and cached[0] == version:
+            return cached[1]
+        document = None
+        if version[2] <= _CLAUDE_FILE_BYTES:
+            try:
+                with path.open("rb") as handle:
+                    raw = handle.read(_CLAUDE_FILE_BYTES + 1)
+                if len(raw) <= _CLAUDE_FILE_BYTES:
+                    document = _claude_document(
+                        json.loads(raw.decode("utf-8")), self.provider, self.name
+                    )
+            except json.JSONDecodeError:
+                pass
+        if _file_version(path) != version:
+            raise ValueError("statusline-changed")
+        # Keep admitted slots stable: sequential scans of more than the bound
+        # must not evict the whole index and reparse every file on every call.
+        # Excess files are still read and validated, just not retained. Removed
+        # files release slots at the next snapshot's directory enumeration.
+        if cached is not None or len(self._parsed) < _CLAUDE_CACHE_LIMIT:
+            self._parsed[path] = (version, document)
+        return document
 
     def snapshot(self, *, pid: int | None = None) -> QuotaSnapshot:
         try:
-            candidates = tuple(self.path.parent.glob("claude-*.json"))
+            try:
+                directory_version = _file_version(self.path.parent)
+                candidates = tuple(
+                    path
+                    for path in self.path.parent.iterdir()
+                    if path.name.startswith("claude-") and path.name.endswith(".json")
+                )
+            except FileNotFoundError:
+                self._parsed.clear()
+                return unknown(self.provider, self.name, "no-statusline-file")
             if pid is None and self.path.is_file():
                 candidates = (*candidates, self.path)
+            candidate_set = set(candidates)
+            self._parsed = {
+                path: cached for path, cached in self._parsed.items() if path in candidate_set
+            }
             if not candidates:
                 return unknown(self.provider, self.name, "no-statusline-file")
             expected_start = read_start_time(pid) if pid is not None else None
-            documents = []
+            newest: QuotaSnapshot | None = None
+            versions = []
             for candidate in candidates:
                 try:
-                    if candidate.stat().st_size > 64 * 1024:
-                        continue
-                    document = json.loads(candidate.read_text(encoding="utf-8"))
-                except OSError, json.JSONDecodeError:
+                    version = _file_version(candidate)
+                    versions.append((candidate, version))
+                    document = self._read_document(candidate, version)
+                except OSError:
+                    self._parsed.pop(candidate, None)
                     continue
-                if not isinstance(document, dict) or document.get("source") != "claude":
+                if document is None:
                     continue
                 if pid is not None:
-                    process = document.get("process")
-                    if not isinstance(process, dict):
+                    if document.pid != pid or document.start_time != expected_start:
                         continue
-                    if process.get("pid") != pid or process.get("start_time") != expected_start:
-                        continue
-                documents.append(document)
-            if not documents:
+                if document.invalid_timestamp:
+                    return document.snapshot
+                snapshot = document.snapshot
+                if newest is None or (snapshot.observed_at or datetime.min.replace(tzinfo=UTC)) > (
+                    newest.observed_at or datetime.min.replace(tzinfo=UTC)
+                ):
+                    newest = snapshot
+            if any(_file_version(path) != version for path, version in versions):
+                return unknown(self.provider, self.name, "statusline-changed")
+            if _file_version(self.path.parent) != directory_version:
+                return unknown(self.provider, self.name, "statusline-directory-changed")
+            if pid is not None and read_start_time(pid) != expected_start:
+                return unknown(self.provider, self.name, "process-changed")
+            if newest is None:
                 note = (
                     "no-process-bound-statusline-file" if pid is not None else "no-statusline-file"
                 )
                 return unknown(self.provider, self.name, note)
-            document = max(
-                documents,
-                key=lambda item: (
-                    _timestamp(item.get("updated_at")) or datetime.min.replace(tzinfo=UTC)
-                ),
-            )
-            windows = []
-            for key, scope in _CLAUDE_SCOPES.items():
-                entry = document.get(key)
-                if not isinstance(entry, dict):
-                    continue
-                used = _percent(entry.get("used_percentage"))
-                if used is None:
-                    used = _percent(entry.get("utilization"))
-                if used is None:
-                    continue
-                windows.append(
-                    QuotaWindow(
-                        scope=scope,
-                        used_percent=used,
-                        resets_at=_timestamp(entry.get("resets_at")),
-                    )
-                )
-            if not windows:
-                return unknown(self.provider, self.name, "no-usable-windows")
-            return QuotaSnapshot(
-                provider=self.provider,
-                availability=_availability(windows),
-                source=self.name,
-                observed_at=_timestamp(document.get("updated_at")),
-                windows=tuple(windows),
-            )
+            return newest
         except ProcessGoneError:
             return unknown(self.provider, self.name, "process-gone")
         except Exception as exc:  # a source must never break the supervision loop

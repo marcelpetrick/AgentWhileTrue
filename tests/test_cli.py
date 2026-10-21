@@ -392,7 +392,7 @@ def test_quota_warms_all_sessions_before_rendering(
         )
         for pid in (1, 2)
     ]
-    monkeypatch.setattr(cli, "discover", lambda adapter, inspector: candidates)
+    monkeypatch.setattr(cli, "discover", lambda adapter, inspector, **kwargs: candidates)
 
     class RecordingSource:
         def __init__(self) -> None:

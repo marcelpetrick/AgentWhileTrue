@@ -129,8 +129,11 @@ every eligible agent is watched and newly opened agent tabs are picked up on
 each rediscovery.
 
 Only one input-capable instance may send input at a time. Starting a second one
-does not fail: it watches read-only and arms itself as soon as the incumbent
-lets go, so a user service stays startable while a dashboard is open. A watcher
+does not fail: an interactive dashboard watches read-only; a continuous headless
+fallback stands by cheaply, checking the input lock once per second instead of
+duplicating terminal/quota scans. It arms as soon as the incumbent lets go,
+reloads durable action state and freshly rediscovers/scans before acting.
+Thus a user service stays startable while a dashboard is open. A watcher
 can also be started read-only outright:
 
 ```bash
@@ -147,7 +150,7 @@ types once you confirm; returning to observe releases it.
 If a background service already owns the lock, `Shift+A` asks it to hand input
 control over rather than refusing. The service drops to observe and releases the
 lock before it answers, the dashboard takes the lock through the ordinary path,
-and the service arms itself again once the dashboard exits - so stopping and
+and the headless service stands by until the dashboard exits - so stopping and
 restarting the unit by hand is no longer necessary. A handover is refused while
 an action is waiting for verification: press the key again once it has settled.
 The channel is a socket in the runtime directory, restricted to the owning user,
@@ -507,8 +510,8 @@ flushed about once per minute and on clean exit, so a crash can lose the
 unflushed tail. Older logs lack interval/refusal evidence, rotation can remove
 events, and multiple observers contribute separate samples — use one watcher for
 a non-overlapping report. A dashboard opened beside the background service is
-such a second observer: both write every state change to the same log, so the
-lines appear twice (see
+such a second observer when both are actually observing. A headless fallback
+waiting to reclaim input no longer scans or contributes duplicate samples (see
 [Opening the dashboard while the service runs](#opening-the-dashboard-while-the-service-runs)).
 Observe watchers never persist action or retry-state cleanup. Their stale
 snapshots cannot replace the input controller's pending actions or spent budget;
@@ -825,8 +828,9 @@ Python 3.14 installation succeeds.
 
 ### Opening the dashboard while the service runs
 
-There is no attach-only viewer: every `run` is a complete watcher that scans the
-selected sessions and writes its own log lines. With the service running, pick
+There is no attach-only viewer: an explicit observe `run` is a complete watcher
+that scans selected sessions and writes its own log lines. A headless input-
+capable fallback instead stands by while another watcher owns input. With the service running, pick
 one of two ways:
 
 - **One watcher, one log.** Stop the service, use the dashboard, and start the
@@ -846,8 +850,12 @@ one of two ways:
   agent-while-true run --observe --all   # then Shift+A
   ```
 
-  Both processes keep scanning and logging, so every state change is logged
-  twice, and `summary` counts both watchers' samples.
+  An input-capable headless service stops duplicate polling while the dashboard
+  controls input. It checks the lock every second and freshly reloads/rebinds
+  before resuming. Its standby gap is not counted as observed session-time.
+  An explicitly observe-only service still scans/logs independently; stop it
+  if you want a single observer. Headless services do not fetch unused provider
+  health panels or load dashboard activity history.
 
 ## 10. One-shot full-auto launcher
 

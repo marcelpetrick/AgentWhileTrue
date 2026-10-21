@@ -36,8 +36,8 @@ _SESSION_PATH_RE = re.compile(r"^/Sessions/\d+$")
 #: the traditional one. Either is acceptable.
 _QDBUS_CANDIDATES = ("qdbus6", "qdbus", "qdbus-qt6", "qdbus-qt5")
 
-#: A D-Bus round trip to a healthy Konsole is sub-millisecond; anything near
-#: this bound means the session is wedged and should be skipped, not waited on.
+#: Each call also launches qdbus; measured healthy end-to-end calls take several
+#: milliseconds. Anything near this bound means the session should be skipped.
 _CALL_TIMEOUT_SECONDS = 5.0
 
 #: Konsole's Session.title() takes a role; 1 is the display/tab title.
@@ -132,6 +132,12 @@ class KonsoleAdapter(TerminalAdapter):
             return 0
 
     def list_sessions(self) -> list[TerminalSession]:
+        return self._list_sessions(include_titles=True)
+
+    def list_sessions_brief(self) -> list[TerminalSession]:
+        return self._list_sessions(include_titles=False)
+
+    def _list_sessions(self, *, include_titles: bool) -> list[TerminalSession]:
         sessions: list[TerminalSession] = []
         for service in self.services():
             for path in self._session_paths(service):
@@ -141,8 +147,12 @@ class KonsoleAdapter(TerminalAdapter):
                     # The tab closed between enumeration and inspection.
                     continue
                 foreground_pid = self._int_call(ref, "foregroundProcessId") or shell_pid
-                title = self._call(
-                    service, path, "org.kde.konsole.Session.title", str(_TITLE_ROLE_DISPLAY)
+                title = (
+                    self._call(
+                        service, path, "org.kde.konsole.Session.title", str(_TITLE_ROLE_DISPLAY)
+                    )
+                    if include_titles
+                    else ""
                 )
                 sessions.append(
                     TerminalSession(

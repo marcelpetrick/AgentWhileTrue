@@ -112,6 +112,11 @@ when recognizer behavior changes.
   action. Never expose a historical actionable menu or reset prompt this way.
   Keep full-screen composer/permission validation and paid-action vetoes.
 - Preserve the persisted action lifecycle and single-instance lock.
+- Performance changes must not cache away action-time identity, prompt or quota
+  revalidation. File-version caches retain original observation times and fail
+  closed on changes/errors. A headless fallback may stand by without duplicate
+  observations, but must reload durable state and freshly rediscover/revalidate
+  before reclaiming work; explicit observe watchers remain observers.
 - Treat SSH, containers, tmux/screen, conflicting classification signals, and
   unsupported prompts as non-automatable.
 

@@ -88,6 +88,7 @@ EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_INTERRUPTED = 130
 REDISCOVERY_INTERVAL_SECONDS = 30.0
+STANDBY_POLL_SECONDS = 1.0
 #: A yielding instance releases the lock before it answers, so the successor
 #: normally takes it on the first try. The retries only cover the scheduler.
 HANDOVER_ACQUIRE_ATTEMPTS = 20
@@ -279,8 +280,34 @@ def command_run(
         return EXIT_ERROR
 
     supervisor = _build_supervisor(config, args, stream, reader)
+    display_accounts = bool(
+        not args.once and hasattr(stream, "isatty") and stream.isatty() and sys.stdin.isatty()
+    )
+    # The --all service needs no picker. When it cannot own input, avoid even
+    # initial terminal discovery; ownership will trigger a fresh complete bind.
+    # Explicit observers, one-shot diagnostics and interactive selection retain
+    # their normal observation path.
+    if args.all and not args.once and not display_accounts and config.mode.may_send_input:
+        standby_lock = SingleInstanceLock.in_directory(config.resolved_runtime_dir())
+        try:
+            standby_lock.acquire()
+        except LockHeldError:
+            wanted = config
+            config = replace(config, mode=Mode.OBSERVE)
+            supervisor.config = config
+            supervisor.log.info("input_arming_deferred", requested=wanted.mode.value)
+            stream.write("Another Agent While True instance holds input control; standing by.\n")
+            stream.flush()
+            try:
+                return _loop(supervisor, config, args, stream, standby_lock, deferred=wanted)
+            finally:
+                standby_lock.release()
+        else:
+            standby_lock.release()
     inspector = SystemInspector()
-    candidates = discover(supervisor.terminal, inspector)
+    candidates = discover(
+        supervisor.terminal, inspector, include_titles=display_accounts or not args.all
+    )
     if not candidates and not args.all:
         stream.write("No Konsole sessions found. Run 'agent-while-true doctor' for details.\n")
         return EXIT_ERROR
@@ -291,9 +318,6 @@ def command_run(
     if chosen is None:
         stream.write("Nothing selected.\n")
         return EXIT_OK
-    display_accounts = bool(
-        not args.once and hasattr(stream, "isatty") and stream.isatty() and sys.stdin.isatty()
-    )
     for candidate in chosen:
         if candidate.info is None or candidate.provider is None:  # pragma: no cover - guarded
             continue
@@ -687,19 +711,39 @@ def _loop(
     #: Cracks and deliveries of this run only; deliberately never persisted.
     whip_counter = whip.WhipCounter()
     health = HealthMonitor(interval=config.service_status_interval)
-    # command_run() has just completed initial discovery and selection.
+    # command_run() discovered sessions unless a headless --all start deferred.
     next_rediscovery = time.monotonic() + REDISCOVERY_INTERVAL_SECONDS
     next_scan = 0.0
-    if not args.once:
-        health.start()
     if interactive:
+        # Plain service output never displays provider-health data. Keep its
+        # unused network workers off, including during lock handover.
+        health.start()
         stream.write(HIDE_CURSOR)
     # Only an instance that can type has anything to hand over.
     control = _InputControl(supervisor, lock, config, deferred=deferred)
+    standby = False
     try:
         while not stop["requested"]:
+            previously_owned_input = lock.held
             config, control_note = control.tick(config)
             last_event = control_note or last_event
+            if not interactive and not args.once and control.rearm is not None and not lock.held:
+                # A deferred input-capable service is not another observer.
+                # The lock remains authoritative even if its holder has no
+                # control socket. Do no terminal, quota, history or metric work.
+                if not standby:
+                    metrics.reset()
+                standby = True
+                time.sleep(STANDBY_POLL_SECONDS)
+                continue
+            if standby or (lock.held and not previously_owned_input):
+                # _InputControl already reloaded the durable store under the
+                # acquired lock. Discard the observation gap, rebind identities,
+                # discover --all additions and scan afresh before any action.
+                metrics.reset()
+                dashboard.rescan_requested = True
+                next_scan = 0.0
+                standby = False
             monotonic_now = time.monotonic()
             if not dashboard.paused and (dashboard.rescan_requested or monotonic_now >= next_scan):
                 if dashboard.rescan_requested or monotonic_now >= next_rediscovery:
@@ -715,12 +759,17 @@ def _loop(
                     max_gap=max(2, dashboard.interval * 2),
                 )
                 last_event = _summarise(supervisor.sessions.values(), decisions) or last_event
+                if args.once and not last_event and decisions:
+                    # One-shot frames have no interactive history feed, but
+                    # must still explain why the observation cannot act.
+                    last_event = explain_reason(decisions[0].reason)
                 if dashboard.auto_yes and lock.held:
                     approvals = supervisor.approve_pending()
                     last_event = _approval_summary(approvals) or last_event
-                event_history = read_activity_history(
-                    config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
-                )
+                if interactive:
+                    event_history = read_activity_history(
+                        config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
+                    )
                 # Presentation keys redraw cached observations, not terminal/quota
                 # reads. Schedule from completion so slow scans never catch up in
                 # a busy loop. Input authorization still revalidates in Supervisor.
@@ -888,7 +937,9 @@ def _sync_all_sessions(supervisor: Supervisor, *, show_accounts: bool = False) -
     interactive selection never silently transfers to a later process in the
     same Konsole tab.
     """
-    for candidate in discover(supervisor.terminal, supervisor.inspector):
+    for candidate in discover(
+        supervisor.terminal, supervisor.inspector, include_titles=show_accounts
+    ):
         if not candidate.eligible or candidate.info is None or candidate.provider is None:
             continue
         current = supervisor.sessions.get(candidate.key)
@@ -922,7 +973,7 @@ def command_status(config: Config, stream: TextIO) -> int:
     if not adapter.is_available():
         stream.write("Konsole D-Bus is not reachable. Run 'agent-while-true doctor'.\n")
         return EXIT_ERROR
-    candidates = discover(adapter, SystemInspector())
+    candidates = discover(adapter, SystemInspector(), include_titles=False)
     if not candidates:
         stream.write("No Konsole sessions found.\n")
         return EXIT_OK
@@ -942,7 +993,9 @@ def command_quota(config: Config, stream: TextIO) -> int:
         stream.write("Konsole D-Bus is not reachable. Run 'agent-while-true doctor'.\n")
         return EXIT_ERROR
     candidates = [
-        candidate for candidate in discover(adapter, SystemInspector()) if candidate.eligible
+        candidate
+        for candidate in discover(adapter, SystemInspector(), include_titles=False)
+        if candidate.eligible
     ]
     if not candidates:
         stream.write("No Codex or Claude sessions found.\n")

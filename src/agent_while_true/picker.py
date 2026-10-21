@@ -76,10 +76,12 @@ class Candidate:
         return self.classification.blocker or self.classification.confidence.value.lower()
 
 
-def discover(terminal: TerminalAdapter, inspector: ProcessInspector) -> list[Candidate]:
-    """Enumerate every session the adapter can see and classify each one."""
+def discover(
+    terminal: TerminalAdapter, inspector: ProcessInspector, *, include_titles: bool = True
+) -> list[Candidate]:
+    """Enumerate and freshly classify sessions, optionally omitting display titles."""
     try:
-        sessions = terminal.list_sessions()
+        sessions = terminal.list_sessions() if include_titles else terminal.list_sessions_brief()
     except TerminalError:
         return []
     candidates: list[Candidate] = []

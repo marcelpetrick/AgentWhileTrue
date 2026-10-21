@@ -13,6 +13,19 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.71.1] - 2026-10-21
+
+### Changed
+
+- Reduce repeated Claude quota JSON decoding with bounded file-version caching;
+  process binding, file changes and original observation timestamps remain checked.
+- Keep a headless fallback watcher in lightweight standby while another watcher
+  controls input; refresh discovery and persisted action state before reclaiming.
+- Avoid unused terminal-title queries during headless discovery and unused
+  activity-history reads in the service.
+- Add deterministic operation-count regressions and a privacy-safe repeatable
+  quota benchmark. Safety gates and operator automation switches are unchanged.
+
 ## [0.71.0] - 2026-10-21
 
 ### Added

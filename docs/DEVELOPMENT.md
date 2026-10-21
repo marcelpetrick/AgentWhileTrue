@@ -141,6 +141,18 @@ Deterministic operation-count tests guard performance without machine-speed
 thresholds; measured timings and workloads are in
 [PERFORMANCE.md](PERFORMANCE.md).
 
+For repeatable quota operation counts and optional read-only live scan timing:
+
+```bash
+PYTHONPATH=src python3 scripts/benchmark-performance.py --rounds 7 --archived 250
+PYTHONPATH=src python3 scripts/benchmark-performance.py --rounds 7 --live-scans
+```
+
+The default workload is invented data in temporary files. `--live-scans` reads
+current sessions and quota but never advances the action lifecycle or sends
+input; output contains aggregate counts/timings only. See the performance page
+for inputs, cache bounds, interpretation and privacy limitations.
+
 ## Recording the demos
 
 The README animations are recorded, not screen-captured, so they never publish

@@ -1498,7 +1498,7 @@ class Supervisor:
         disappear rather than linger and be matched against something new.
         """
         try:
-            live = {session.ref.key() for session in self.terminal.list_sessions()}
+            live = {session.ref.key() for session in self.terminal.list_sessions_brief()}
         except TerminalError:
             self.log.warning("rediscovery_failed", adapter=self.terminal.name)
             return

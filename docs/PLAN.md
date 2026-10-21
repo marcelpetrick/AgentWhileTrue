@@ -13,6 +13,33 @@ evidence and remaining evidence-dependent work are in [OPEN_ISSUES.md](OPEN_ISSU
 
 ## Current status
 
+### v0.71.1 — remove repeated polling work
+
+Baseline: `76ffb3c`. Performance improvements must preserve the same prompt,
+identity, quota and durable-action gates; no live provider input is a benchmark.
+
+- [x] Profile the service/TUI and separate scan, discovery, quota and rendering
+  costs. The main measured targets are archived Claude quota JSON reads,
+  qdbus process startup and duplicate fallback-service observations.
+- [x] Cache normalized Claude quota records by file version with bounded memory,
+  invalidation and current process checks; test new/exhausted/malformed files.
+- [x] Suspend redundant headless fallback polling, but keep explicit observers
+  active and safely refresh before reclaiming input control.
+- [x] Skip unused discovery titles and headless activity-history reads.
+- [x] Add deterministic operation-count/takeover tests and a reproducible
+  metadata-only benchmark; compare the same workloads before and after.
+- [x] Independently review against the baseline, fix findings, run the full gate
+  and commit the verified change. Publishing/deployment requires a release request.
+
+The installed and running v0.71.0 release remains unchanged during development.
+Its public release and local service/TUI handoff have both been verified.
+Measured seven-round warm samples with low-overhead counters: synthetic quota
+22.59 → 13.94 ms, live four-agent observation 85.74 → 81.11 ms. Live samples
+vary; this is not a whole-app CPU promise. Four paired eight-tab discovery
+samples: 282.6 → 240.1 ms and 33 → 25 qdbus launches. Independent review
+reproduced and fixed UTF-8 acceptance drift and cache thrashing beyond 512 files.
+See [PERFORMANCE.md](PERFORMANCE.md) for scope and reproducible commands.
+
 ### v0.71.0 — recover the same model when capacity returns
 
 - [x] Transcribe the reported Codex capacity error into a redacted fixture;
@@ -25,7 +52,7 @@ evidence and remaining evidence-dependent work are in [OPEN_ISSUES.md](OPEN_ISSU
   scorecard; retries and inherited actions do not inflate recovery counts.
 - [x] Complete lifecycle, simulation and PTY coverage; independent runtime
   review against `c4971d0` found no remaining Code/Architecture findings.
-- [ ] Publish the verified tag and install that exact version locally; restart
+- [x] Publish the verified tag and install that exact version locally; restart
   the service and tell the operator to restart the TUI and re-enable A/y.
 
 The v0.70.0 public release passed GitHub quality, security and release workflows.
@@ -50,7 +77,8 @@ contributors need a separate engineering path, not a longer quick start.
   structured logs for diagnostics and never copy terminal or account contents.
 - [x] Add lifecycle, UI, simulation and real PTY tests; independently review
   against `74a7113`, run the full pipeline and validate GitHub presentation.
-- [ ] Publish and deploy the same verified tag; verify the installed package,
+- [x] Publish and deploy the verified work (superseded locally by v0.71.0);
+  verify the installed package,
   service and input-controlling dashboard version and requested A/y switches.
 
 Review scope: all active Markdown pages and the archive index/links; keep dated

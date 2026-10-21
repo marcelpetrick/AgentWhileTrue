@@ -5,6 +5,71 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Performance evaluation
 
+## Current polling optimization — 2026-10-21
+
+Compared v0.71.0 (`76ffb3c`) with the v0.71.1 development source using the
+same Python 3.14.7 interpreter and workload. These are measured samples, not
+universal speed promises. No input was sent to live provider sessions.
+
+| Workload | Before | After | Interpretation |
+| --- | ---: | ---: | --- |
+| Synthetic Claude quota: 254 files, four sessions, eight snapshots, seven warm rounds | 22.59 ms median | 13.94 ms median | About 38% less quota-scan wall time |
+| JSON parses per warm synthetic scan | 2,032 | 0 | Unchanged archives are not decoded again |
+| First synthetic scan parses | 2,032 | 254 | One decode per file rather than per session/read |
+| Live read-only scan: four agents, seven warm rounds | 85.74 ms median | 81.11 ms median | About 5% less scan wall time in this sample |
+| Live title/full versus brief discovery: eight tabs, four alternating pairs | 282.6 ms median / 33 launches | 240.1 ms median / 25 launches | About 15% faster, 24% fewer qdbus launches |
+
+The live scan measures quota warm-up plus observations, not action lifecycle,
+discovery or dashboard rendering. Repeated paired live samples varied; an
+earlier pair measured 89.27 → 73.29 ms, so this is not a stable 18% speedup claim.
+Synthetic parse counters wrap the decoding function directly, avoiding mock-call
+bookkeeping in the timed loop. Cold live reads were 629–1,323 ms: the first
+Codex daemon RPC remains variable and dominates cold-start latency. This work
+does not claim to fix provider latency or guarantee a percentage reduction in
+whole-machine CPU. Rendering measured about 1.2–1.3 ms and was not rewritten.
+Follow-up tracing in both version orders confirmed exactly one cold quota RPC
+per version, followed by cache hits. Cold variation tracked the external proxy
+wait rather than duplicated RPCs; the Codex quota transport was not changed.
+
+Before the changes, a 45.81-second service-plus-dashboard sample used 21.71% of
+one core including completed child processes (8.05% service, 13.66% dashboard),
+with approximately 38–39 MB RSS each. This is a baseline, **not** an after result.
+Deterministic standby tests now verify zero discovery, terminal, quota, history,
+health and metric sampling over twelve parked ticks; only lock checks run once
+per second. A deployed before/after CPU comparison still requires matching
+session counts, operator interval and workload.
+
+### Reproduce safely
+
+```bash
+PYTHONPATH=src python3 scripts/benchmark-performance.py --rounds 7 --archived 250
+PYTHONPATH=src python3 scripts/benchmark-performance.py --rounds 7 --live-scans
+```
+
+`scripts/benchmark-performance.py` creates invented quota files in an owner-only
+temporary directory and removes them on exit. Inputs are `--rounds` (seven by
+default) and `--archived` (250). It emits one JSON object with the loaded version,
+workload size, timing samples and parse counts. Use the same interpreter and
+arguments against each version; it does not force imports from this checkout,
+so an installed package's interpreter can measure the baseline without editing
+that installation.
+
+Optional `--live-scans` enumerates current agents and calls read-only observation
+methods with a supervisor fixed to observe mode and isolated temporary state.
+It never calls `tick`, actions, approval or `sendText`; screens and private quota
+data remain in memory and are not emitted. Existing Codex quota reads may use
+the bounded read-only daemon RPC. This can appear in Codex's own diagnostics.
+Only aggregate session counts and timings are returned. A regression test
+forbids lifecycle advancement and terminal sends in this path.
+
+The quota cache holds at most 512 normalized records, not raw payloads. Files
+beyond that bound are still read freshly: 514 files require 16 warm parses per
+eight-snapshot scan, rather than thrashing all 512 cached entries. Every snapshot
+continues checking file versions, directory changes and current process identity;
+no timestamp or stale data is promoted to available quota.
+
+## Earlier measurements
+
 For contributors investigating workload, not a current-release speed promise.
 The dated samples below are historical measurements; compare like-for-like
 sessions before drawing a new conclusion. The detached Codex quota source

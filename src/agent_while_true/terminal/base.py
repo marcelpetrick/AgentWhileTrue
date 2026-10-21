@@ -77,6 +77,16 @@ class TerminalAdapter(ABC):
         simply omitted.
         """
 
+    def list_sessions_brief(self) -> list[TerminalSession]:
+        """Enumerate fresh session/process metadata; display titles are optional.
+
+        Headless callers do not need title lookups. Adapters can override this
+        to omit that work, without caching foreground PIDs or changing their
+        existing no-argument ``list_sessions`` contract. The default keeps
+        existing adapters usable, even if they still include titles.
+        """
+        return self.list_sessions()
+
     @abstractmethod
     def foreground_pid(self, ref: SessionRef) -> int:
         """Return the current foreground PID of ``ref``, or 0 if it is gone."""

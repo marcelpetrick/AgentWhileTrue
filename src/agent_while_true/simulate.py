@@ -18,9 +18,11 @@ types into terminals than reading its source.
 """
 
 import hashlib
+import json
+import os
 import tempfile
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -31,8 +33,15 @@ from agent_while_true.config import Config, ConfigError, Mode, Policy
 from agent_while_true.fsm import APPROVAL_RECHECK_SECONDS, Supervisor
 from agent_while_true.logging_setup import setup
 from agent_while_true.policy import Authorization, ResumeRequest, evaluate
-from agent_while_true.proc import ProcessIdentity, ProcessInfo
-from agent_while_true.quota import Availability, QuotaSnapshot, QuotaSource, QuotaWindow, unknown
+from agent_while_true.proc import ProcessIdentity, ProcessInfo, read_start_time
+from agent_while_true.quota import (
+    Availability,
+    ClaudeStatuslineSource,
+    QuotaSnapshot,
+    QuotaSource,
+    QuotaWindow,
+    unknown,
+)
 from agent_while_true.state_store import StateStore
 from agent_while_true.terminal.fake import FakeAdapter
 
@@ -378,6 +387,92 @@ def _world(
 # -- the scenarios ---------------------------------------------------------
 
 ScenarioFn = Callable[[Path], Result]
+
+
+def scenario_quota_cache_invalidation(directory: Path) -> Result:
+    world = _world(directory)
+    # Bind an invented terminal to this simulator's PID/start only so the real
+    # passive file reader can validate /proc. All terminal I/O remains fake.
+    pid = os.getpid()
+    info = world.processes.agent(pid, start_time=read_start_time(pid))
+    world.terminal.set_foreground(SESSION, pid)
+    world.supervisor.sessions.clear()
+    world.supervisor.select(world.terminal.ref(SESSION), info.identity, "claude", "invented")
+    path = directory / "claude-synthetic.json"
+    source = ClaudeStatuslineSource(directory / "claude.json")
+    world.supervisor.quota_sources["claude"] = source
+    document = {
+        "source": "claude",
+        "process": {"pid": pid, "start_time": info.identity.start_time},
+        "updated_at": world.clock.wall.isoformat(),
+        "five_hour": {"used_percentage": 25},
+    }
+    path.write_text(json.dumps(document))
+    world.step("Observe a limit with a fresh, available quota file")
+    world.clock.advance(3600)
+    world.screen(READY_SCREEN)
+    document["updated_at"] = world.clock.wall.isoformat()
+    document["five_hour"] = {"used_percentage": 100}
+    replacement = directory / "replacement.json"
+    replacement.write_text(json.dumps(document))
+    replacement.replace(path)
+    world.step("An atomic replacement reports exhaustion before continuation")
+    exhausted = source.snapshot(pid=pid).availability is Availability.EXHAUSTED
+    path.write_text("not valid quota JSON")
+    malformed = source.snapshot(pid=pid).availability is Availability.UNKNOWN
+    world.steps.append(
+        Step("Malformed replacement remains unknown, not cached availability", "quota-unknown", 0)
+    )
+    return _result(
+        "quota-cache-invalidation",
+        "File-version caching must not hide exhaustion or malformed replacement data.",
+        "new exhaustion prevents input; malformed quota remains unknown",
+        world,
+        passed=exhausted and malformed and not world.terminal.sent,
+    )
+
+
+def scenario_standby_reclaim_identity(directory: Path) -> Result:
+    from agent_while_true.cli import _InputControl
+    from agent_while_true.lock import SingleInstanceLock
+
+    world = _world(directory, mode=Mode.OBSERVE)
+    config = replace(world.supervisor.config, runtime_dir=directory / "runtime")
+    wanted = replace(config, mode=Mode.AUTO)
+    world.supervisor.config = config
+    incumbent = SingleInstanceLock.in_directory(config.resolved_runtime_dir())
+    fallback = SingleInstanceLock.in_directory(config.resolved_runtime_dir())
+    incumbent.acquire()
+    control = _InputControl(world.supervisor, fallback, config, deferred=wanted)
+    try:
+        # The incumbent writes after the fallback's old in-memory state loaded.
+        writer = StateStore.in_directory(directory).load()
+        writer.plan("retained-intent", provider="claude", session="synthetic", process="1:1")
+        parked, _ = control.tick(config)
+        waiting = parked.mode is Mode.OBSERVE and not fallback.held
+        world.steps.append(Step("Fallback waits without observing or sending", "standby", 0))
+        world.processes.shell(22222)
+        world.terminal.set_foreground(SESSION, 22222)
+        incumbent.release()
+        resumed, _ = control.tick(parked)
+        restored = "retained-intent" in world.supervisor.store.records
+        world.supervisor.prune_and_rebind()
+        world.step("Reclaim refreshes the session; its foreground is now a shell")
+        return _result(
+            "standby-reclaim-identity",
+            "A fallback reloads durable intent and freshly checks identity after standby.",
+            "old selections cannot send into a replacement shell and persisted intent survives",
+            world,
+            passed=waiting
+            and resumed.mode is Mode.AUTO
+            and fallback.held
+            and restored
+            and not world.terminal.sent,
+        )
+    finally:
+        control.close()
+        incumbent.release()
+        fallback.release()
 
 
 def _result(name: str, description: str, expectation: str, world: World, passed: bool) -> Result:
@@ -1249,6 +1344,8 @@ def scenario_auto_yes_resends_once(directory: Path) -> Result:
 
 
 SCENARIOS: dict[str, ScenarioFn] = {
+    "quota-cache-invalidation": scenario_quota_cache_invalidation,
+    "standby-reclaim-identity": scenario_standby_reclaim_identity,
     "run-activity": scenario_run_activity,
     "reset-and-resume": scenario_reset_and_resume,
     "reset-delayed-90s": scenario_reset_delayed_90s,

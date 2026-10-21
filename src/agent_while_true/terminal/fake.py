@@ -94,6 +94,12 @@ class FakeAdapter(TerminalAdapter):
         return self.available
 
     def list_sessions(self) -> list[TerminalSession]:
+        return self._list_sessions(include_titles=True)
+
+    def list_sessions_brief(self) -> list[TerminalSession]:
+        return self._list_sessions(include_titles=False)
+
+    def _list_sessions(self, *, include_titles: bool) -> list[TerminalSession]:
         if not self.available:
             raise TerminalUnavailableError("fake adapter marked unavailable")
         return [
@@ -101,7 +107,7 @@ class FakeAdapter(TerminalAdapter):
                 ref=self.ref(session.session_id),
                 shell_pid=session.shell_pid,
                 foreground_pid=session.foreground_pid,
-                title=session.title,
+                title=session.title if include_titles else "",
             )
             for session in self.sessions.values()
             if not session.closed
