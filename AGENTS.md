@@ -68,6 +68,12 @@ when recognizer behavior changes.
   waiting back to Claude; it never claims usage returned. Every variation,
   including a menu with no banner, fails closed.
 - Codex resume types into its composer and therefore remains opt-in.
+- Codex's exact tested model-capacity error is separate from usage exhaustion.
+  Same-model continuation defaults on only in full-auto, requires fresh available
+  quota and an exact empty-composer screen, and retains a finite process/session
+  attempt budget across recovery, redraw and restart. Never change models or
+  select paid alternatives. Verify recovery with two working observations at
+  least three seconds apart; credit only this watcher's verified actions.
 - The dashboard whip (`w`) is the only operator-initiated free-text input. It
   never types in observe mode, while paused or without input control; only
   into a selected, revalidated session with a plain working screen, a visibly

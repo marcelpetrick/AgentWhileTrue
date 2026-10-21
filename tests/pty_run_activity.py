@@ -33,11 +33,38 @@ def main() -> int:
     kit.supervisor.tick()
     assert kit.supervisor.approve_pending()[ref.key()] == "approved"
     kit.terminal.set_screen("/Sessions/1", list(screens.CLAUDE_ACTIVE))
+    codex = kit.inspector.add_codex(15202)
+    capacity_ref = kit.terminal.add(
+        "/Sessions/2",
+        shell_pid=101,
+        foreground_pid=15202,
+        screen=list(screens.CODEX_MODEL_CAPACITY),
+    )
+    kit.supervisor.select(capacity_ref, codex.identity, "codex", "invented capacity project")
+    kit.supervisor.tick()
+    kit.clock.advance(5)
+    harness.refresh_quota(kit)
+    kit.supervisor.tick()
+    assert kit.supervisor.activity.capacity_recoveries == 0
+    kit.terminal.set_screen("/Sessions/2", list(screens.CODEX_ACTIVE))
+    kit.clock.advance(1)
+    harness.refresh_quota(kit)
+    kit.supervisor.tick()
+    assert kit.supervisor.activity.capacity_recoveries == 0
+    kit.clock.advance(3)
+    harness.refresh_quota(kit)
+    kit.supervisor.tick()
+    assert kit.supervisor.activity.capacity_recoveries == 1
+    assert kit.supervisor.activity.budget_restarts == 0
+    assert kit.supervisor.activity.unblock_actions == 2
     kit.supervisor.config = replace(kit.supervisor.config, mode=Mode.OBSERVE)
     args = cli.build_parser().parse_args(["run", "--observe", "--all"])
     lock = SingleInstanceLock.in_directory(home / "runtime")
     result = cli._loop(kit.supervisor, kit.supervisor.config, args, sys.stdout, lock)
-    assert kit.sent == [("/Sessions/1", "\r")]
+    assert kit.sent == [
+        ("/Sessions/1", "\r"),
+        ("/Sessions/2", "\x1b[200~continue\x1b[201~\r"),
+    ]
     return result
 
 

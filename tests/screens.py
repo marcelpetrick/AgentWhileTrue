@@ -890,6 +890,17 @@ CLAUDE_AUTO_WAIT_AGENT_PANEL_2026_10_17 = [
 ]
 
 
+CODEX_MODEL_CAPACITY = [
+    # Exact banner from the maintainer's screenshot; literal also verified in
+    # Codex CLI 0.163.0. Footer shape re-read live; repo/branch are synthetic.
+    "■ Selected model is at capacity. Please try a different model.",
+    "",
+    "› Ask Codex to do anything",
+    "",
+    "  GPT-6.1-Sol medium · Context 30% left · ~/repos/example · GPT-6.1-Sol · example · master · Context 70% used · 5h 70% left …",
+]
+
+
 #: A limit banner that has scrolled far up the screen. It must not be able to
 #: trigger anything (vision DANGER 3).
 def scrolled_away(block: list[str], *, filler_lines: int = 60) -> list[str]:

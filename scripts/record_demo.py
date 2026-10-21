@@ -590,7 +590,9 @@ def main(argv: list[str]) -> int:
                 show_details=step["details"],
                 detail_index=step["detail_index"],
                 service_health=health,
-                activity=RunActivity(approvals=12, budget_restarts=2, waits_armed=1)
+                activity=RunActivity(
+                    approvals=12, budget_restarts=2, capacity_recoveries=1, waits_armed=1
+                )
                 if still
                 else None,
             )

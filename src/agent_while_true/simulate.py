@@ -118,6 +118,16 @@ TIMED_WAIT_PANEL_SCREEN = [
     "◯ background-worker · 1h 52m 33s",
 ]
 CODEX_BLOCKED_SCREEN = ["▌ You've hit your usage limit. Try again at 8:10 PM.", "", "› "]
+# The exact Codex 0.163.0 capacity banner with an empty composer; footer
+# variables are synthetic. This is not a model-choice dialog or quota reset.
+CODEX_CAPACITY_SCREEN = [
+    "■ Selected model is at capacity. Please try a different model.",
+    "",
+    "› Ask Codex to do anything",
+    "",
+    "GPT-6.1-Sol medium · Context 30% left · ~/repos/example · GPT-6.1-Sol · example · master"
+    " · Context 70% used · 5h 70% left …",
+]
 CODEX_APPROVAL_SCREEN = [
     "  Would you like to run the following command?",
     "",
@@ -905,6 +915,57 @@ def scenario_codex_daemon_quota_gate(directory: Path) -> Result:
     )
 
 
+def scenario_codex_capacity_recovery(directory: Path) -> Result:
+    world = _world(directory, provider="codex", screen=CODEX_CAPACITY_SCREEN)
+    world.step("capacity is not a budget reset; wait five seconds")
+    world.clock.advance(5)
+    world.step("fresh available quota permits same-model continue")
+    world.screen(["• Working (1s · esc to interrupt)", "", "› Ask Codex to do anything"])
+    world.clock.advance(1)
+    world.step("one Working redraw does not prove recovery")
+    world.clock.advance(3)
+    world.step("sustained Working verifies capacity recovery")
+    return _result(
+        "codex-capacity-recovery",
+        "A temporary model-capacity error retries the existing model in full-auto.",
+        "one continue, no model change; credit recovery only after sustained activity",
+        world,
+        passed=world.steps[0].decision_reason == "capacity-retry-not-due"
+        and world.steps[2].decision_reason == "verifying"
+        and world.steps[3].decision_reason == "capacity-recovery-verified"
+        and world.terminal.sent == [(SESSION, "\x1b[200~continue\x1b[201~\r")]
+        and world.supervisor.activity.capacity_recoveries == 1
+        and world.supervisor.activity.budget_restarts == 0,
+    )
+
+
+def scenario_codex_capacity_refusals(directory: Path) -> Result:
+    steps: list[Step] = []
+    passed = True
+    world = _world(directory / "summary", provider="codex", screen=CODEX_CAPACITY_SCREEN)
+    for name, mode, availability in (
+        ("observe", Mode.OBSERVE, Availability.AVAILABLE),
+        ("ask", Mode.ASK, Availability.AVAILABLE),
+        ("quota-unknown", Mode.AUTO, Availability.UNKNOWN),
+        ("quota-exhausted", Mode.AUTO, Availability.EXHAUSTED),
+    ):
+        case = _world(directory / name, provider="codex", screen=CODEX_CAPACITY_SCREEN, mode=mode)
+        case.quota["codex"].availability = availability
+        case.step(f"{name}: initial capacity observation")
+        case.clock.advance(100000)
+        case.step(f"{name}: elapsed time never overrides the refusal")
+        passed &= not case.terminal.sent and case.supervisor.activity.capacity_recoveries == 0
+        steps.extend(case.steps)
+    world.steps = steps
+    return _result(
+        "codex-capacity-refusals",
+        "Observe/ask modes and unknown or exhausted budgets cannot retry capacity.",
+        "no input and no recovery credit, even after a long wait",
+        world,
+        passed=passed,
+    )
+
+
 def scenario_codex_transient_recovery(directory: Path) -> Result:
     world = _world(
         directory,
@@ -1214,6 +1275,8 @@ SCENARIOS: dict[str, ScenarioFn] = {
     "crash-recovery": scenario_crash_between_send_and_persist,
     "codex-needs-opt-in": scenario_codex_needs_opt_in,
     "codex-daemon-quota-gate": scenario_codex_daemon_quota_gate,
+    "codex-capacity-recovery": scenario_codex_capacity_recovery,
+    "codex-capacity-refusals": scenario_codex_capacity_refusals,
     "codex-transient-recovery": scenario_codex_transient_recovery,
     "observe-mode": scenario_observe_mode,
     "observer-preserves-retry-state": scenario_observer_preserves_retry_state,

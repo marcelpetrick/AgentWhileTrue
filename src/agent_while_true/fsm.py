@@ -40,7 +40,7 @@ from agent_while_true.activity import RunActivity
 from agent_while_true.classify import Classification, Confidence, ProcessClass, classify
 from agent_while_true.config import Config, Mode
 from agent_while_true.logging_setup import EventLogger, get_logger
-from agent_while_true.policy import Decision, ResumeRequest, evaluate
+from agent_while_true.policy import Decision, ResumeRequest, capacity_idempotency_key, evaluate
 from agent_while_true.proc import ProcessGoneError, ProcessIdentity, ProcessInfo
 from agent_while_true.proc import identify as proc_identify
 from agent_while_true.proc import inspect as proc_inspect
@@ -165,6 +165,8 @@ class SupervisedSession:
     last_fingerprint: str = ""
     pending_key: str = ""
     run_action_key: str = ""
+    run_action_kind: str = ""
+    capacity_first_seen: datetime | None = None
     reset_prompt_key: str = ""
     reset_first_seen: datetime | None = None
     retry_episode_key: str = ""
@@ -424,6 +426,29 @@ class Supervisor:
 
         previous_deadline = session.next_check_at
         observation = self._anchor_reset(session, self.observe(session.ref, now=now))
+        capacity_key = capacity_idempotency_key(session.ref, session.identity)
+        capacity_record = self.store.records.get(capacity_key)
+        if capacity_record is not None and (
+            capacity_record.provider != "codex"
+            or capacity_record.session != session.ref.key()
+            or capacity_record.process != session.describe_process()
+        ):
+            return Decision(False, "capacity-state-invalid")
+        if (
+            session.provider_name == "codex"
+            and capacity_record is not None
+            and capacity_record.state is ActionState.SENT
+        ):
+            session.pending_key = capacity_key
+            return self._verify(session, now)
+        if (
+            observation.recognition is not None
+            and observation.recognition.state is SessionState.CAPACITY_BLOCKED
+        ):
+            # Retain any old quota episode in the store, but do not use its
+            # reset anchor, schedule or attempt budget for model capacity.
+            session.retry_episode_key = ""
+            session.retry_active_since = None
         if self._retry_activity_confirmed(session, observation):
             self._finish_episode(session)
         self._prepare_retry(session, observation)
@@ -480,6 +505,30 @@ class Supervisor:
             )
             return Decision(allowed=False, reason=reason)
         decision = evaluate(self._request(session, observation))
+        if observation.recognition.state is SessionState.CAPACITY_BLOCKED:
+            if session.capacity_first_seen is None:
+                session.capacity_first_seen = observation.at
+            record = self.store.records.get(decision.idempotency_key)
+            if record is not None and record.state is ActionState.SENT:
+                return Decision(False, "capacity-action-unsettled")
+            if not decision.allowed:
+                return decision
+            first = session.capacity_first_seen
+            delay = 5.0
+            if record is not None and record.state in {ActionState.FAILED, ActionState.VERIFIED}:
+                try:
+                    first = datetime.fromisoformat(record.updated_at)
+                except ValueError:
+                    return Decision(False, "capacity-state-invalid")
+                if first.tzinfo is None:
+                    return Decision(False, "capacity-state-invalid")
+                delay = max(5.0, self.config.retry_delay(record.attempts + 1))
+            due = first + timedelta(seconds=delay)
+            if observation.at < due:
+                return replace(
+                    decision, allowed=False, reason="capacity-retry-not-due", retry_at=due
+                )
+            return decision
         episode = self.store.get_episode(session.retry_episode_key)
         if episode and observation.identity == session.identity:
             if episode.pending_key:
@@ -590,7 +639,7 @@ class Supervisor:
         """Require two working observations before settling a retry budget."""
         recognition = observation.recognition
         if not (
-            session.retry_episode_key
+            (session.retry_episode_key or session.pending_key.startswith("capacity-"))
             and observation.screen_read
             and observation.identity == session.identity
             and recognition is not None
@@ -708,13 +757,24 @@ class Supervisor:
             classification=observation.classification,
             recognition=recognition,
             quota=observation.quota,
-            attempts=episode.attempts
-            if timed and episode
-            else max(
-                self.store.attempts_for(session.pending_key) if session.pending_key else 0,
-                session.attempts_since_success,
+            attempts=(
+                self.store.attempts_for(capacity_idempotency_key(session.ref, session.identity))
+                if recognition.state is SessionState.CAPACITY_BLOCKED
+                else episode.attempts
+                if timed and episode
+                else max(
+                    self.store.attempts_for(session.pending_key) if session.pending_key else 0,
+                    session.attempts_since_success,
+                )
             ),
-            actioned_fingerprints=self.store.already_actioned(),
+            actioned_fingerprints=self.store.already_actioned()
+            - frozenset(
+                record.key
+                for record in self.store.records.values()
+                if recognition.state is SessionState.CAPACITY_BLOCKED
+                and record.key == capacity_idempotency_key(session.ref, session.identity)
+                and record.state is ActionState.VERIFIED
+            ),
             marked_unsafe=session.marked_unsafe,
             codex_retry=timed,
             retry_state_valid=self.store.retry_state_valid and (not timed or episode is not None),
@@ -829,7 +889,8 @@ class Supervisor:
             return Decision(allowed=False, reason="revalidation-failed:no-action")
 
         key = recheck.idempotency_key
-        episode = self.store.get_episode(session.retry_episode_key)
+        capacity = fresh.recognition is not None and fresh.recognition.capacity_prompt
+        episode = None if capacity else self.store.get_episode(session.retry_episode_key)
         if episode is not None:
             key = f"{episode.key}-{episode.attempts + 1}"
         session.pending_key = key
@@ -870,8 +931,14 @@ class Supervisor:
         try:
             self.terminal.send_text(session.ref, action.keystrokes())
         except TerminalError as exc:
+            if capacity:
+                # A transport failure is an attempted send, not proof that no
+                # bytes landed. Spend it rather than minting unlimited retries.
+                self.store.records[key].attempts += 1
             self.store.mark(key, ActionState.FAILED, result=f"send-failed:{type(exc).__name__}")
-            session.state = SessionState.LIMIT_BLOCKED
+            session.state = (
+                SessionState.CAPACITY_BLOCKED if capacity else SessionState.LIMIT_BLOCKED
+            )
             self.log.error(
                 "resume_send_failed",
                 provider=session.provider_name,
@@ -887,11 +954,12 @@ class Supervisor:
 
         self.store.mark(key, ActionState.SENT)
         session.run_action_key = key
+        session.run_action_kind = "capacity" if capacity else "budget"
         self.activity.resume_attempts += 1
         session.attempts_since_success += 1
         session.state = SessionState.CONTINUE_SENT
         session.verify_after = fresh.at + timedelta(
-            seconds=min(self.verify_delay, 1) if episode else self.verify_delay
+            seconds=min(self.verify_delay, 1) if episode or capacity else self.verify_delay
         )
         self.log.info(
             "resume_sent",
@@ -903,6 +971,7 @@ class Supervisor:
             attempt=self._retry_attempt(session) if episode else self.store.attempts_for(key),
             episode=session.retry_episode_key,
             screen=fresh.recognition.screen_fingerprint if fresh.recognition else "",
+            action_type=session.run_action_kind,
         )
         return Decision(allowed=True, reason="resume-sent", action=action, idempotency_key=key)
 
@@ -1306,7 +1375,8 @@ class Supervisor:
             SessionState.LIMIT_WARNING,
             SessionState.APPROVAL_PENDING,
         }
-        if session.retry_episode_key:
+        capacity = key.startswith("capacity-")
+        if session.retry_episode_key or capacity:
             confirmed = self._retry_activity_confirmed(session, observation)
             if resumed and _codex_recovery_progress(observation.recognition) and not confirmed:
                 session.verify_after = now + timedelta(seconds=RETRY_ACTIVITY_CONFIRM_SECONDS)
@@ -1314,14 +1384,23 @@ class Supervisor:
                 return Decision(allowed=False, reason="verifying", retry_at=session.verify_after)
             resumed = resumed and confirmed
         if resumed:
-            result = "armed-provider-wait" if armed_self_resume else "resumed"
+            result = (
+                "capacity-recovered"
+                if capacity
+                else "armed-provider-wait"
+                if armed_self_resume
+                else "resumed"
+            )
             self.store.mark(key, ActionState.VERIFIED, result=result)
             if key and session.run_action_key == key:
-                if armed_self_resume:
+                if capacity:
+                    self.activity.capacity_recoveries += 1
+                elif armed_self_resume:
                     self.activity.waits_armed += 1
                 else:
                     self.activity.budget_restarts += 1
                 session.run_action_key = ""
+                session.run_action_kind = ""
             session.state = (
                 SessionState.WAITING_FOR_RESET
                 if armed_self_resume
@@ -1342,11 +1421,19 @@ class Supervisor:
                 attempt=self._retry_attempt(session),
             )
             self._finish_episode(session)
-            reason = "verify:armed-provider-wait" if armed_self_resume else "resume-verified"
+            reason = (
+                "capacity-recovery-verified"
+                if capacity
+                else "verify:armed-provider-wait"
+                if armed_self_resume
+                else "resume-verified"
+            )
             return Decision(allowed=True, reason=reason)
 
         attempts = self.store.attempts_for(key)
         self.store.mark(key, ActionState.FAILED, result="still-blocked")
+        session.run_action_key = ""
+        session.run_action_kind = ""
         session.state = observation.recognition.state
         # Back off on the monotonic-derived schedule rather than retrying at
         # once; the wall clock is not trustworthy for short intervals.

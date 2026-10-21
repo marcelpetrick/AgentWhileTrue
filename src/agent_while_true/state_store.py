@@ -432,6 +432,10 @@ class StateStore:
 
 
 def _expired(record: ActionRecord, now: datetime) -> bool:
+    # A retained process/session capacity budget must not be replenished by a
+    # dashboard restart after the normal historical-action TTL.
+    if record.key.startswith("capacity-"):
+        return False
     try:
         updated = datetime.fromisoformat(record.updated_at)
     except ValueError:

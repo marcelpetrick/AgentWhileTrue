@@ -46,6 +46,8 @@ class PromptKind(enum.StrEnum):
 
     LIMIT_WARNING = "LIMIT_WARNING"
     LIMIT_BLOCKED = "LIMIT_BLOCKED"
+    #: Temporary model service capacity, not an exhausted account budget.
+    CAPACITY_BLOCKED = "CAPACITY_BLOCKED"
     READY_TO_RESUME = "READY_TO_RESUME"
     #: The provider says it will resume itself. Claude Code has done this by
     #: default since 2.1.234, and a supervisor that also presses Enter would be
@@ -166,6 +168,8 @@ class Recognition:
     vetoes: tuple[str, ...] = ()
     #: An adapter-validated exact prompt shape eligible for bounded Codex trials.
     retry_prompt: bool = False
+    #: Exact capacity error plus a fully validated empty Codex composer.
+    capacity_prompt: bool = False
     active_evidence: bool = False
     input_ready: bool = True
     #: The provider's own composer is on screen and visibly empty. Anything
@@ -306,6 +310,8 @@ class ProviderAdapter(ABC):
             return SessionState.READY_TO_RESUME
         if PromptKind.LIMIT_BLOCKED in kinds:
             return SessionState.LIMIT_BLOCKED
+        if PromptKind.CAPACITY_BLOCKED in kinds:
+            return SessionState.CAPACITY_BLOCKED
         if PromptKind.WILL_NOT_SELF_RESUME in kinds:
             return SessionState.WAITING_FOR_RESET
         if PromptKind.APPROVAL_REQUESTED in kinds:

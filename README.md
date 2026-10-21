@@ -28,6 +28,8 @@ Agent While True watches local **Codex CLI and Claude Code** sessions in KDE
 Konsole. See selected agents' quota and waiting state in one dashboard; let
 supported sessions continue when their budget returns, and optionally answer
 exact one-time tool permissions. No model changes. No paid shortcuts.
+Full-auto also retries the exact supported Codex model-capacity error on the
+same model, with bounded backoff and fresh available quota.
 
 Built for developers on **Linux + KDE Konsole**, including default and company
 profiles. Python 3.14, zero third-party runtime dependencies. Not a generic
@@ -69,12 +71,13 @@ the real renderer — `scripts/record_demo.py` feeds fabricated sessions to the 
 
 ### Dashboard preview
 
-![Agent While True 0.70.0 scorecard and readable activity in Konsole](media/agentWhileTrue_v0.70.0.png)
+![Agent While True 0.71.0 unblock counter and capacity recovery in Konsole](media/agentWhileTrue_v0.71.0.png)
 
-*Real KDE Konsole capture of 0.70.0 rendering invented sessions and counters;
-no live project, account or quota data. The scorecard distinguishes permission
-answers, verified restarts and armed waits; these illustrative numbers are not
-live results. A [renderer-only illustration](media/agentWhileTrue_dashboard_v0.70.0.png)
+*Real KDE Konsole capture of 0.71.0 rendering invented sessions and counters;
+no live project, account or quota data. The scorecard separates total unblock
+actions, permission answers, verified budget/capacity recoveries and armed waits;
+these illustrative numbers are not live results.
+A [renderer-only illustration](media/agentWhileTrue_dashboard_v0.71.0.png)
 is reproducible with `scripts/record_demo.py --still`.*
 
 ## What it does
@@ -222,7 +225,7 @@ in [docs/USAGE.md](docs/USAGE.md#the-whip).
 ## Install
 
 ```bash
-pipx install --python python3.14 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.70.0'
+pipx install --python python3.14 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.71.0'
 agent-while-true --version
 agent-while-true doctor
 ```

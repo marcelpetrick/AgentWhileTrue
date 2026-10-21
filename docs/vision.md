@@ -19,7 +19,9 @@ MVP sketches and sample commands are conceptual, not the shipped CLI.
 - Required evidence: sections 40–42; current results live in [PLAN.md](PLAN.md).
 
 Clarity is part of safety: counters distinguish sent permissions, verified
-budget recoveries and armed waits. No activity display may claim a finished
+budget and same-model capacity recoveries, and armed waits. Capacity retries are
+default-on only in full-auto, bounded across restarts and require fresh available
+quota; they never select another model or buy capacity. No activity display may claim a finished
 task, saved hours or renewed budget from a clock or keypress.
 
 This document is the long-lived product and safety vision. For current delivery

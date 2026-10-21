@@ -13,6 +13,19 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.71.0] - 2026-10-21
+
+### Added
+
+- Automatic, bounded same-model Codex capacity recovery in full-auto mode.
+  The exact tested capacity screen requires an empty composer, fresh available
+  quota and immediate identity/prompt revalidation. Observe and ask never retry.
+- Persistent process/session-bound capacity attempts survive restart and screen
+  redraws. Capacity and exhausted-budget recovery remain separate; no model,
+  subscription or paid setting changes are made.
+- Pinned unblock-action total and separate verified capacity recovery counter,
+  alongside permission answers, verified budget restarts and armed waits.
+
 ## [0.70.0] - 2026-10-21
 
 ### Added

@@ -34,6 +34,12 @@ _MESSAGES = {
     "whip_cracked": "Operator reminder requested",
 }
 _REASONS = {
+    "capacity-retry-not-due": "Model busy; waiting for the next bounded same-model retry",
+    "capacity-requires-full-auto": "Capacity retries require full-auto mode",
+    "capacity-requires-available-quota": "Capacity retry needs fresh available quota",
+    "unsupported-capacity-prompt": "Unrecognized capacity screen; inspect the agent tab",
+    "capacity-action-unsettled": "Previous capacity continuation is still being checked",
+    "capacity-recovery-verified": "Same-model capacity recovery verified",
     "quota-stale": "Quota evidence is too old; waiting for a fresh sample",
     "quota-unknown": "Quota is unknown; availability is not assumed",
     "observe-mode": "Observe mode: no input is sent",
@@ -59,6 +65,7 @@ _REASONS = {
     "verify:armed-provider-wait": "Claude will wait itself; work has not restarted yet",
 }
 _STATES = {
+    "CAPACITY_BLOCKED": "Model at capacity; same-model retry checks pending",
     "ACTIVE": "Working screen observed",
     "LIMIT_WARNING": "Usage is nearly spent",
     "LIMIT_BLOCKED": "Budget exhausted; waiting for renewal",
@@ -101,6 +108,8 @@ def describe_event(line: str) -> str:
     message = _MESSAGES.get(event, "Diagnostic event")
     if event == "resume_verified" and fields.get("result") == "resumed":
         message = "Budget recovery verified; agent screen shows progress"
+    if event == "resume_verified" and fields.get("result") == "capacity-recovered":
+        message = "Same-model capacity recovery verified; agent screen shows progress"
     if event == "resume_verified" and fields.get("result") == "armed-provider-wait":
         message = "Claude automatic wait armed; not a work restart"
     if event == "approval_sent" and fields.get("reason") == "resent":

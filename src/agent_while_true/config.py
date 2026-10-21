@@ -105,6 +105,9 @@ class Policy:
     #: affordance. Codex has no such affordance: resuming means typing text into
     #: the composer, which is strictly more dangerous, so it stays opt-in.
     allow_codex_auto_resume: bool = False
+    #: Retry only the tested same-model capacity error in full-auto, with
+    #: fresh available quota; never choose another model or paid capacity.
+    allow_codex_capacity_retry: bool = True
 
     def __post_init__(self) -> None:
         # Keep false legacy keys readable, but never advertise a working opt-in
@@ -211,6 +214,7 @@ _KEYS: dict[str, tuple[str, str]] = {
     "AUTO_CONSUME_RESET_CREDIT": ("policy.auto_consume_reset_credit", "bool"),
     "ALLOW_CLAUDE_AUTO_WAIT": ("policy.allow_claude_auto_wait", "bool"),
     "ALLOW_CODEX_AUTO_RESUME": ("policy.allow_codex_auto_resume", "bool"),
+    "ALLOW_CODEX_CAPACITY_RETRY": ("policy.allow_codex_capacity_retry", "bool"),
 }
 
 

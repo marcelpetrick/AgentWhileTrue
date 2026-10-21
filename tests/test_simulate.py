@@ -52,6 +52,7 @@ TALKATIVE = {
     # Auto-yes switched on by the operator answers one exact permission menu.
     "auto-yes-answers-once": [(simulate.SESSION, "\r")],
     "codex-auto-yes-answers-once": [(simulate.SESSION, "\r")],
+    "codex-capacity-recovery": [(simulate.SESSION, "\x1b[200~continue\x1b[201~\r")],
     "codex-transient-recovery": [
         (simulate.SESSION, "\x1b[200~continue\x1b[201~\r"),
         (simulate.SESSION, "\x1b[200~continue\x1b[201~\r"),
@@ -59,6 +60,20 @@ TALKATIVE = {
     # An answered box that stays gets exactly one more Enter, never a third.
     "auto-yes-resends-once": [(simulate.SESSION, "\r"), (simulate.SESSION, "\r")],
 }
+
+
+def test_capacity_recovery_requires_sustained_activity(tmp_path: Path) -> None:
+    result = simulate.run("codex-capacity-recovery", tmp_path)
+    assert result.passed, result.render()
+    assert [step.sent for step in result.steps] == [0, 1, 1, 1]
+    assert result.steps[-1].decision_reason == "capacity-recovery-verified"
+
+
+def test_capacity_refusals_cover_modes_and_quota(tmp_path: Path) -> None:
+    result = simulate.run("codex-capacity-refusals", tmp_path)
+    assert result.passed, result.render()
+    assert len(result.steps) == 8
+    assert result.sent == []
 
 
 #: Every case named by vision section 40 stays tied to an executable scenario.

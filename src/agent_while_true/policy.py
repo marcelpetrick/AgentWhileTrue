@@ -103,6 +103,8 @@ def idempotency_key(request: ResumeRequest) -> str:
     fingerprint, so one prompt yields at most one action (DANGER 17).
     """
     identity = request.live_identity or request.selected_identity
+    if request.recognition.state is SessionState.CAPACITY_BLOCKED:
+        return capacity_idempotency_key(request.live_ref, identity)
     material = "|".join(
         (
             request.recognition.provider,
@@ -114,11 +116,22 @@ def idempotency_key(request: ResumeRequest) -> str:
     return hashlib.sha256(material.encode("utf-8")).hexdigest()[:16]
 
 
+def capacity_idempotency_key(ref: SessionRef, identity: ProcessIdentity) -> str:
+    """A process/session-bound capacity budget, never renewed by screen redraws."""
+    material = f"codex|{ref.key()}|{identity.key()}|model-capacity"
+    return "capacity-" + hashlib.sha256(material.encode()).hexdigest()[:16]
+
+
 # -- individual conditions -------------------------------------------------
 # Each returns a refusal reason, or None to mean "this condition is satisfied".
 
 _ACTIONABLE_STATES = frozenset(
-    {SessionState.LIMIT_BLOCKED, SessionState.READY_TO_RESUME, SessionState.WAITING_FOR_RESET}
+    {
+        SessionState.LIMIT_BLOCKED,
+        SessionState.READY_TO_RESUME,
+        SessionState.WAITING_FOR_RESET,
+        SessionState.CAPACITY_BLOCKED,
+    }
 )
 
 
@@ -180,6 +193,36 @@ def _check_ready_follows_limit(request: ResumeRequest) -> str | None:
     """
     if request.recognition.state is SessionState.READY_TO_RESUME and not request.limit_seen:
         return "ready-without-preceding-limit"
+    return None
+
+
+def _check_capacity(request: ResumeRequest) -> str | None:
+    if request.recognition.state is not SessionState.CAPACITY_BLOCKED:
+        return None
+    recognition = request.recognition
+    action = recognition.action
+    if not (
+        recognition.provider == "codex"
+        and recognition.capacity_prompt
+        and recognition.matched_ids == ("codex/model-capacity",)
+        and recognition.composer_empty
+        and recognition.input_ready
+        and recognition.reset_at is None
+        and action is not None
+        and action.kind is ActionKind.TEXT_THEN_ENTER
+        and action.text == "continue"
+        and action.requires_policy == "allow_codex_capacity_retry"
+        and not request.codex_retry
+    ):
+        return "unsupported-capacity-prompt"
+    if request.config.mode is not Mode.AUTO:
+        return "capacity-requires-full-auto"
+    if not request.retry_state_valid:
+        return "retry-state-unreadable"
+    if request.quota.is_stale(request.now):
+        return "quota-stale"
+    if request.quota.availability is not Availability.AVAILABLE:
+        return "capacity-requires-available-quota"
     return None
 
 
@@ -315,6 +358,7 @@ _CONDITIONS: tuple[Callable[[ResumeRequest], str | None], ...] = (
     _check_is_agent,
     _check_provider_matches,
     _check_recognised_prompt,
+    _check_capacity,
     _check_ready_follows_limit,
     _check_no_veto,
     _check_policy_allows_resume,

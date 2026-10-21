@@ -78,13 +78,29 @@ def test_observer_never_claims_approvals(tmp_path: Path) -> None:
     assert kit.supervisor.activity == RunActivity()
 
 
+def test_total_counts_only_initial_answers_and_verified_recoveries() -> None:
+    activity = RunActivity(
+        approvals=7,
+        approval_resends=4,
+        resume_attempts=20,
+        budget_restarts=2,
+        capacity_recoveries=3,
+        waits_armed=9,
+    )
+    assert activity.unblock_actions == 12
+    assert "Unblock actions: 12" in activity.line()
+    assert "Budget restarts: 2 verified" in activity.line()
+    assert "Capacity recoveries: 3 verified" in activity.line()
+    assert RunActivity().unblock_actions == 0
+
+
 @pytest.mark.parametrize("width", [40, 80, 120, 180])
 def test_counter_is_visible_when_scrolling(width: int) -> None:
     from datetime import UTC, datetime
 
     from agent_while_true.config import Config
 
-    activity = RunActivity(approvals=7, budget_restarts=2, waits_armed=1)
+    activity = RunActivity(approvals=7, budget_restarts=2, capacity_recoveries=3, waits_armed=1)
     frame = render_status(
         [],
         now=datetime.now(UTC),
@@ -95,8 +111,11 @@ def test_counter_is_visible_when_scrolling(width: int) -> None:
         show_help=True,
         activity=activity,
     )
-    assert ("approvals:7" if width < 80 else "Approvals sent: 7") in frame
-    assert ("restarts:2" if width < 80 else "Budget restarts: 2") in frame
+    assert ("unblocks:12" if width < 160 else "Unblock actions: 12") in frame
+    assert ("approvals:7" if width < 160 else "Approvals sent: 7") in frame
+    assert ("budget:2" if width < 160 else "Budget restarts: 2") in frame
+    assert ("capacity:3" if width < 160 else "Capacity recoveries: 3") in frame
+    assert ("waits:1" if width < 160 else "Waits armed: 1") in frame
     assert "[A]" in frame
     assert "[y]" in frame
 
@@ -113,6 +132,57 @@ def test_narrow_controls_remain_visible(mode, auto_yes) -> None:
     assert "[y]" in text
     if auto_yes and mode is not Mode.AUTO:
         assert "ON/inert" in text
+    assert ("cap:ON" if mode is Mode.AUTO else "cap:ON/inert") in text
+
+
+@pytest.mark.parametrize("mode", [Mode.OBSERVE, Mode.ASK, Mode.AUTO])
+@pytest.mark.parametrize("enabled", [False, True])
+def test_capacity_policy_status_is_visible_without_granting_permission(mode, enabled) -> None:
+    from dataclasses import replace
+    from datetime import UTC, datetime
+
+    from agent_while_true.config import Config
+
+    config = Config(mode=mode)
+    config = replace(config, policy=replace(config.policy, allow_codex_capacity_retry=enabled))
+    frame = render_status([], now=datetime.now(UTC), config=config, width=180)
+    expected = "OFF" if not enabled else "ON" if mode is Mode.AUTO else "ON/inert"
+    assert f"capacity retry: {expected}" in frame
+
+
+@pytest.mark.parametrize(("paused", "input_control"), [(True, True), (False, False)])
+@pytest.mark.parametrize("width", [40, 80, 120, 180])
+def test_capacity_policy_is_inert_while_paused_or_without_input_control(
+    paused: bool, input_control: bool, width: int
+) -> None:
+    from datetime import UTC, datetime
+
+    from agent_while_true.config import Config
+
+    frame = render_status(
+        [],
+        now=datetime.now(UTC),
+        config=Config(mode=Mode.AUTO),
+        width=width,
+        paused=paused,
+        input_control=input_control,
+    )
+    assert ("cap:ON/inert" if width < 120 else "capacity retry: ON/inert") in frame
+    if paused:
+        assert "PAUSED" in frame.splitlines()[1]
+
+
+def test_capacity_details_explain_same_model_and_fresh_quota(tmp_path: Path) -> None:
+    from agent_while_true.ui import session_details
+
+    kit, key = _kit(tmp_path, screens.CLAUDE_ACTIVE)
+    details = "\n".join(
+        session_details(
+            kit.supervisor.sessions[key], kit.clock.wall, 2, capacity_retry_status="ON/inert"
+        )
+    )
+    assert "Capacity retry: ON/inert" in details
+    assert "fresh available quota, same model and bounded attempts required" in details
 
 
 @pytest.mark.e2e
@@ -120,7 +190,7 @@ def test_real_pty_shows_this_run_counts_without_input(tmp_path: Path) -> None:
     dashboard = Dashboard(tmp_path, "--no-color")
     try:
         dashboard.read_until(
-            lambda text: "Approvals sent: 0" in text and "Budget restarts: 0" in text
+            lambda text: "unblocks:0" in text and "budget:0" in text and "capacity:0" in text
         )
     finally:
         assert dashboard.quit() == 0
@@ -131,7 +201,12 @@ def test_real_pty_shows_earned_count_and_readable_history(tmp_path: Path) -> Non
     dashboard = Dashboard(tmp_path, driver=Path(__file__).with_name("pty_run_activity.py"))
     try:
         dashboard.read_until(
-            lambda text: "Approvals sent: 1" in text and "Permission answered once" in text
+            lambda text: "unblocks:2" in text and "approvals:1" in text and "capacity:1" in text
         )
+        start = len(dashboard.text)
+        dashboard.press("G")
+        dashboard.read_until(lambda text: "Same-model capacity recovery verified" in text[start:])
+        assert "unblocks:2" in dashboard.text[start:]
+        assert "capacity:1" in dashboard.text[start:]
     finally:
         assert dashboard.quit() == 0

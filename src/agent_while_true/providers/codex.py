@@ -33,7 +33,7 @@ from agent_while_true.providers.base import (
 )
 
 NAME: Final = "codex"
-PATTERNS_VERSION: Final = "codex-0.162.x/11"
+PATTERNS_VERSION: Final = "codex-0.163-capacity/12"
 #: The latest release whose screens and strings were read. Only the newest
 #: Codex CLI release is supported; older ones are not tracked.
 VERIFIED_VERSIONS: Final = ("0.162.1",)
@@ -109,12 +109,38 @@ _CODEX_STATUS_FOOTER = re.compile(
 #: it an idle composer read as a draft and the whip skipped it.
 CODEX_PLACEHOLDERS: Final = frozenset({"", "Ask Codex to do anything", "Ask a follow-up question"})
 
+_CAPACITY_BANNER = re.compile(
+    r"^\s*■ Selected model is at capacity\. Please try a different model\.\s*$"
+)
+# The maintainer's custom status line, read live with Codex 0.163.0. Match the
+# complete row, never merely a percentage somewhere in a possible draft.
+_CAPACITY_STATUS_FOOTER = re.compile(
+    r"^\s*(?:GPT|codex|o\d)[\w.-]+\s+(?:low|medium|high|xhigh|max|ultra)"
+    r" · Context \d{1,3}% left · (?:~|/)\S+ · (?:GPT|codex|o\d)[\w.-]+"
+    r" · [\w.-]+ · [\w./-]+ · Context \d{1,3}% used · 5h \d{1,3}% left …\s*$",
+    re.IGNORECASE,
+)
+
 
 def _without_particles(lines: list[str]) -> list[str]:
     return [_BRAILLE_PARTICLES.sub("", line) for line in lines]
 
 
 PATTERNS: Final[tuple[PromptPattern, ...]] = (
+    PromptPattern(
+        id="codex/model-capacity",
+        provider=NAME,
+        kind=PromptKind.CAPACITY_BLOCKED,
+        scope="capacity",
+        all_of=(re.compile(_CAPACITY_BANNER.pattern, re.MULTILINE),),
+        action=ResumeAction(
+            kind=ActionKind.TEXT_THEN_ENTER,
+            text=DEFAULT_RESUME_TEXT,
+            requires_policy="allow_codex_capacity_retry",
+        ),
+        note="Exact service-capacity error; retry the same model, never select another.",
+        verified_against="Codex CLI 0.163.0 capacity screenshot and native binary literal",
+    ),
     PromptPattern(
         id="codex/tool-approval",
         provider=NAME,
@@ -365,17 +391,47 @@ class CodexAdapter(ProviderAdapter):
             for line in live
         )
         active_rows = [index for index, line in enumerate(live) if re.match(r"^\s*[•●]\s+", line)]
-        if active_rows and active_rows[-1] > banner:
+        capacity_banner = next(
+            (index for index, line in enumerate(live) if _CAPACITY_BANNER.fullmatch(line)), -1
+        )
+        if capacity_banner >= 0:
+            active = any(index > capacity_banner for index in active_rows)
+        if active_rows and active_rows[-1] > max(banner, capacity_banner):
             # New assistant output below a historical limit is a different
             # turn, even before that old banner scrolls out of the live window.
             result = super().recognise(live[active_rows[-1] :], now=now, live_lines=live_lines)
             exact = False
             active = True
+        capacity_footer = (
+            bool(trailing)
+            and len(trailing) <= 2
+            and all(
+                _CAPACITY_STATUS_FOOTER.fullmatch(line)
+                or _CODEX_STATUS_FOOTER.fullmatch(line)
+                or line.strip() == "? for shortcuts"
+                for line in trailing
+            )
+        )
+        capacity = (
+            result.matched_ids == ("codex/model-capacity",)
+            and not result.vetoes
+            and not active
+            and composer_empty
+            and capacity_footer
+            and capacity_banner >= 0
+            and capacity_banner < composer
+            and all(not line.strip() for line in live[capacity_banner + 1 : composer])
+            and not any(
+                re.search(rf"\?\s*$|^\s*[{_MENU_GLYPH}]?\s*\d+\.\s", line)
+                for line in live[:capacity_banner]
+            )
+        )
         return replace(
             result,
             retry_prompt=exact,
+            capacity_prompt=capacity,
             active_evidence=active,
-            input_ready=empty,
+            input_ready=empty and ("codex/model-capacity" not in result.matched_ids or capacity),
             composer_empty=composer_empty,
         )
 

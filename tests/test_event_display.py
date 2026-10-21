@@ -6,6 +6,12 @@ from agent_while_true.event_display import describe_event, explain_reason, read_
 
 
 def test_human_messages_keep_outcome_distinctions() -> None:
+    assert "Same-model capacity recovery verified" in describe_event(
+        "event=resume_verified result=capacity-recovered"
+    )
+    assert "Model at capacity" in describe_event("event=state_change new=CAPACITY_BLOCKED")
+    assert "fresh available quota" in explain_reason("capacity-requires-available-quota")
+    assert "bounded same-model retry" in explain_reason("capacity-retry-not-due")
     assert "checking" in describe_event("event=resume_sent attempt=2")
     assert "Budget recovery verified" in describe_event("event=resume_verified result=resumed")
     assert "not a work restart" in describe_event(

@@ -201,7 +201,12 @@ stays ANSI-free and separates scans with a blank line for readable logs.
 ### This-run scorecard
 
 The pinned **THIS RUN** line belongs to this watcher process, not the whole
-machine or retained logs. Narrow windows use `RUN approvals:… restarts:… waits:…`.
+machine or retained logs. Narrow windows keep unblock, budget and capacity totals visible.
+
+- **Unblock actions:** initial permission answers plus verified budget restarts
+  and verified capacity recoveries. It is not a count of finished tasks.
+- **Capacity recoveries:** same-model continuations followed by two working
+  observations at least three seconds apart. A retry alone earns no recovery.
 
 - **Approvals sent:** initial one-time permission answers successfully sent by
   this watcher. The permitted Claude resend does not add another approval.
@@ -215,6 +220,27 @@ machine or retained logs. Narrow windows use `RUN approvals:… restarts:… wai
 Numbers survive pause, rescans, mode/theme changes and scrolling, but reset
 when the watcher exits. Observers do not claim another controller's work.
 Day/week totals remain available through `summary`.
+
+### Codex model at capacity
+
+The exact tested `Selected model is at capacity. Please try a different model.`
+screen is not a quota reset. In full-auto, capacity recovery is **on by default**
+(`policy.allow_codex_capacity_retry`); its header state becomes inert while
+observing, asking, paused or without input control. It sends only `continue`,
+using the existing model. It never accepts a different model or paid choice.
+
+The initial wait is five seconds. Each subsequent attempt uses the configured
+retry backoff, with at most `max_resume_attempts` attempts (default three) for
+that process/session identity. Spent attempts survive redraws and watcher
+restarts, including after a successful recovery; a later outage can use only
+the remaining attempts. An exhausted budget requires operator intervention.
+Fresh provider-confirmed available quota, the exact supported footer and empty
+composer, and immediate identity/prompt/policy revalidation are mandatory.
+Unknown screens, drafts and quota exhaustion remain blocked. A provider outage
+may outlast these retries; recovery is not guaranteed.
+
+Upstream classifies this exact error separately from usage limits in its
+[Codex protocol](https://github.com/openai/codex/blob/rust-v0.163.0/codex-rs/protocol/src/error.rs).
 
 ### Reading session rows
 
@@ -362,6 +388,7 @@ environment < command line. Durations accept `ms`, `s`, `m`, `h`.
 | `RESUME_AFTER_RESET` | `true` | Master switch for any continuation |
 | `ALLOW_CLAUDE_AUTO_WAIT` | `true` | May arm Claude's own "wait, then continue" menu item |
 | `ALLOW_CODEX_AUTO_RESUME` | `false` | May type `continue` into Codex's composer |
+| `ALLOW_CODEX_CAPACITY_RETRY` | `true` | Full-auto only: bounded same-model retry of the exact capacity error |
 | `AUTO_ACCEPT_MODEL_DOWNGRADE`, `AUTO_USE_PAID_CREDITS`, `AUTO_BUY_CREDITS`, `AUTO_CONSUME_RESET_CREDIT` | `false` | Human-only actions: setting any to `true` is a configuration error |
 | `LOG_FILE`, `STATE_DIR`, `RUNTIME_DIR` | XDG defaults | Paths |
 | `ALLOW_ROOT`, `USE_FZF` | `false`, `true` | Diagnostics-only root; optional fzf picker |

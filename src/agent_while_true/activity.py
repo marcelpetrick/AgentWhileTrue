@@ -13,15 +13,30 @@ class RunActivity:
     approval_resends: int = 0
     resume_attempts: int = 0
     budget_restarts: int = 0
+    capacity_recoveries: int = 0
     waits_armed: int = 0
 
-    def line(self, *, compact: bool = False) -> str:
+    @property
+    def unblock_actions(self) -> int:
+        """Count own unblock actions, never retries or unverified work."""
+        return self.approvals + self.budget_restarts + self.capacity_recoveries
+
+    def line(self, *, compact: bool = False, narrow: bool = False) -> str:
+        if narrow:
+            return (
+                f"RUN unblocks:{self.unblock_actions} budget:{self.budget_restarts} "
+                f"capacity:{self.capacity_recoveries}"
+            )
         if compact:
             return (
-                f"RUN approvals:{self.approvals} restarts:{self.budget_restarts} "
+                f"RUN unblocks:{self.unblock_actions} approvals:{self.approvals} "
+                f"budget:{self.budget_restarts} capacity:{self.capacity_recoveries} "
                 f"waits:{self.waits_armed}"
             )
         return (
-            f"THIS RUN | Approvals sent: {self.approvals} | "
-            f"Budget restarts: {self.budget_restarts} verified | Waits armed: {self.waits_armed}"
+            f"THIS RUN | Unblock actions: {self.unblock_actions} | "
+            f"Approvals sent: {self.approvals} | "
+            f"Budget restarts: {self.budget_restarts} verified | "
+            f"Capacity recoveries: {self.capacity_recoveries} verified | "
+            f"Waits armed: {self.waits_armed}"
         )

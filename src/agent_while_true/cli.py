@@ -740,6 +740,7 @@ def _loop(
                     last_event=preferences_warning or last_event,
                     refresh_interval=dashboard.interval,
                     paused=dashboard.paused,
+                    input_control=lock.held,
                     show_help=dashboard.help_visible,
                     color=color,
                     theme=dashboard.theme,

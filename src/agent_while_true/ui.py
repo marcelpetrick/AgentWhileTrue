@@ -390,6 +390,7 @@ def session_details(
     paused: bool = False,
     *,
     redact_accounts: bool = False,
+    capacity_retry_status: str = "OFF",
 ) -> list[str]:
     """Explain cached evidence without evaluating policy or reading a terminal."""
 
@@ -440,6 +441,8 @@ def session_details(
         "Model policy: stay with same model; model dialogs stay manual unless an exact stay "
         "choice is tested.",
         "Paid choices: human only; never selected by automation.",
+        f"Capacity retry: {capacity_retry_status}; exact Codex capacity error only, "
+        "fresh available quota, same model and bounded attempts required.",
         f"Quota: {quota_state(session.quota, now)}; source={session.quota.source}; "
         f"age={age(session.quota.observed_at)}",
         f"Quota detail: {session.quota.note or 'none'}",
@@ -546,6 +549,7 @@ def render_status(
     redact_accounts: bool = False,
     whip_badge: str = "",
     auto_yes: bool = False,
+    input_control: bool = True,
     activity: RunActivity | None = None,
 ) -> str:
     """Render the running watcher's status table."""
@@ -565,6 +569,17 @@ def render_status(
         if config.mode is Mode.AUTO and config.policy.allow_codex_auto_resume
         else config.mode.value
     )
+    run_activity = activity or RunActivity()
+    capacity = capacity_retry_state(config, paused=paused, input_control=input_control)
+    compact_mode = f"{mode_label.upper()} PAUSED" if paused else f"mode={mode_label}"
+    mode_line = (
+        f"{compact_mode} approvals:{run_activity.approvals} waits:{run_activity.waits_armed}"
+        if panel_width < 60
+        else f"mode={mode_label}{' PAUSED' if paused else ''}   "
+        f"watching {len(listed)} session(s)   theme={theme}   "
+        f"accounts={'redacted' if redact_accounts else 'visible'}   "
+        f"every {interval:g}s" + (f"   capacity retry: {capacity}" if panel_width >= 120 else "")
+    )
     lines = [
         # The title rule is the one line no scroll position hides.
         _rule(
@@ -574,16 +589,14 @@ def render_status(
             theme=theme,
         ),
         _panel_line(
-            f"mode={mode_label}   watching {len(listed)} session(s)   theme={theme}   "
-            f"accounts={'redacted' if redact_accounts else 'visible'}   "
-            f"every {interval:g}s{'   PAUSED' if paused else ''}",
+            mode_line,
             panel_width,
             "accent",
             color=color,
             theme=theme,
         ),
         _panel_line(
-            (activity or RunActivity()).line(compact=panel_width < 80),
+            run_activity.line(compact=panel_width < 160, narrow=panel_width < 60),
             panel_width,
             "healthy",
             color=color,
@@ -592,7 +605,9 @@ def render_status(
         _panel_line(
             toggles_line(listed, config, auto_yes=auto_yes)
             if panel_width >= 120
-            else compact_toggles(config, auto_yes=auto_yes),
+            else compact_toggles(
+                config, auto_yes=auto_yes, paused=paused, input_control=input_control
+            ),
             panel_width,
             "warning" if auto_yes else "accent",
             color=color,
@@ -723,6 +738,7 @@ def render_status(
             interval,
             paused,
             redact_accounts=redact_accounts,
+            capacity_retry_status=capacity,
         ):
             lines.extend(
                 _panel_line(part, panel_width, "text", color=color, theme=theme)
@@ -812,10 +828,22 @@ def toggles_line(sessions: Sequence[SupervisedSession], config: Config, *, auto_
     )
 
 
-def compact_toggles(config: Config, *, auto_yes: bool) -> str:
+def compact_toggles(
+    config: Config, *, auto_yes: bool, paused: bool = False, input_control: bool = True
+) -> str:
     resume = "OFF" if config.mode is Mode.OBSERVE else "ASK" if config.mode is Mode.ASK else "ON"
     yes = "OFF" if not auto_yes else "ON" if config.mode is Mode.AUTO else "ON/inert"
-    return f"[A] resume {resume} [y] yes {yes}"
+    capacity = capacity_retry_state(config, paused=paused, input_control=input_control)
+    return f"[A]{resume} [y]{yes} cap:{capacity}"
+
+
+def capacity_retry_state(
+    config: Config, *, paused: bool = False, input_control: bool = True
+) -> str:
+    """Describe the configured capacity gate, not an authorization decision."""
+    if not config.policy.allow_codex_capacity_retry:
+        return "OFF"
+    return "ON" if config.mode is Mode.AUTO and not paused and input_control else "ON/inert"
 
 
 def render_line(session: SupervisedSession, now: datetime) -> str:

@@ -13,6 +13,14 @@ they render on GitHub without a C4-specific plugin.
 
 ## System context
 
+Codex model-capacity recovery is a separate terminal state, not a quota episode.
+Its exact screen proposes same-model `continue`; full-auto policy requires fresh
+available quota and the normal final identity/prompt checks. A durable
+`capacity-` process/session key retains spent attempts even after success or
+record expiry. Two working observations at least three seconds apart verify
+recovery. Only the watcher that sent the action credits its capacity counter;
+the total combines initial permissions and verified budget/capacity recoveries.
+
 ```mermaid
 flowchart LR
     user["Person<br/>Desktop user"]

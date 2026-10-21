@@ -13,6 +13,29 @@ evidence and remaining evidence-dependent work are in [OPEN_ISSUES.md](OPEN_ISSU
 
 ## Current status
 
+### v0.71.0 — recover the same model when capacity returns
+
+- [x] Transcribe the reported Codex capacity error into a redacted fixture;
+  verify its literal against the native CLI and upstream protocol source.
+- [x] Keep capacity separate from quota. Default on only in full-auto; require
+  fresh available quota, an exact empty-composer screen and final revalidation.
+- [x] Retain a bounded process/session retry budget across redraws and restarts;
+  never change models or select a paid alternative.
+- [x] Show total unblock actions and verified capacity recoveries in the pinned
+  scorecard; retries and inherited actions do not inflate recovery counts.
+- [x] Complete lifecycle, simulation and PTY coverage; independent runtime
+  review against `c4971d0` found no remaining Code/Architecture findings.
+- [ ] Publish the verified tag and install that exact version locally; restart
+  the service and tell the operator to restart the TUI and re-enable A/y.
+
+The v0.70.0 public release passed GitHub quality, security and release workflows.
+Its local installation is superseded by the v0.71.0 delivery below.
+The current privacy-safe real Konsole screenshot is
+`media/agentWhileTrue_v0.71.0.png`; all sessions and counters are invented.
+GitHub About review: retain the existing safety-first description and ten
+topics; the new capacity path supports the same narrow tested-prompt claim,
+not an assertion that every possible blocker is handled.
+
 ### v0.70.0 — show the work, explain the controls
 
 Audience: KDE developers supervising local Claude Code and Codex sessions;
