@@ -6,6 +6,22 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Agent While True usage guide
 
+## Flight card: start, arm, recover
+
+For operators of local KDE Konsole sessions. Start here; use the numbered
+sections as a reference rather than reading the whole manual in order.
+
+| Situation | Next action | Confirm before leaving |
+| --- | --- | --- |
+| First launch | `doctor`, `quota`, then `run --observe --all` | Intended agents selected; missing quota stays unknown. |
+| Ready for continuation | Press `A` | Full-auto, input control and intended sessions. |
+| Want tool requests answered | Press `y` separately | Exact one-time permissions only; you accept the requested tool use. |
+| Something is waiting | Press `d`; read `logs -n 20` | Reason and freshness, not just a reset countdown. |
+| Need to stop input | Press `p`, or return to observe with `A` | Paused/observe indicator. |
+| Just upgraded | Restart service and dashboard | Loaded version matches release; deliberately re-enable A/y. |
+
+Unknown questions, paid choices and model switches remain manual.
+
 Everything an operator needs after `pipx install`: enabling Konsole input,
 choosing sessions and modes, reading the dashboard, configuring the tool,
 wiring the Claude quota bridge, and running it as a background service.
@@ -35,7 +51,7 @@ Konsole boundary and intentionally does not kill or replace existing terminal
 sessions.
 
 `doctor` also identifies whether the distribution is in the validated Arch
-family, probes `codex app-server --help` as the preferred future Codex
+family, probes `codex app-server --help` for the detached-server quota
 integration, and checks the Claude status-line quota bridge without executing
 its configured command. These capability rows are advisory: an unsupported
 app-server or an absent Claude bridge warns for that provider but does not
@@ -182,7 +198,25 @@ slowly. Selected sessions use that interval; full Konsole rediscovery runs every
 never multiply terminal or provider polling. Non-interactive observe output
 stays ANSI-free and separates scans with a blank line for readable logs.
 
-### Session rows
+### This-run scorecard
+
+The pinned **THIS RUN** line belongs to this watcher process, not the whole
+machine or retained logs. Narrow windows use `RUN approvals:… restarts:… waits:…`.
+
+- **Approvals sent:** initial one-time permission answers successfully sent by
+  this watcher. The permitted Claude resend does not add another approval.
+  This counts answers, not proof that a command or task finished.
+- **Budget restarts:** this watcher's continuations that passed the existing
+  post-send verification. Sending, retrying or passing a reset clock earns no
+  restart. An action inherited from another watcher is not credited here.
+- **Waits armed:** this watcher's verified handoffs to Claude's automatic wait.
+  These are not budget restarts; Claude has not resumed yet.
+
+Numbers survive pause, rescans, mode/theme changes and scrolling, but reset
+when the watcher exits. Observers do not claim another controller's work.
+Day/week totals remain available through `summary`.
+
+### Reading session rows
 
 Every session shows independently recognized terminal state and provider quota.
 Red or unknown data does not authorize input; the supervisor fails closed.
@@ -220,9 +254,13 @@ panel uses cached evidence and does not read or send terminal input.
 
 The `HISTORY` panel reads the same privacy-preserving event file as
 `agent-while-true logs`. It shows 10 entries by default and retains the latest
-50 in memory, so expanding it reveals what happened while you were away.
-Successful terminal retriggers appear as `resume_sent`, followed by their
-verification result. History records fingerprints and pattern IDs, never
+50 activity entries in memory, drawn from a bounded 500-record tail. Routine
+supervision-time samples are hidden from the feed, not deleted from disk.
+`logs --raw` and `summary` still read that telemetry. Older activity beyond
+the sampled tail may not be shown.
+Terminal retriggers appear as "Continuation sent; checking the result",
+followed by their verification result. Stable event IDs remain visible. History
+records fingerprints and pattern IDs, never
 terminal text, prompts, credentials, or environment values.
 
 Below 168 columns, session cards replace the wide table. Details, history and
@@ -386,8 +424,14 @@ Logs and state live under `~/.local/state/agent-while-true/`; terminal contents
 are never logged. The structured event log records when an action was planned,
 sent, verified, refused, retried, or failed:
 
+The default view translates these into short activity messages while retaining
+the event ID and safe session/process identifiers, so you can find the affected
+tab. It does not print project titles, account addresses or arbitrary extra
+fields. Use `--raw` when diagnosing the original structured record.
+
 ```bash
-agent-while-true logs -n 40
+agent-while-true logs -n 40          # readable activity messages
+agent-while-true logs --raw -n 40    # original structured records for diagnosis
 journalctl --user -u agent-while-true.service -f   # service lifecycle/output
 ```
 

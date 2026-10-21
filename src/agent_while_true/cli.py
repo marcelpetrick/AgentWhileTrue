@@ -49,6 +49,7 @@ from agent_while_true.control import (
     ControlServer,
     request_yield_input,
 )
+from agent_while_true.event_display import describe_event, explain_reason, read_activity_history
 from agent_while_true.fsm import (
     ConfirmCallback,
     Observation,
@@ -79,6 +80,7 @@ from agent_while_true.ui import (
     render_quota,
     render_status,
     render_viewport,
+    viewport_header_rows,
 )
 from agent_while_true.version import __version__
 
@@ -161,6 +163,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     logs_parser = subparsers.add_parser("logs", help="show persisted action and state history")
     logs_parser.add_argument("-n", "--lines", type=int, default=40, help="how many lines to show")
+    logs_parser.add_argument("--raw", action="store_true", help="show original structured records")
     summary_parser = subparsers.add_parser("summary", help="summarize retained operational events")
     summary_parser.add_argument(
         "--days", type=int, choices=(1, 7), default=1, help="rolling report window (default: 1 day)"
@@ -715,7 +718,9 @@ def _loop(
                 if dashboard.auto_yes and lock.held:
                     approvals = supervisor.approve_pending()
                     last_event = _approval_summary(approvals) or last_event
-                event_history = read_history(config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES)
+                event_history = read_activity_history(
+                    config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
+                )
                 # Presentation keys redraw cached observations, not terminal/quota
                 # reads. Schedule from completion so slow scans never catch up in
                 # a busy loop. Input authorization still revalidates in Supervisor.
@@ -748,6 +753,7 @@ def _loop(
                     redact_accounts=dashboard.redact_accounts,
                     whip_badge=whip_counter.badge(time.monotonic()) if interactive else "",
                     auto_yes=dashboard.auto_yes,
+                    activity=supervisor.activity,
                 )
                 if interactive:
                     height = max(1, size.lines - 1)
@@ -755,7 +761,8 @@ def _loop(
                     if focus_section:
                         for index, line in enumerate(frame_lines):
                             if focus_section in line:
-                                dashboard.scroll_offset = max(0, index - 2)
+                                header_rows = viewport_header_rows(height)
+                                dashboard.scroll_offset = max(0, index - header_rows)
                                 break
                         focus_section = ""
                     dashboard.scroll_offset = clamp_scroll_offset(
@@ -825,13 +832,13 @@ def _loop(
                         theme=dashboard.theme,
                     )
                     next_scan = 0.0
-                    event_history = read_history(
+                    event_history = read_activity_history(
                         config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
                     )
                 if dashboard.consume_auto_yes_toggle():
                     last_event = _auto_yes_note(supervisor, dashboard.auto_yes, config, lock)
                     next_scan = 0.0
-                    event_history = read_history(
+                    event_history = read_activity_history(
                         config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
                     )
                 if dashboard.consume_mode_toggle():
@@ -844,7 +851,7 @@ def _loop(
                     elif config.mode is not Mode.AUTO:
                         before_auto = None
                     next_scan = 0.0
-                    event_history = read_history(
+                    event_history = read_activity_history(
                         config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
                     )
             else:
@@ -902,7 +909,10 @@ def _sync_all_sessions(supervisor: Supervisor, *, show_accounts: bool = False) -
 def _summarise(sessions: Iterable[SupervisedSession], decisions: Sequence[Decision]) -> str:
     for session, decision in zip(sessions, decisions, strict=False):
         if decision.allowed:
-            return f"{session.provider_name} {session.ref.session_id}: {decision.reason}"
+            return (
+                f"{session.provider_name} {session.ref.session_id}: "
+                f"{explain_reason(decision.reason)}"
+            )
     return ""
 
 
@@ -1049,9 +1059,12 @@ def command_logs(config: Config, args: argparse.Namespace, stream: TextIO) -> in
     if not path.is_file():
         stream.write(f"No log at {path} yet.\n")
         return EXIT_OK
-    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
-    for line in lines[-args.lines :]:
-        stream.write(line + "\n")
+    reader = read_history if args.raw else read_activity_history
+    lines = reader(path, limit=max(0, args.lines))
+    if not lines and args.lines > 0 and not args.raw:
+        stream.write("No recent activity in the sampled tail; use --raw for routine telemetry.\n")
+    for line in lines:
+        stream.write((line if args.raw else describe_event(line)) + "\n")
     return EXIT_OK
 
 

@@ -6,6 +6,18 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Development and release engineering
 
+## Contributor flight card
+
+1. Clone the repository and run `./localPipeline.sh` before changing behavior.
+2. Reproduce blockers with privacy-redacted fixtures, never saved live transcripts.
+3. Test the narrow change, refusal paths and visible dashboard behavior.
+4. Run the complete gate and review against the pre-feature commit.
+5. Bump version/changelog, commit atomically, and use the release checklist in
+   [AGENTS.md](../AGENTS.md) when publication is requested.
+
+The rest of this page explains the instruments behind that checklist. Runtime
+dependencies stay empty; permission and quota gates are not display preferences.
+
 How the quality gate, CI, packaging and release artifacts work. The contributor
 rules — one logical change per commit, version and changelog bumps, the release
 procedure and the safety invariants — are in [AGENTS.md](../AGENTS.md).
@@ -76,7 +88,8 @@ image are pinned to immutable hashes.
 ### Coverage
 
 The floor is 98% of statements and branches combined, measured over
-`src/agent_while_true` by `scripts/quality.sh`; 0.59.7 measured 98.8%. It is a
+`src/agent_while_true` by `scripts/quality.sh`. Read the current pipeline artifact
+for its measured percentage; a past release's number is not a current result. It is a
 floor for behaviour, not for lines:
 
 - Cover a branch with a test that states what the branch is for - a refusal, a
@@ -135,6 +148,7 @@ real project names, accounts or usage:
 
 ```bash
 python3 scripts/record_demo.py media/agentWhileTrue_demo_vX.Y.Z.gif       # limit -> reset -> resume
+python3 scripts/record_demo.py --still media/agentWhileTrue_dashboard_vX.Y.Z.png  # invented scorecard
 python3 scripts/record_whip_demo.py media/agentWhileTrue_whip_vX.Y.Z.gif  # the whip
 python3 scripts/record_whip_demo.py --linkedin media/agentWhileTrue_whip_linkedin_vX.Y.Z.gif
 ```

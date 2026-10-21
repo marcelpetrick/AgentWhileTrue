@@ -41,6 +41,7 @@ def test_daemon_quota_requires_bound_explicit_allowance(tmp_path: Path) -> None:
 
 #: The only scenarios that are supposed to type, and exactly what they type.
 TALKATIVE = {
+    "run-activity": [(simulate.SESSION, "\r")] * 3,
     "reset-and-resume": [(simulate.SESSION, "\r")],
     "budget-renewal": [(simulate.SESSION, "\r")],
     "reset-delayed-90s": [(simulate.SESSION, "\r")],

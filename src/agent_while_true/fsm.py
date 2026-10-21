@@ -36,6 +36,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Final, Protocol
 
 from agent_while_true import providers as provider_registry
+from agent_while_true.activity import RunActivity
 from agent_while_true.classify import Classification, Confidence, ProcessClass, classify
 from agent_while_true.config import Config, Mode
 from agent_while_true.logging_setup import EventLogger, get_logger
@@ -163,6 +164,7 @@ class SupervisedSession:
     reported_refusal: str = ""
     last_fingerprint: str = ""
     pending_key: str = ""
+    run_action_key: str = ""
     reset_prompt_key: str = ""
     reset_first_seen: datetime | None = None
     retry_episode_key: str = ""
@@ -233,6 +235,7 @@ class Supervisor:
     verify_delay: float = DEFAULT_VERIFY_DELAY_SECONDS
 
     sessions: dict[str, SupervisedSession] = field(default_factory=dict)
+    activity: RunActivity = field(default_factory=RunActivity)
     _last_wall: datetime | None = None
     _last_monotonic: float | None = None
 
@@ -883,6 +886,8 @@ class Supervisor:
             return Decision(allowed=False, reason="send-failed")
 
         self.store.mark(key, ActionState.SENT)
+        session.run_action_key = key
+        self.activity.resume_attempts += 1
         session.attempts_since_success += 1
         session.state = SessionState.CONTINUE_SENT
         session.verify_after = fresh.at + timedelta(
@@ -1204,6 +1209,10 @@ class Supervisor:
                     session.approval_resent = resend
                     session.approval_stuck = False
                     reason = "resent" if resend else "approved"
+                    if resend:
+                        self.activity.approval_resends += 1
+                    else:
+                        self.activity.approvals += 1
         # Identifiers and the box fingerprint only; never the command itself.
         self.log.info(
             "approval_sent" if reason in {"approved", "resent"} else "approval_refused",
@@ -1307,6 +1316,12 @@ class Supervisor:
         if resumed:
             result = "armed-provider-wait" if armed_self_resume else "resumed"
             self.store.mark(key, ActionState.VERIFIED, result=result)
+            if key and session.run_action_key == key:
+                if armed_self_resume:
+                    self.activity.waits_armed += 1
+                else:
+                    self.activity.budget_restarts += 1
+                session.run_action_key = ""
             session.state = (
                 SessionState.WAITING_FOR_RESET
                 if armed_self_resume

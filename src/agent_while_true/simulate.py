@@ -413,7 +413,12 @@ def scenario_reset_and_resume(directory: Path) -> Result:
         "The ordinary happy path: the window resets after 30 seconds and the session continues.",
         "exactly one Enter is sent, and the resume is verified",
         world,
-        passed=world.terminal.sent == [(SESSION, "\r")],
+        passed=(
+            world.terminal.sent == [(SESSION, "\r")]
+            and world.supervisor.activity.budget_restarts == 1
+            and world.supervisor.activity.resume_attempts == 1
+            and world.supervisor.activity.waits_armed == 0
+        ),
     )
 
 
@@ -1075,6 +1080,34 @@ def scenario_approval_context_conflict(directory: Path) -> Result:
     )
 
 
+def scenario_run_activity(directory: Path) -> Result:
+    world = _world(directory, screen=APPROVAL_SCREEN)
+    world.approve("initial permission answer")
+    world.clock.advance(APPROVAL_RECHECK_SECONDS)
+    world.approve("one allowed resend is not another approval")
+    world.screen(BLOCKED_30_SECONDS_SCREEN)
+    world.step("budget limit observed")
+    world.screen(READY_SCREEN)
+    world.clock.advance(90)
+    world.step("continuation sent, not yet counted as a restart")
+    before_verify = world.supervisor.activity.budget_restarts
+    world.screen(ACTIVE_SCREEN)
+    world.clock.advance(10)
+    world.step("verify this watcher's budget restart")
+    activity = world.supervisor.activity
+    return _result(
+        "run-activity",
+        "Current-watch counters separate permissions, resends and verified budget recovery.",
+        "one approval, one resend, one verified restart; no success before verification",
+        world,
+        passed=activity.approvals == 1
+        and activity.approval_resends == 1
+        and before_verify == 0
+        and activity.budget_restarts == 1
+        and activity.waits_armed == 0,
+    )
+
+
 def scenario_auto_yes_answers_once(directory: Path) -> Result:
     world = _world(directory, screen=APPROVAL_CURSOR_MOVED_SCREEN)
     world.approve("the cursor was moved off Yes")
@@ -1155,6 +1188,7 @@ def scenario_auto_yes_resends_once(directory: Path) -> Result:
 
 
 SCENARIOS: dict[str, ScenarioFn] = {
+    "run-activity": scenario_run_activity,
     "reset-and-resume": scenario_reset_and_resume,
     "reset-delayed-90s": scenario_reset_delayed_90s,
     "prompt-changed-before-send": scenario_prompt_changed_before_send,

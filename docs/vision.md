@@ -6,6 +6,22 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Agent While True — Vision
 
+## Reading this design reference
+
+For contributors deciding **whether AWT should act**, not operators looking for
+a command to copy. Start with [the flight card](USAGE.md#flight-card-start-arm-recover)
+for current operation. Numbered design requirements are preserved here; early
+MVP sketches and sample commands are conceptual, not the shipped CLI.
+
+- Product intent: sections 1–4 and 46.
+- Authorization contract: sections 17–25 and 45.
+- Failure checklist: DANGER 1–20 in section 28.
+- Required evidence: sections 40–42; current results live in [PLAN.md](PLAN.md).
+
+Clarity is part of safety: counters distinguish sent permissions, verified
+budget recoveries and armed waits. No activity display may claim a finished
+task, saved hours or renewed budget from a clock or keypress.
+
 This document is the long-lived product and safety vision. For current delivery
 status, see [PLAN.md](PLAN.md); for the implemented C4 model and runtime flows,
 see [ARCHITECTURE.md](ARCHITECTURE.md); for the final live-machine acceptance
@@ -641,13 +657,17 @@ These must remain separate.
 
 ## 22. Codex Integration
 
-Preferred long-term Codex integration:
+Current detached-server Codex integration:
 
 ```text
-codex app-server --stdio
+codex app-server proxy
 ```
 
-Use Codex app-server rate-limit information rather than repeatedly invoking interactive commands.
+Read only `account/rateLimits/read` through the existing daemon's bounded proxy;
+never start/manage a daemon, open a thread, submit work or initiate login.
+Bind the selected process/profile/private account before and after the read.
+The response account must match and ordinary usage must be explicitly allowed.
+Process-bound rollout evidence remains the first source when it exists.
 
 Relevant information may include:
 

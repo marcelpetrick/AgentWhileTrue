@@ -19,6 +19,10 @@ evidence should say when it is not.
 Usage::
 
     python3 scripts/record_demo.py media/agentWhileTrue_demo.gif
+    python3 scripts/record_demo.py --still media/agentWhileTrue_dashboard.png
+
+``--still`` writes one PNG from the final invented storyboard scene; it is a
+renderer illustration, never a screenshot or evidence from a live provider.
 """
 
 import re
@@ -34,6 +38,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from PIL import Image, ImageDraw, ImageFont
 
+from agent_while_true.activity import RunActivity
 from agent_while_true.config import Config, Mode, Policy
 from agent_while_true.fsm import SupervisedSession
 from agent_while_true.proc import ProcessIdentity
@@ -554,6 +559,9 @@ def storyboard(start: datetime) -> list[dict]:
 
 
 def main(argv: list[str]) -> int:
+    still = len(argv) > 1 and argv[1] == "--still"
+    if still:
+        argv = [argv[0], *argv[2:]]
     destination = Path(argv[1]) if len(argv) > 1 else Path("media/agentWhileTrue_demo.gif")
     start = datetime(2026, 9, 20, 14, 5, tzinfo=UTC)
     config = Config(mode=Mode.AUTO, policy=Policy(allow_codex_auto_resume=True))
@@ -576,15 +584,24 @@ def main(argv: list[str]) -> int:
                 color=True,
                 theme=THEME,
                 width=COLUMNS,
-                events=step["events"],
+                events=[f"event={event}" for event in step["events"]],
                 show_events=True,
                 history_length=4,
                 show_details=step["details"],
                 detail_index=step["detail_index"],
                 service_health=health,
+                activity=RunActivity(approvals=12, budget_restarts=2, waits_armed=1)
+                if still
+                else None,
             )
         )
         durations.append(step["duration"])
+
+    if still:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        draw_frame(frames[-1], destination)
+        print(f"{destination} (invented scene, real renderer; not a live screenshot)")
+        return 0
 
     # Every frame must be the same size, and the detail panel makes some taller.
     tallest = max(frame.count("\n") + 1 for frame in frames)

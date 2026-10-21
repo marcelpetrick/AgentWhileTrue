@@ -13,6 +13,23 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.70.0] - 2026-10-21
+
+### Added
+
+- This-run dashboard counters distinguish one-time permission answers, verified
+  budget restarts and armed provider waits. Retries and historical actions do
+  not inflate successful recovery counts; counters reset with the watcher.
+- Plain-language activity history and `logs`, with `logs --raw` preserving the
+  structured diagnostic view. No terminal text or private account data is added.
+- Readable activity identifies the affected tab/process and hides routine time
+  samples without deleting telemetry or changing day/week reports.
+
+### Changed
+
+- Task-first documentation: preflight, controls, troubleshooting and reader
+  routes, with an evidence-backed feature showcase for GitHub visitors.
+
 ## [0.69.0] - 2026-10-20
 
 ### Fixed

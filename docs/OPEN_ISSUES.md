@@ -6,6 +6,17 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Open issues and acceptance work
 
+## Operator triage
+
+**Waiting now?** Use `d` and `logs -n 20` for a readable reason. Report a blocker
+with AWT/provider versions and a complete, privacy-redacted prompt;
+`logs --raw` supplies lifecycle identifiers without copying terminal contents.
+Do not buy capacity, switch models or weaken a gate to clear a warning.
+
+F8 below awaits real evidence; I1 is an unscheduled design idea. Acceptance and
+incident sections are completed evidence, not instructions to run old releases.
+Unsupported questions remain manual.
+
 This is the single authoritative list of unresolved Agent While True work. It
 consolidates the former root-level debugging and task documents. Completed
 implementation plans remain under `docs/history/` as evidence, not as active
@@ -91,7 +102,7 @@ all of the following:
   settled as an honest `FAILED`;
 - confirm the lifecycle ends `PLANNED -> SENT -> VERIFIED`, or records an honest
   `FAILED` result without an unsafe duplicate;
-- inspect the latest structured events with `agent-while-true logs -n 50` and
+- inspect the latest structured events with `agent-while-true logs --raw -n 50` and
   verify they contain identifiers and pattern IDs, never terminal text, prompt
   content, credentials, tokens, email addresses, or environment values.
 

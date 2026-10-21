@@ -125,6 +125,18 @@ process with exact-menu recognition, auto-yes, mode, pause and input ownership.
 Unchanged snapshots are suppressed, and a clearing transition is emitted once.
 The cached reason is shown in details and is never an authorization source.
 
+`activity.RunActivity` belongs to one `Supervisor` and starts at zero. Only
+successful local sends count initial permission answers or attempts. Verification
+credits restarts or armed waits only when the pending action key matches this
+watcher's in-memory sent key. Restored actions, observers and Claude resends do
+not inflate these outcomes. Rescans and mode changes retain the process-local
+totals; exit discards them. No log replay or persistence feeds this scorecard.
+`event_display` translates metadata for dashboard history and `logs`; stored
+event schema and `logs --raw` stay unchanged. Its bounded activity tail hides
+routine supervision-interval sampling from the feed, never from disk or summary.
+Neither display path authorizes
+input or changes quota state.
+
 ## Runtime components
 
 ```mermaid

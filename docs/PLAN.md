@@ -13,6 +13,37 @@ evidence and remaining evidence-dependent work are in [OPEN_ISSUES.md](OPEN_ISSU
 
 ## Current status
 
+### v0.70.0 — show the work, explain the controls
+
+Audience: KDE developers supervising local Claude Code and Codex sessions;
+contributors need a separate engineering path, not a longer quick start.
+
+- [x] Audit every Markdown document: clear purpose, audience, valid links,
+  short task-first checklists, feature evidence and explicitly historical plans.
+- [x] Add process-local dashboard counts for initial permission answers,
+  verified budget restarts and armed provider waits. Never count a retry,
+  restored historical action, clock reset or observed activity as a new success.
+- [x] Translate metadata into understandable activity messages; retain raw
+  structured logs for diagnostics and never copy terminal or account contents.
+- [x] Add lifecycle, UI, simulation and real PTY tests; independently review
+  against `74a7113`, run the full pipeline and validate GitHub presentation.
+- [ ] Publish and deploy the same verified tag; verify the installed package,
+  service and input-controlling dashboard version and requested A/y switches.
+
+Review scope: all active Markdown pages and the archive index/links; keep dated
+incident records and changelog history intact. GitHub's own Markdown renderer
+accepts the README, tables and collapsed optional whip section. The new static
+preview is explicitly invented data, not live acceptance evidence. Independent
+runtime review against `74a7113` found no confirmed defects; its documentation
+review requested distinguishable tab IDs in readable logs, now covered by tests.
+
+The current real Konsole capture is `media/agentWhileTrue_v0.70.0.png`, with
+invented sessions/counters and `.invalid` accounts only. A single early render
+left a stale initial surface; repeated clear/render/flush fixed capture readiness.
+The dedicated window's compositor PID/title/UUID matched before and after the
+single-window capture. Helper windows and temporary compositor scripts were
+closed/unloaded. No live agent screens were captured; no exception is needed.
+
 Agent While True is a working standalone Python 3.14.x package for KDE Konsole
 on Linux. It has no third-party runtime dependencies. The package, local gate,
 GitHub quality job, release workflow and container intentionally share that one
@@ -191,9 +222,9 @@ this development task; install the verified version and restart intentionally.
 - [x] Implement bounded proxy transport and profile/account/identity checks,
   strict availability parsing and cache; add fixture-first regressions,
   lifecycle/simulation tests and review. Never manage/start/restart Codex daemons.
-- [ ] Run the complete local gate, commit/push, publish the annotated verified
+- [x] Run the complete local gate, commit/push, publish the annotated verified
   tag and require green quality, security and release jobs plus image smoke tests.
-- [ ] Install that exact public tag, restart the background user service, and
+- [x] Install that exact public tag, restart the background user service, and
   replace the old dashboard intentionally under the maintainer's authorization.
   Re-enable `A` and dashboard-only `y` for all selected supported sessions;
   paid/model choices and unknown questions remain manual and switches stay

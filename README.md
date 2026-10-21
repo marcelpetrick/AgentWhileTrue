@@ -22,11 +22,32 @@ SPDX-License-Identifier: GPL-3.0-or-later
 [![Platform: KDE Konsole on Linux](https://img.shields.io/badge/platform-KDE%20Konsole%20on%20Linux-1d99f3.svg)](docs/USAGE.md)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-FE5196.svg)](https://www.conventionalcommits.org/en/v1.0.0/)
 
-**Agent While True** is a dashboard and babysitter for Codex CLI and Claude
-Code sessions running in KDE Konsole. One terminal shows every selected agent's
-state, account, five-hour and weekly quota, and reset countdown. When a session
-stops on a usage limit, Agent While True can wait for the window to reopen and
-resume that session for you.
+**Your agent hit a limit. Your evening does not have to stop with it.**
+
+Agent While True watches local **Codex CLI and Claude Code** sessions in KDE
+Konsole. See selected agents' quota and waiting state in one dashboard; let
+supported sessions continue when their budget returns, and optionally answer
+exact one-time tool permissions. No model changes. No paid shortcuts.
+
+Built for developers on **Linux + KDE Konsole**, including default and company
+profiles. Python 3.14, zero third-party runtime dependencies. Not a generic
+terminal bot, a way around provider limits, or a task-completion guarantee.
+
+## First flight
+
+1. **Install:** follow the [tagged installation](#install), then run
+   `agent-while-true doctor` and `agent-while-true quota`.
+2. **Observe:** `agent-while-true run --observe --all`. Confirm the intended
+   sessions and quota evidence. Nothing is typed in this mode.
+3. **Arm deliberately:** enable Konsole input as described in the
+   [flight manual](docs/USAGE.md#1-enable-konsole-input-once), then press `A`
+   for full-auto. Press `y` separately for one-time tool permissions; you accept
+   whatever tool use the exact supported menu requests.
+4. **Check the instruments:** A/y state, quota meters and **THIS RUN** counters.
+   Press `d` for a reason, `p` to pause, `q` to quit.
+
+Already installed? [Controls and troubleshooting](docs/USAGE.md).
+Want to contribute? [Clone, test, change](docs/DEVELOPMENT.md).
 
 We update Agent While True regularly to keep agents moving as Claude Code and
 Codex CLI evolve. Known automation blockers drive our fixes: changed quota
@@ -46,14 +67,15 @@ the first limit warning through the reset to a verified resume. The frames come 
 the real renderer — `scripts/record_demo.py` feeds fabricated sessions to the same
 `render_status` the tool uses — so the layout is genuine and the data is fiction.*
 
-### Live dashboard
+### Dashboard preview
 
-![Agent While True 0.65.3 running in KDE Konsole](media/agentWhileTrue_v0.65.3.png)
+![Agent While True 0.70.0 scorecard and readable activity in Konsole](media/agentWhileTrue_v0.70.0.png)
 
-*A real KDE Konsole capture of the 0.65.3 renderer, using invented
-sessions and `.invalid` accounts with screenshot redaction enabled. It shows
-the independent `A` auto-resume and `y` auto-yes controls without publishing
-live project, account or quota data.*
+*Real KDE Konsole capture of 0.70.0 rendering invented sessions and counters;
+no live project, account or quota data. The scorecard distinguishes permission
+answers, verified restarts and armed waits; these illustrative numbers are not
+live results. A [renderer-only illustration](media/agentWhileTrue_dashboard_v0.70.0.png)
+is reproducible with `scripts/record_demo.py --still`.*
 
 ## What it does
 
@@ -77,11 +99,15 @@ live project, account or quota data.*
   header always shows it. [Details](docs/USAGE.md#permission-prompts).
 - **Explanations, not surprises** — a detail panel shows the latest decision,
   quota freshness, blocking windows and the next scheduled check.
+- **See what this watch achieved** — live counts of permission answers,
+  verified budget restarts and armed provider waits. A retry is not another
+  restart; an armed wait is not resumed work. Counts reset with each watcher.
 - **The whip, for a friendly nudge** — press `w` and an ASCII bullwhip cracks
   across the dashboard, then every idle agent gets one cheerful reminder that
   results beat burned tokens. [More below](#the-whip).
 - **A record of what happened** — persisted `PLANNED → SENT → VERIFIED|FAILED`
-  history and day/week summaries that also count every auto-yes answer and
+  history in plain language (`logs --raw` for diagnostics), and day/week summaries
+  that also count every auto-yes answer and
   whip crack, holding identifiers and pattern IDs only, never terminal text.
 
 Target platform: Manjaro/Arch Linux, KDE Plasma, Konsole (Wayland or X11),
@@ -131,6 +157,9 @@ command or file contents before sharing. Exact prompt evidence lets us add a
 regression fixture and a focused fix.
 
 ## The whip
+
+<details>
+<summary>A little office comedy for agents that need a nudge</summary>
 
 Your agents are doing great work. Truly. They read whole codebases before
 breakfast, write the tests nobody else wanted to write, and never once complain
@@ -188,10 +217,12 @@ session is re-checked immediately before anything is typed:
 The last-event line tells you who heard it and why anyone was skipped. Details are
 in [docs/USAGE.md](docs/USAGE.md#the-whip).
 
+</details>
+
 ## Install
 
 ```bash
-pipx install --python python3.14 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.69.0'
+pipx install --python python3.14 'git+https://github.com/marcelpetrick/AgentWhileTrue.git@agentwhiletrue-v0.70.0'
 agent-while-true --version
 agent-while-true doctor
 ```
@@ -328,6 +359,11 @@ Unknown or stale quota never means available. The reasoning is in
 | [CHANGELOG.md](CHANGELOG.md) | Every release, newest first |
 
 ## Project
+
+Useful on your desktop? **Star** the repository to find it again. **Fork** it
+to add a tested prompt fixture or a clearer explanation; run the same pipeline
+we ship with. A privacy-redacted blocker report is useful too. Stars and forks
+help people discover the project; safety evidence is what earns trust.
 
 Author: Marcel Petrick <mail@marcelpetrick.it>. Licensed under the
 [GNU General Public License v3.0 or later](LICENSE); the package metadata

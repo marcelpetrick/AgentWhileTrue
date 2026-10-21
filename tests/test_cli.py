@@ -106,6 +106,26 @@ def test_logs_without_a_log_file(sandbox: Path, out: io.StringIO) -> None:
     assert "No log at" in out.getvalue()
 
 
+def test_logs_readable_default_and_raw_escape_hatch(sandbox: Path) -> None:
+    path = sandbox / "state" / "agent-while-true" / "agent-while-true.log"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    record = "event=resume_verified provider=claude result=armed-provider-wait"
+    path.write_text(record + "\n")
+    human = io.StringIO()
+    assert main(["logs"], stream=human) == EXIT_OK
+    assert "not a work restart" in human.getvalue()
+    raw = io.StringIO()
+    assert main(["logs", "--raw"], stream=raw) == EXIT_OK
+    assert raw.getvalue() == record + "\n"
+    empty = io.StringIO()
+    assert main(["logs", "-n", "0"], stream=empty) == EXIT_OK
+    assert empty.getvalue() == ""
+    path.write_text("event=supervision_interval seconds=60\n")
+    quiet = io.StringIO()
+    assert main(["logs"], stream=quiet) == EXIT_OK
+    assert "No recent activity" in quiet.getvalue()
+
+
 def test_summary_needs_no_terminal_or_provider(
     sandbox: Path, out: io.StringIO, monkeypatch
 ) -> None:
@@ -740,5 +760,5 @@ def test_doctor_and_logs_through_main(sandbox: Path, out: io.StringIO, monkeypat
     log.parent.mkdir(parents=True, exist_ok=True)
     log.write_text("first\nsecond\nthird\n")
     tail = io.StringIO()
-    assert main(["logs", "-n", "2"], stream=tail) == EXIT_OK
+    assert main(["logs", "--raw", "-n", "2"], stream=tail) == EXIT_OK
     assert tail.getvalue().split() == ["second", "third"]

@@ -311,6 +311,15 @@ Confirm that installed `agent-while-true --version`, `doctor`, `quota`, and
 
 ## Documentation and completion
 
+- Write for the next task: README is the showcase/first flight, USAGE is the
+  operator's checklist/reference, DEVELOPMENT is for contributors. Dated history
+  is evidence, not setup instructions. Never promise stars, saved time, task
+  completion or coverage of arbitrary future prompts.
+- This-run activity is process-local evidence, not authorization: distinguish
+  initial approval sends, verified budget restarts and armed provider waits.
+  Resends, restored historical actions and observers do not earn successes.
+  Keep structured event IDs/schema; human messages remain metadata-only.
+
 - README delivery changes keep badges, local installation, pipeline, Docker,
   GHCR, testing and usage instructions current and include a current,
   privacy-redacted real Konsole screenshot.

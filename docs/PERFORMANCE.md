@@ -5,6 +5,13 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Performance evaluation
 
+For contributors investigating workload, not a current-release speed promise.
+The dated samples below are historical measurements; compare like-for-like
+sessions before drawing a new conclusion. The detached Codex quota source
+additionally uses a bounded read-only proxy and timestamp-preserving cache;
+these older samples do not measure that transport. Counters and message
+formatting use local metadata only.
+
 This document records measured idle workload on the primary development
 machine. It is evidence for the default architecture, not a universal benchmark:
 terminal count, provider latency, kernel caches, and Konsole versions affect the
@@ -116,7 +123,8 @@ The revised behavior meets the intended balance on this machine:
 - CPU demand is low single-digit usage of one core rather than sustained
   double-digit usage;
 - memory remains stable and modest for a Python TUI;
-- all safety-critical pre-action reads remain immediate and uncached.
+- identity, prompt and policy revalidation remains immediate; quota snapshots
+  retain their actual observation time and the normal freshness gate.
 
 Workload scales mainly with the number of selected sessions because the Konsole
 adapter intentionally uses scoped D-Bus calls for each live identity and screen.

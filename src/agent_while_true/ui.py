@@ -14,7 +14,9 @@ import unicodedata
 from collections.abc import Iterable, Sequence
 from datetime import datetime
 
+from agent_while_true.activity import RunActivity
 from agent_while_true.config import Config, Mode
+from agent_while_true.event_display import describe_event, explain_reason
 from agent_while_true.fsm import SupervisedSession
 from agent_while_true.quota import Availability, QuotaSnapshot
 from agent_while_true.service_health import HealthState, ProviderHealth
@@ -425,7 +427,8 @@ def session_details(
         f"Session: {session.provider_name} {session.identity.tty} PID {session.identity.pid}",
         f"Title: {session.display_title()}",
         f"Account: {account}",
-        f"Last decision: {session.last_reason or 'not evaluated'} ({age(session.decision_at)})",
+        f"Last decision: {explain_reason(session.last_reason) or 'not evaluated'} "
+        f"({age(session.decision_at)})",
         f"Observation: {age(session.observed_at)}{'; STALE' if stale else ''}",
         f"Recognized state: {session.observed_state}",
         f"Patterns: {', '.join(session.matched_ids) or 'none'}",
@@ -498,6 +501,11 @@ def render_viewport(text: str, height: int | None, offset: int) -> str:
     return _viewport(text.splitlines(), height, offset)
 
 
+def viewport_header_rows(height: int) -> int:
+    """Keep title, mode, counters and controls pinned whenever they fit."""
+    return 4 if height >= 6 else 3 if height >= 5 else 2 if height >= 4 else 1
+
+
 def _viewport(lines: list[str], height: int | None, offset: int) -> str:
     if height is None:
         return "\n".join(lines)
@@ -507,7 +515,7 @@ def _viewport(lines: list[str], height: int | None, offset: int) -> str:
         return lines[-1]
     if height == 2:
         return "\n".join((lines[0], lines[-1]))
-    header = lines[:2] if height >= 4 else lines[:1]
+    header = lines[: viewport_header_rows(height)]
     footer = lines[-1]
     body = lines[len(header) : -1]
     visible = height - len(header) - 1
@@ -538,6 +546,7 @@ def render_status(
     redact_accounts: bool = False,
     whip_badge: str = "",
     auto_yes: bool = False,
+    activity: RunActivity | None = None,
 ) -> str:
     """Render the running watcher's status table."""
     listed = list(sessions)
@@ -574,7 +583,16 @@ def render_status(
             theme=theme,
         ),
         _panel_line(
-            toggles_line(listed, config, auto_yes=auto_yes),
+            (activity or RunActivity()).line(compact=panel_width < 80),
+            panel_width,
+            "healthy",
+            color=color,
+            theme=theme,
+        ),
+        _panel_line(
+            toggles_line(listed, config, auto_yes=auto_yes)
+            if panel_width >= 120
+            else compact_toggles(config, auto_yes=auto_yes),
             panel_width,
             "warning" if auto_yes else "accent",
             color=color,
@@ -729,7 +747,7 @@ def render_status(
         for event in events[-history_length:]:
             lines.extend(
                 _panel_line(part, panel_width, "dim", color=color, theme=theme)
-                for part in _wrap(event, max(1, panel_width - 4))
+                for part in _wrap(describe_event(event), max(1, panel_width - 4))
             )
     if show_help:
         lines.extend(
@@ -792,6 +810,12 @@ def toggles_line(sessions: Sequence[SupervisedSession], config: Config, *, auto_
         f"[A] auto-resume on limit: {limit}   "
         f"[y] auto-yes on permission prompts: {yes}   waiting for approval: {waiting}"
     )
+
+
+def compact_toggles(config: Config, *, auto_yes: bool) -> str:
+    resume = "OFF" if config.mode is Mode.OBSERVE else "ASK" if config.mode is Mode.ASK else "ON"
+    yes = "OFF" if not auto_yes else "ON" if config.mode is Mode.AUTO else "ON/inert"
+    return f"[A] resume {resume} [y] yes {yes}"
 
 
 def render_line(session: SupervisedSession, now: datetime) -> str:

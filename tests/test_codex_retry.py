@@ -94,10 +94,13 @@ def test_resume_into_exact_permission_menu_verifies_then_auto_yes_can_answer(tmp
     kit.terminal.set_screen("/Sessions/1", screens.CODEX_APPROVAL_EXEC_0_162_1)
     kit.clock.advance(1)
     assert kit.supervisor.tick()[0].reason == "verifying"
+    assert kit.supervisor.activity.budget_restarts == 0
     kit.clock.advance(3)
     assert kit.supervisor.tick()[0].reason == "resume-verified"
+    assert kit.supervisor.activity.budget_restarts == 1
     assert session.state is SessionState.APPROVAL_PENDING
     assert kit.supervisor.approve_pending() == {session.ref.key(): "approved"}
+    assert kit.supervisor.activity.approvals == 1
     assert len(kit.sent) == 2
     assert kit.sent[-1] == ("/Sessions/1", "\r")
 
