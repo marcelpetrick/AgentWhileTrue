@@ -13,6 +13,18 @@ evidence and remaining evidence-dependent work are in [OPEN_ISSUES.md](OPEN_ISSU
 
 ## Current status
 
+### v0.71.2 — public performance release
+
+The maintainer requested public release and local deployment of the verified
+v0.71.1 performance work. This release-preparation commit keeps the install tag,
+version and changelog aligned without rewriting the performance commit.
+Run the complete gate on this exact source, push both commits and the annotated
+tag, require green GitHub workflows, then install the tag and restart the user
+service. Leave the operator's dashboard untouched and report its loaded version
+separately; it must be restarted to pick up the new code and re-enable A/y.
+The dashboard layout is unchanged; the labeled v0.71.0 screenshot remains an
+accurate illustration, not a new live performance measurement.
+
 ### v0.71.1 — remove repeated polling work
 
 Baseline: `76ffb3c`. Performance improvements must preserve the same prompt,

@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.71.2] - 2026-10-21
+
+### Changed
+
+- Prepare the public performance release and point tagged installation at the
+  same verified version. Includes all v0.71.1 polling and quota optimizations;
+  dashboard layout and automation policy are unchanged.
+
 ## [0.71.1] - 2026-10-21
 
 ### Changed
