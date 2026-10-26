@@ -649,6 +649,16 @@ CLAUDE_APPROVAL_YES_NO = [
     " Esc to cancel · Tab to amend",
 ]
 
+# Synthetic transport-boundary construction, NOT a new live capture. The
+# captured ordinary Yes/No frame has 30 invented preview rows inserted after
+# its top rule: the rule remains within the existing grammar's 40-row distance
+# above the question, but the complete frame exceeds a 40-row transport tail.
+CLAUDE_APPROVAL_CAPTURE_BOUNDARY = [
+    *CLAUDE_APPROVAL_YES_NO[:5],
+    *[f"   │ synthetic preview row {index}" for index in range(30)],
+    *CLAUDE_APPROVAL_YES_NO[5:],
+]
+
 #: The same prompt read live from Claude Code 2.1.283 over D-Bus on
 #: 2026-09-28. Konsole's getAllDisplayedTextList returned all 88 rows of the
 #: window: this content on the top rows, then 53 blank rows of padding below

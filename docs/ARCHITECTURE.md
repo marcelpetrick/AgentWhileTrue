@@ -260,6 +260,16 @@ Reset clocks never turn either state into AVAILABLE.
 
 ## Auto-yes
 
+Claude's existing exact permission grammar may contain a solid top rule up to
+40 rows above its question, plus menu/footer rows. The normal 40-row transport
+tail can therefore clip an otherwise valid frame. For an automatable Claude
+approval observation that is not exact, `Supervisor.observe` performs one
+bounded 80-row reread when the configured read is smaller. It rechecks the
+foreground identity and classification and replaces recognition, vetoes and
+fingerprint with the new result. A failed/empty reread or identity drift fails
+closed. The provider grammar and every pre-send approval check remain unchanged;
+Codex, normal exact menus and active screens get no extra read.
+
 A permission prompt is the `APPROVAL_PENDING` state and never a resume prompt:
 `policy.evaluate` refuses it in every mode. The dashboard's `y` switch is the
 only way it is answered. After each scan with the switch on,

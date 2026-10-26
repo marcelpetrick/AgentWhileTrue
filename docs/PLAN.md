@@ -13,6 +13,40 @@ evidence and remaining evidence-dependent work are in [OPEN_ISSUES.md](OPEN_ISSU
 
 ## Current status
 
+### Approval follow-up — 2026-10-26
+
+Baseline: `28ae17c` (v0.71.2). Current MPT Claude-dmo session recorded seven
+unsupported permission appearances despite full-auto/auto-yes being enabled;
+the longest observed interval was 10m32s. Supported prompts continue to be
+answered. Historical logs do not retain the menu itself.
+
+- [x] Review current controller/switches and correlate MPT provider/AWT logs.
+  Claude's native automatic continuation worked after its Oct25 12:00 CET
+  reset: auto-continuation at12:01:06, successful tool results from12:01:22,
+  and the same main-session model. AWT correctly did not send a second resume.
+- [x] Observe the live session read-only: 180 reads showed 177 working screens
+  and three exact menus, each cleared about one second later. No new unsupported
+  menu was captured, so no new explanation or menu grammar is accepted.
+- [x] Demonstrate a separate transport boundary failure before fixing it: an
+  existing captured menu with explicitly synthetic preview rows fits the tested
+  frame grammar but loses its top rule in a 40-row read.
+- [x] Fix the narrow supported layout/transport boundary, preserving one-time
+  selection, preview fingerprinting, policy and immediate revalidation.
+- [x] Add recognition, lifecycle, simulation and PTY coverage; independently
+  review, run the full gate and commit the verified fix.
+- [ ] Capture the next actual unsupported menu and add its minimal redacted
+  fixture before expanding recognition. The seven historical appearances are
+  not proven solved by the transport fix; their rendered layouts were not kept.
+
+Provider metadata correlates those seven appearances with four safety-check,
+two explicit Ask-rule and one outside-read Bash requests. They were not model
+choices or arbitrary task questions, but metadata cannot reconstruct the visible
+menu or establish who answered. Release/deployment requires the maintainer's
+request; the live controller is unchanged during development.
+
+Arbitrary task questions, paid choices, model changes and unobserved layouts
+remain manual. This work must not change provider settings or company policy.
+
 ### v0.71.2 — public performance release
 
 The maintainer requested public release and local deployment of the verified

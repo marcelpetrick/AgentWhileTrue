@@ -1264,6 +1264,35 @@ def scenario_run_activity(directory: Path) -> Result:
     )
 
 
+def scenario_claude_approval_capture_boundary(directory: Path) -> Result:
+    # Synthetic transport boundary derived from the captured ordinary menu:
+    # the existing grammar accepts the complete frame, not its clipped tail.
+    screen = [
+        *APPROVAL_SCREEN[:3],
+        *[f"   │ synthetic preview row {index}" for index in range(30)],
+        *APPROVAL_SCREEN[3:],
+    ]
+    world = _world(directory, screen=screen)
+    clipped = providers.CLAUDE.recognise(screen[-40:], now=world.clock.wall)
+    complete = providers.CLAUDE.recognise(screen, now=world.clock.wall)
+    world.approve("Bounded reread recovers the existing complete permission frame")
+    world.approve("The identical answered box never earns another initial Enter")
+    conflict = list(screen)
+    conflict.insert(-5, "Switch to another model")
+    world.screen(conflict)
+    world.approve("A fresh conflicting model choice remains manual")
+    return _result(
+        "claude-approval-capture-boundary",
+        "A normal terminal tail can clip a complete, already-tested permission frame.",
+        "only the exact revalidated frame gets one Enter; model choices stay manual",
+        world,
+        passed=not clipped.approval_prompt
+        and complete.approval_prompt
+        and world.terminal.sent == [(SESSION, "\r")]
+        and world.supervisor.activity.approvals == 1,
+    )
+
+
 def scenario_auto_yes_answers_once(directory: Path) -> Result:
     world = _world(directory, screen=APPROVAL_CURSOR_MOVED_SCREEN)
     world.approve("the cursor was moved off Yes")
@@ -1344,6 +1373,7 @@ def scenario_auto_yes_resends_once(directory: Path) -> Result:
 
 
 SCENARIOS: dict[str, ScenarioFn] = {
+    "claude-approval-capture-boundary": scenario_claude_approval_capture_boundary,
     "quota-cache-invalidation": scenario_quota_cache_invalidation,
     "standby-reclaim-identity": scenario_standby_reclaim_identity,
     "run-activity": scenario_run_activity,

@@ -13,7 +13,7 @@ with AWT/provider versions and a complete, privacy-redacted prompt;
 `logs --raw` supplies lifecycle identifiers without copying terminal contents.
 Do not buy capacity, switch models or weaken a gate to clear a warning.
 
-F8 below awaits real evidence; I1 is an unscheduled design idea. Acceptance and
+F8 and F9 await real evidence; I1 is an unscheduled design idea. Acceptance and
 incident sections are completed evidence, not instructions to run old releases.
 Unsupported questions remain manual.
 
@@ -21,6 +21,24 @@ This is the single authoritative list of unresolved Agent While True work. It
 consolidates the former root-level debugging and task documents. Completed
 implementation plans remain under `docs/history/` as evidence, not as active
 backlogs.
+
+### F9 — Capture remaining MPT permission-layout gaps
+
+On 2026-10-26 the input-owning v0.71.2 dashboard recorded seven unsupported
+Claude-dmo permission appearances while full-auto and auto-yes were enabled.
+Provider metadata correlates them with ordinary Bash one-time requests: four
+safety checks, two explicit Ask rules and one outside-read check. The longest
+observed interval before clearing was 10m32s. Logs do not preserve the rendered
+menu or identify who answered it.
+
+The bounded transport fix in v0.71.3 recovers an already-tested frame clipped
+by the default 40-row read, without expanding permission grammar. Its boundary
+fixture is a synthetic construction based on an existing real capture, **not**
+a reproduction of all seven historical appearances. Read-only follow-up observed
+180 screens and three ordinary exact menus; it did not catch a missed layout.
+Capture the next actual unsupported menu before adding any new explanation or
+footer rule. Unknown choices, paid/model choices and company denials remain
+non-automatable; do not change provider policy to conceal this evidence gap.
 
 ## Completed acceptance
 

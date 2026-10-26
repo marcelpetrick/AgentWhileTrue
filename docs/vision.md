@@ -170,6 +170,10 @@ unchanged, including during rediscovery cleanup. A second watcher may hold an
 older snapshot and must never overwrite the input controller's durable state.
 Every acquisition of input control reloads that state after taking the lock,
 including initial startup after session discovery and selection.
+When a normal Claude terminal tail clips an already-tested approval frame,
+one bounded fresh reread may recover it. The same identity/classification,
+exact menu, preview fingerprint and immediate pre-send checks still apply.
+Transport headroom is not authority to accept a new explanation or question.
 Performance optimizations must preserve this contract. A headless fallback that
 intends to regain input control may stand by instead of duplicating observations;
 it must reload durable state and freshly rediscover/revalidate on ownership

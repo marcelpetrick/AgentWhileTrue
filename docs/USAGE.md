@@ -419,6 +419,14 @@ full-auto dashboard with `y` enabled. A headless service cannot enable auto-yes.
 Unknown questions, MCP elicitation and paid or model-changing choices remain
 manual. An idle shell or exited agent cannot be continued.
 
+If Claude shows a permission request but the normal terminal tail does not
+contain an exact menu, AWT rereads up to 80 rows once. This recovers an existing
+tested frame whose top border was clipped by the 40-row default. The reread
+checks the same process and classification and replaces the entire observation;
+it does not relax menu rules or answer an unknown explanation. Normal exact
+menus and working screens still use a single read. Failed/empty rereads,
+changed identity and unsupported layouts send nothing.
+
 ### Keep the same model; paid choices are human-only
 
 Agent While True never authorizes a model change, including a newer model,

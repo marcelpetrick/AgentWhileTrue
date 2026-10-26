@@ -73,6 +73,8 @@ RETRY_ACTIVITY_CONFIRM_SECONDS = 3.0
 #: queued Enters then arrive, and the second lands on the next screen unchecked
 #: (see "Auto-yes" in docs/ARCHITECTURE.md for why that is accepted).
 APPROVAL_RECHECK_SECONDS: Final = 3.0
+#: Bounded transport headroom for the existing 40-row permission box grammar.
+CLAUDE_APPROVAL_CAPTURE_ROWS: Final = 80
 
 #: States in which a provider is holding the session on a usage limit. Seeing
 #: one is what lets a later "usage limit has reset" affordance authorise input.
@@ -323,6 +325,53 @@ class Supervisor:
             except TerminalError:
                 lines = []
             recognition = provider.recognise(lines, now=moment)
+            if (
+                provider.name == "claude"
+                and classification.automatable
+                and recognition.state is SessionState.APPROVAL_PENDING
+                and not recognition.approval_prompt
+                and self.config.visible_lines < CLAUDE_APPROVAL_CAPTURE_ROWS
+            ):
+                # The existing permission grammar permits its solid rule up to
+                # 40 rows above the question, plus the menu/footer below it.
+                # A 40-row transport tail can therefore clip a valid frame.
+                # Reread once with bounded headroom; never widen the grammar or
+                # retain an older prompt/veto when the new screen differs.
+                try:
+                    lines = self.terminal.read_visible_text(ref, CLAUDE_APPROVAL_CAPTURE_ROWS)
+                    screen_read = bool(lines)
+                except TerminalError:
+                    lines = []
+                    screen_read = False
+                try:
+                    fresh_pid = self.terminal.foreground_pid(ref)
+                except TerminalError:
+                    fresh_pid = 0
+                try:
+                    fresh_info = self.inspector.inspect(fresh_pid) if fresh_pid > 0 else None
+                    fresh_classification = classify(fresh_info) if fresh_info is not None else None
+                except ProcessGoneError, OSError:
+                    fresh_info = None
+                    fresh_classification = None
+                if (
+                    fresh_pid != foreground_pid
+                    or fresh_info is None
+                    or fresh_info.identity != info.identity
+                    or fresh_classification != classification
+                ):
+                    return Observation(
+                        ref=ref,
+                        at=moment,
+                        foreground_pid=fresh_pid,
+                        identity=None,
+                        info=fresh_info,
+                        classification=_NOT_AN_AGENT,
+                        provider=None,
+                        recognition=None,
+                        quota=unknown("unknown", "none", "process-changed"),
+                    )
+                info = fresh_info
+                recognition = provider.recognise(lines, now=moment) if screen_read else None
 
         return Observation(
             ref=ref,

@@ -13,6 +13,19 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.71.3] - 2026-10-26
+
+### Fixed
+
+- Recover an existing tested Claude permission frame whose top border is clipped
+  by the normal 40-row terminal read. An incomplete approval observation gets
+  one bounded 80-row reread with fresh process/classification checks. The exact
+  permission grammar, preview fingerprint, one-time selection and pre-send
+  revalidation are unchanged; failed reads and unknown layouts stay manual.
+- Add transport-boundary, race, lifecycle, safety-simulation and PTY regressions.
+  The boundary fixture is explicitly synthetic, derived from an existing capture;
+  it does not claim to reproduce all seven historical MPT menu appearances.
+
 ## [0.71.2] - 2026-10-21
 
 ### Changed

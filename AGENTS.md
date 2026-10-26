@@ -112,6 +112,11 @@ when recognizer behavior changes.
   action. Never expose a historical actionable menu or reset prompt this way.
   Keep full-screen composer/permission validation and paid-action vetoes.
 - Preserve the persisted action lifecycle and single-instance lock.
+- A partial Claude approval observation may get one bounded 80-row reread to
+  recover the existing tested frame. Recheck foreground identity/classification,
+  use the new complete recognition/fingerprint/veto context, and fail closed on
+  errors or drift. This is transport headroom, not permission to accept unknown
+  menu explanations or bypass the exact-menu/pre-send gate.
 - Performance changes must not cache away action-time identity, prompt or quota
   revalidation. File-version caches retain original observation times and fail
   closed on changes/errors. A headless fallback may stand by without duplicate

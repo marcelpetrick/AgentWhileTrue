@@ -27,7 +27,9 @@ def main() -> int:
         "/Sessions/1",
         shell_pid=100,
         foreground_pid=15102,
-        screen=list(screens.CLAUDE_APPROVAL_YES_NO),
+        # Synthetic tall frame: the real loop earns its approval only after
+        # recovering the existing exact menu through bounded capture.
+        screen=list(screens.CLAUDE_APPROVAL_CAPTURE_BOUNDARY),
     )
     kit.supervisor.select(ref, info.identity, "claude", "invented project")
     kit.supervisor.tick()
