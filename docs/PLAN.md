@@ -13,6 +13,25 @@ evidence and remaining evidence-dependent work are in [OPEN_ISSUES.md](OPEN_ISSU
 
 ## Current status
 
+### v0.71.4 — publish clipped-approval recovery
+
+The requested dependency sweep includes every dev/build, GitHub Actions,
+security-job and container/frontend pin. Verified stable upstream on Oct27:
+setuptools 84.2.1, Ruff 0.17.3, setup-python v7.1.0, login-action v4.7.0 and
+the current Python 3.14-slim index (CPython 3.14.10); all other pins are current.
+The frontend remains 1.28.0 and Python's minor remains 3.14. Run the complete
+gate after provisioning the updated exact toolchain, before committing/pushing.
+
+The maintainer requested push and public release of the verified v0.71.3 fix.
+This release-preparation commit aligns the install tag, version and changelog
+without rewriting the fix commit. Require the complete local pipeline, green
+GitHub quality/security/release workflows and published-image smoke tests, then
+install the exact tag and restart the background user service. Leave the open
+operator dashboard untouched; it retains its loaded version until restarted.
+The dashboard layout is unchanged, so the labeled existing screenshot remains
+illustrative. F9 remains open: this release does not claim all seven historical
+permission appearances have been reproduced or fixed.
+
 ### Approval follow-up — 2026-10-26
 
 Baseline: `28ae17c` (v0.71.2). Current MPT Claude-dmo session recorded seven

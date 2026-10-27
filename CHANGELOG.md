@@ -13,6 +13,18 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.71.4] - 2026-10-27
+
+### Changed
+
+- Refresh exact pins: setuptools 84.2.1, Ruff 0.17.3, setup-python v7.1.0,
+  login-action v4.7.0 and the Python 3.14-slim multi-architecture image digest
+  (CPython 3.14.10). Other package/action/frontend pins remain verified current;
+  runtime dependencies remain empty and the supported minor stays 3.14.
+- Publish the v0.71.3 clipped-Claude-approval recovery fix with aligned tagged
+  installation instructions. Exact permission rules and safety gates remain
+  unchanged; the seven historical MPT layouts still need capture for verification.
+
 ## [0.71.3] - 2026-10-26
 
 ### Fixed
