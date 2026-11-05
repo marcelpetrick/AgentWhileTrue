@@ -294,7 +294,10 @@ does not reset either state, and nothing about it is persisted.
 The dashboard's `w` key is the one input path an operator starts by hand. It
 is deliberately outside the resume lifecycle: a crack is a single attempt per
 session and is never planned, persisted or retried, so a restart cannot repeat
-it. It still passes its own revalidating gate in `Supervisor.whip`:
+it. Sessions are selected top-level Konsole sessions; provider-managed
+background subagents have no individually addressed composer. A successful
+write does not prove that an agent consumed the reminder. Each attempt passes
+its own revalidating gate in `Supervisor.whip`:
 
 ```mermaid
 flowchart LR

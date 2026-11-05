@@ -291,6 +291,16 @@ def _check_action_policy(request: ResumeRequest) -> str | None:
     return None
 
 
+def _check_codex_limit_prompt(request: ResumeRequest) -> str | None:
+    if (
+        request.recognition.provider == "codex"
+        and request.recognition.state is SessionState.LIMIT_BLOCKED
+        and not request.recognition.retry_prompt
+    ):
+        return "unsupported-codex-limit-prompt"
+    return None
+
+
 def _check_not_already_actioned(request: ResumeRequest) -> str | None:
     if idempotency_key(request) in request.actioned_fingerprints:
         return "already-actioned"
@@ -299,7 +309,8 @@ def _check_not_already_actioned(request: ResumeRequest) -> str | None:
 
 def _check_attempts(request: ResumeRequest) -> str | None:
     if request.codex_retry and not (
-        request.config.policy.allow_codex_auto_resume
+        request.config.mode is Mode.AUTO
+        and request.config.policy.allow_codex_auto_resume
         and request.recognition.provider == "codex"
         and request.recognition.retry_prompt
         and request.recognition.reset_at is not None
@@ -364,6 +375,7 @@ _CONDITIONS: tuple[Callable[[ResumeRequest], str | None], ...] = (
     _check_policy_allows_resume,
     _check_action_exists,
     _check_action_policy,
+    _check_codex_limit_prompt,
     _check_not_already_actioned,
     _check_attempts,
     _check_no_other_limit,
@@ -510,12 +522,11 @@ def evaluate(request: ResumeRequest) -> Decision:
             idempotency_key=key,
         )
 
-    if mode is Mode.AUTO and authorization is Authorization.TIME_ONLY and not request.codex_retry:
-        # DANGER 19: with no provider confirmation, auto mode fails closed and
-        # the same situation merely asks in ask mode.
+    if authorization is Authorization.TIME_ONLY and not request.codex_retry:
+        # Confirmation by the operator does not establish provider availability.
         return Decision(
             allowed=False,
-            reason="auto-mode-requires-provider-confirmation",
+            reason="provider-confirmation-required",
             action=action,
             authorization=authorization,
             idempotency_key=key,

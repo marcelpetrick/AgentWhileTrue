@@ -13,14 +13,29 @@ evidence and remaining evidence-dependent work are in [OPEN_ISSUES.md](OPEN_ISSU
 
 ## Current status
 
+### Input safety review — 2026-11-05
+
+Codex continuation now requires the exact tested limit frame and a visibly
+empty composer even when quota is available. Ambiguous footer and particle
+rows remain manual, and ask-mode confirmation cannot replace provider evidence.
+Codex approval fingerprints retain the original visible preview. A redacted
+live Claude data-disclosure warning is covered as a manual-only regression.
+The live scan found no current provider limit screen, so it does not verify
+limit layouts for Claude Code 2.1.318 or Codex CLI 0.166.0.
+
+### Dependency review — 2026-11-05
+
+The dependency sweep updated pytest, mypy, reuse, the security workflow's pip,
+two release actions and the Python 3.14-slim image digest. The supported Python
+minor and empty runtime dependency set remain unchanged.
+
 ### v0.71.4 — publish clipped-approval recovery
 
 The requested dependency sweep includes every dev/build, GitHub Actions,
 security-job and container/frontend pin. Verified stable upstream on Oct27:
 setuptools 84.2.1, Ruff 0.17.3, setup-python v7.1.0, login-action v4.7.0 and
-the current Python 3.14-slim index (CPython 3.14.10); all other pins are current.
-The frontend remains 1.28.0 and Python's minor remains 3.14. Run the complete
-gate after provisioning the updated exact toolchain, before committing/pushing.
+the then-current Python 3.14-slim index (CPython 3.14.10); all other pins were
+current at that review. The frontend remained 1.28.0 and Python's minor 3.14.
 
 The maintainer requested push and public release of the verified v0.71.3 fix.
 This release-preparation commit aligns the install tag, version and changelog
@@ -153,7 +168,7 @@ preview is explicitly invented data, not live acceptance evidence. Independent
 runtime review against `74a7113` found no confirmed defects; its documentation
 review requested distinguishable tab IDs in readable logs, now covered by tests.
 
-The current real Konsole capture is `media/agentWhileTrue_v0.70.0.png`, with
+The v0.70.0 real Konsole capture was `media/agentWhileTrue_v0.70.0.png`, with
 invented sessions/counters and `.invalid` accounts only. A single early render
 left a stale initial surface; repeated clear/render/flush fixed capture readiness.
 The dedicated window's compositor PID/title/UUID matched before and after the
@@ -228,7 +243,7 @@ The implemented baseline includes:
   mode, while paused, or without input control.
 - Provider tool-permission prompts are the `APPROVAL_PENDING` state, and a
   non-persistent `y` auto-yes switch answers only the selected one-turn first
-  item of exact current Claude or Codex menus, once per appearance, after full
+  item of exact tested Claude or Codex menus, once per appearance, after full
   revalidation; only in full-auto, never in ask or observe mode, while paused
   or without input control. Claude Code 2.1.300's full-window company-policy
   explanations are exact-matched and their visible previews fingerprinted.

@@ -51,18 +51,44 @@ def _empty(provider: str, lines: list[str]) -> bool:
         ("codex", screens.CODEX_ACTIVE),
         ("codex", screens.CODEX_IDLE_WITH_FOOTER),
         ("codex", screens.CODEX_USAGE_LIMIT_WITH_PURCHASE_LINKS),
-        ("codex", screens.CODEX_USAGE_LIMIT_WITH_PARTICLES),
         ("codex", screens.CODEX_0_158_WORKING),
         ("codex", screens.CODEX_0_158_FOLLOW_UP),
         ("codex", screens.CODEX_0_158_QUEUE_HINT),
         ("codex", screens.CODEX_0_160_WARNING_FOOTER),
         ("codex", screens.CODEX_0_160_PLAN_FOOTER),
         ("codex", CODEX_0_162_STATUS_FOOTER),
-        ("codex", CODEX_0_162_STATUS_LABEL_FOOTER),
     ],
 )
 def test_empty_composer_is_recognised(provider: str, lines: list[str]) -> None:
     assert _empty(provider, lines)
+
+
+@pytest.mark.parametrize(
+    "lines",
+    [
+        screens.CODEX_USAGE_LIMIT_WITH_PARTICLES,
+        CODEX_0_162_STATUS_LABEL_FOOTER,
+        [f"{CODEX_CURSOR} ⠁"],
+        [CODEX_CURSOR, "⠁"],
+        [f"{CODEX_CURSOR} Ask Codex to do anything⠁"],
+        ["▌ You've hit your usage limit. Try again at 8:10 PM.", "● Wor⠁king", CODEX_CURSOR],
+        [screens.CODEX_MODEL_CAPACITY[0], "● Wor⠁king", CODEX_CURSOR],
+    ],
+)
+def test_ambiguous_codex_composers_fail_closed(lines: list[str]) -> None:
+    assert not _empty("codex", lines)
+    assert not providers.CODEX.recognise(lines, now=NOW).active_evidence
+
+
+def test_codex_approval_fingerprint_preserves_braille_in_preview() -> None:
+    original = list(screens.CODEX_APPROVAL_EXEC_0_162_1)
+    changed = list(original)
+    changed[4] += "⠁"
+    first = providers.CODEX.recognise(original, now=NOW)
+    second = providers.CODEX.recognise(changed, now=NOW)
+    assert first.approval_fingerprint
+    assert second.approval_fingerprint
+    assert first.approval_fingerprint != second.approval_fingerprint
 
 
 @pytest.mark.parametrize(

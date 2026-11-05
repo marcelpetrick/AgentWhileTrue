@@ -189,7 +189,7 @@ def test_codex_paid_links_are_passive_only_on_exact_usage_limit_banner() -> None
     stale = replace(QUOTA_AVAILABLE, provider="codex", observed_at=NOW - timedelta(hours=3))
     refused = evaluate(_codex_request(recognition=recognition, quota=stale))
     assert not refused.allowed
-    assert refused.reason == "auto-mode-requires-provider-confirmation"
+    assert refused.reason == "provider-confirmation-required"
 
 
 def test_codex_other_paid_vetoes_remain_unconditional_with_a_limit_banner() -> None:
@@ -408,26 +408,95 @@ def test_unknown_quota_never_means_available() -> None:
     blocked = providers.CODEX.recognise(["You've hit your usage limit.", "› "], now=NOW)
     decision = evaluate(_codex_request(recognition=blocked, quota=QUOTA_UNKNOWN))
     assert not decision.allowed
-    assert decision.reason == "usage-not-confirmed-available"
+    assert decision.reason == "unsupported-codex-limit-prompt"
     assert decision.authorization is Authorization.NONE
 
 
-def test_time_only_authorization_is_refused_in_auto_but_offered_in_ask() -> None:
-    # DANGER 19: an unknown provider state waits, asks, or fails closed
-    # depending on the configured mode.
-    past_reset = providers.CODEX.recognise(
-        ["You've hit your usage limit. Try again at 8:10 PM.", "› "], now=NOW - timedelta(days=1)
-    )
+def test_time_only_authorization_is_refused_in_auto_and_ask() -> None:
+    past_reset = providers.CODEX.recognise(screens.CODEX_USAGE_LIMIT, now=NOW - timedelta(days=1))
     request = _codex_request(recognition=past_reset, quota=QUOTA_UNKNOWN)
     auto = evaluate(request)
     assert not auto.allowed
-    assert auto.reason == "auto-mode-requires-provider-confirmation"
+    assert auto.reason == "provider-confirmation-required"
     assert auto.authorization is Authorization.TIME_ONLY
 
     asking = replace(request.config, mode=Mode.ASK, policy=Policy(allow_codex_auto_resume=True))
     ask = evaluate(replace(request, config=asking))
-    assert ask.allowed
-    assert ask.requires_confirmation
+    assert not ask.allowed
+    assert ask.authorization is Authorization.TIME_ONLY
+    assert ask.reason == "provider-confirmation-required"
+
+
+@pytest.mark.parametrize("mode", [Mode.ASK, Mode.OBSERVE])
+def test_bounded_codex_retry_requires_full_auto_even_if_requested(mode: Mode) -> None:
+    recognition = providers.CODEX.recognise(screens.CODEX_USAGE_LIMIT, now=NOW - timedelta(days=1))
+    request = _codex_request(recognition=recognition, quota=QUOTA_UNKNOWN)
+    decision = evaluate(
+        replace(request, codex_retry=True, config=replace(request.config, mode=mode))
+    )
+    assert not decision.allowed
+    assert decision.reason == "invalid-codex-retry-prompt"
+
+
+@pytest.mark.parametrize("quota", [QUOTA_UNKNOWN, QUOTA_AVAILABLE])
+@pytest.mark.parametrize(
+    "extra",
+    [
+        "  draft continuation",
+        "  arbitrary draft 40% used",
+        "  draft ? for shortcuts",
+        "  gpt-5 high · ~/project · please delete everything",
+    ],
+)
+def test_codex_resume_never_types_into_multiline_draft(quota, extra) -> None:
+    recognition = providers.CODEX.recognise(
+        [*screens.CODEX_USAGE_LIMIT, extra], now=NOW - timedelta(days=1)
+    )
+    decision = evaluate(_codex_request(recognition=recognition, quota=quota))
+    assert not recognition.composer_empty
+    assert not recognition.retry_prompt
+    assert not decision.allowed
+
+
+@pytest.mark.parametrize("quota", [QUOTA_UNKNOWN, QUOTA_AVAILABLE])
+def test_codex_limit_with_intervening_question_is_not_actionable(quota) -> None:
+    recognition = providers.CODEX.recognise(
+        [screens.CODEX_USAGE_LIMIT[0], "  Which option do you choose?", "", "› "],
+        now=NOW - timedelta(days=1),
+    )
+    decision = evaluate(_codex_request(recognition=recognition, quota=quota))
+    assert not recognition.retry_prompt
+    assert not decision.allowed
+    assert decision.reason == "unsupported-codex-limit-prompt"
+
+
+@pytest.mark.parametrize(
+    "banner_rows",
+    [
+        ["▌ You've hit your usage limit. Try again at ⠁8:10 PM."],
+        ["▌ You've hit your usage limit. Try again at 8:10 PM.", "⠁"],
+        ["⠁▌ You've hit your usage limit. Try again at 8:10 PM."],
+    ],
+)
+def test_codex_limit_does_not_erase_extra_banner_characters(banner_rows: list[str]) -> None:
+    recognition = providers.CODEX.recognise([*banner_rows, "›"], now=NOW - timedelta(days=1))
+    assert not recognition.retry_prompt
+    assert not evaluate(_codex_request(recognition=recognition, quota=QUOTA_AVAILABLE)).allowed
+
+
+@pytest.mark.parametrize(
+    "tail",
+    [
+        ["? for shortcuts", "? for shortcuts"],
+        ["tab to queue message", "Plan mode (shift+tab to cycle)", "? for shortcuts"],
+        ["gpt-5 high Plan mode (shift+tab to cycle)", "? for shortcuts"],
+        ["gpt-5 high plan mode (shift+tab to cycle)", "? for shortcuts"],
+    ],
+)
+def test_codex_composer_rejects_unobserved_footer_sequences(tail: list[str]) -> None:
+    recognition = providers.CODEX.recognise([*screens.CODEX_USAGE_LIMIT, *tail], now=NOW)
+    assert not recognition.composer_empty
+    assert not recognition.retry_prompt
 
 
 def test_a_fresh_exhausted_quota_outranks_the_ready_prompt() -> None:

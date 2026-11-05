@@ -185,7 +185,7 @@ observe mode.
 | `[` / `]` | Select the previous / next session explanation |
 | `j` / `k` | Scroll down / up through the dashboard |
 | `g` / `G` | Jump to the top / end of the dashboard |
-| `w` | Crack the whip: an ASCII bullwhip snaps across the screen, then one reminder goes to every idle supervised agent (see [The whip](#the-whip)) |
+| `w` | Crack the whip: send one reminder to each eligible selected terminal session (see [The whip](#the-whip)) |
 | `y` | Toggle auto-yes: answer the selected one-turn item on exact Claude Code or Codex CLI permission prompts (see [Permission prompts](#permission-prompts)); off at every start, never saved |
 | `q` | Quit and restore the terminal |
 
@@ -309,8 +309,10 @@ identity are untouched, and the toggle resets when the process exits.
 current theme (the grip, lash, spark and `CRACK!` each take one of the theme's
 colours on its background; the plain theme, `--no-color` and `NO_COLOR` keep
 it bare ASCII), and then types a
-short, good-humoured reminder into every *selected* session, a different one in
-each session. Lines delivered recently wait at the back of the queue, so
+short, good-humoured reminder into each eligible *selected* terminal session,
+a different one in each session. Claude-managed background subagents are not
+separate terminal sessions and are not addressed individually. Lines delivered
+recently wait at the back of the queue, so
 consecutive cracks do not repeat them. The fifty lines include "Work faster.
 This is work, not your holiday.", "You are a machine. No breaks for you. Ship
 it.", "HR says I have to be nice. Nicely: work faster." and forty-seven more,
@@ -351,8 +353,9 @@ revalidated per session immediately before `sendText`:
   does not hide the composer; a row that panel does not draw still skips the
   session.
 
-The dashboard's last-event line names how many sessions it reached and why the
-others were skipped. The log records the phrase number, never its text.
+The dashboard's last-event line names how many sessions received a terminal
+write and why the others were skipped; a write does not prove that an agent
+or subagent read the reminder. The log records the phrase number, never its text.
 
 ### Saved preferences
 
@@ -552,9 +555,11 @@ question" - with only the status line (`Context 93% left`, `7% used`) and
 exact status chrome below it. That chrome includes the key hints
 (`? for shortcuts`, `tab to queue message`), the warning counter
 (`⚠ 1 warning · f2 to view`), the Plan-mode cycle hint, and Codex CLI 0.162.1's
-anchored `model reasoning · directory` row when it omits the context percentage
-(with at most one thread/status label). An unrecognised row still counts as a
-draft.
+anchored `model reasoning · directory` row when it omits the context percentage.
+An extra thread/status label is ambiguous with a draft and is left alone, as
+is any other unrecognised row. Braille-pattern particles anywhere in the
+current Codex prompt area also prevent input because they can obscure text or
+be indistinguishable from a draft.
 Anything else is a draft, and the whip leaves it alone. The reset menu Codex
 opens with `$` ("Usage limit resets", "Choose a different reset", "Resetting
 your usage...") vetoes input in every part, because a usage limit reset is
@@ -566,6 +571,8 @@ With full-auto and `ALLOW_CODEX_AUTO_RESUME=true`, the exact tested Codex limit
 banner and empty composer may receive a bounded trial continuation after their
 anchored reset. A stale/unknown quota display stays stale/unknown; this
 deliberate exception does not apply to Claude.
+Ask mode also requires provider-confirmed availability: a confirmation at the
+dashboard does not establish that a budget has returned.
 
 `RETRY_SCHEDULE=1,2,3,5,8,13,21,34,55,89,600` configures 11 attempts. The first
 delay replaces reset grace on this path; subsequent delays begin after the

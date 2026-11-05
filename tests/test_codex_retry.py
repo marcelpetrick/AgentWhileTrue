@@ -11,7 +11,6 @@ import pytest
 
 from agent_while_true import providers
 from agent_while_true.config import Config, Mode, Policy
-from agent_while_true.providers import ActionKind
 from agent_while_true.quota import Availability, QuotaWindow
 from agent_while_true.state_store import StateStore
 from agent_while_true.states import SessionState
@@ -76,6 +75,20 @@ def test_transient_working_redraw_does_not_complete_retry_or_move_reset(tmp_path
     kit.clock.advance(2)
     kit.supervisor.tick()
     assert len(kit.sent) == 2
+
+
+def test_particle_obscured_working_does_not_verify_retry(tmp_path):
+    kit, session = setup_codex(tmp_path)
+    kit.supervisor.tick()
+    episode = session.retry_episode_key
+    kit.clock.advance(69)
+    assert kit.supervisor.tick()[0].allowed
+    kit.terminal.set_screen("/Sessions/1", [*TONIGHTS_LIMIT, "● Wor⠁king", COMPOSER])
+    for delay in (1, 3):
+        kit.clock.advance(delay)
+        kit.supervisor.tick()
+        assert not kit.supervisor.store.get_episode(episode).completed
+        assert kit.supervisor.activity.budget_restarts == 0
 
 
 def test_reported_repeated_limit_stays_an_exact_retry_prompt() -> None:
@@ -390,20 +403,14 @@ def test_old_limit_or_nonempty_draft_never_gets_continue(tmp_path, tail):
     assert kit.sent == []
 
 
-def test_codex_particle_chrome_does_not_hide_the_empty_composer() -> None:
-    """Codex 0.154 draws animated Braille particles on the composer row.
-
-    Observed live on 2026-09-18: all three limit patterns matched and the reset
-    parsed, but the composer never stripped to its tested placeholder, so no
-    retry episode was created and the session would have waited forever.
-    """
+def test_codex_particle_chrome_is_ambiguous_and_refused() -> None:
+    """The same particles can be draft text and cannot authorize input."""
     result = providers.CODEX.recognise(screens.CODEX_USAGE_LIMIT_WITH_PARTICLES, now=NOW)
 
     assert result.state is SessionState.LIMIT_BLOCKED
-    assert result.input_ready
-    assert result.retry_prompt
-    assert result.action is not None
-    assert result.action.kind is ActionKind.TEXT_THEN_ENTER
+    assert not result.input_ready
+    assert not result.retry_prompt
+    assert result.action is None
     assert result.reset_at is not None
 
 
@@ -429,7 +436,7 @@ def test_codex_particles_do_not_change_the_screen_fingerprint() -> None:
         "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}\N{BRAILLE PATTERN DOTS-4}Ask Codex",
     ],
 )
-def test_a_particle_around_the_glyph_still_reads_as_an_empty_composer(spacing: str) -> None:
+def test_a_particle_around_the_glyph_is_not_a_safe_composer(spacing: str) -> None:
     glyph = "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}"
     frame = [
         line.replace(f"{glyph} Ask Codex", spacing, 1) if line.startswith(glyph) else line
@@ -439,9 +446,9 @@ def test_a_particle_around_the_glyph_still_reads_as_an_empty_composer(spacing: s
 
     result = providers.CODEX.recognise(frame, now=NOW)
 
-    assert result.input_ready
-    assert result.retry_prompt
-    assert result.action is not None
+    assert not result.input_ready
+    assert not result.retry_prompt
+    assert result.action is None
 
 
 @pytest.mark.parametrize(

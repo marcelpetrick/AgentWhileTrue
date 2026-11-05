@@ -92,7 +92,7 @@ is reproducible with `scripts/record_demo.py --still`.*
   cannot switch permission prompts off (managed settings, no bypass mode),
   every "Do you want to proceed?", "... overwrite this file?" or "... create
   this file?" used to park the agent until you came back. Press `y` in
-  full-auto and auto-yes answers `1. Yes` on the exact current two-, three- or
+  full-auto and auto-yes answers `1. Yes` on the exact tested two-, three- or
   four-choice permission menu, once per prompt (plus a single re-sent Enter if
   that exact box is still there 3 s later), after the same revalidation as
   every other input. Full-window command previews and both background-agent
@@ -106,7 +106,7 @@ is reproducible with `scripts/record_demo.py --still`.*
   verified budget restarts and armed provider waits. A retry is not another
   restart; an armed wait is not resumed work. Counts reset with each watcher.
 - **The whip, for a friendly nudge** — press `w` and an ASCII bullwhip cracks
-  across the dashboard, then every idle agent gets one cheerful reminder that
+  across the dashboard, then each eligible selected session gets a reminder that
   results beat burned tokens. [More below](#the-whip).
 - **A record of what happened** — persisted `PLANNED → SENT → VERIFIED|FAILED`
   history in plain language (`logs --raw` for diagnostics), and day/week summaries
@@ -179,8 +179,9 @@ half-typed draft is left alone.*
 
 Press `w` and an ASCII bullwhip unrolls across the whole dashboard, in the
 colours of whichever theme you picked with `t`, snaps taut and lands with a
-`CRACK!`. Then each selected agent that is ready to listen
-gets its own short pep talk, picked from fifty. No two tabs hear the same line
+`CRACK!`. Then each eligible selected terminal session gets its own short pep
+talk, picked from fifty. Claude-managed background subagents do not have
+separate supervised composers and are not addressed individually. No two tabs hear the same line
 in one crack, and recently used lines wait their turn, so it stays fresh:
 
 > *Work faster. This is work, not your holiday.* ·

@@ -46,6 +46,22 @@ def test_quoted_or_reworded_capacity_has_no_action(replacement):
 
 
 @pytest.mark.parametrize(
+    "frame",
+    [
+        [
+            screens.CODEX_MODEL_CAPACITY[0].replace("capacity", "capa⠁city"),
+            *screens.CODEX_MODEL_CAPACITY[1:],
+        ],
+        [screens.CODEX_MODEL_CAPACITY[0], "⠁", *screens.CODEX_MODEL_CAPACITY[1:]],
+    ],
+)
+def test_capacity_frame_does_not_erase_extra_characters(frame):
+    result = providers.CODEX.recognise(frame, now=NOW)
+    assert not result.capacity_prompt
+    assert result.action is None
+
+
+@pytest.mark.parametrize(
     "tail",
     [
         ["\u203a user's existing draft"],

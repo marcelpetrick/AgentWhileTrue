@@ -34,6 +34,8 @@ _MESSAGES = {
     "whip_cracked": "Operator reminder requested",
 }
 _REASONS = {
+    "provider-confirmation-required": "Waiting for fresh provider confirmation of available usage",
+    "unsupported-codex-limit-prompt": "Unrecognized Codex limit screen; inspect the agent tab",
     "capacity-retry-not-due": "Model busy; waiting for the next bounded same-model retry",
     "capacity-requires-full-auto": "Capacity retries require full-auto mode",
     "capacity-requires-available-quota": "Capacity retry needs fresh available quota",

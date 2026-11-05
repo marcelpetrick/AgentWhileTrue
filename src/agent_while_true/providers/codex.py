@@ -4,8 +4,8 @@
 
 """Codex CLI prompt recognition.
 
-Patterns are checked against the strings shipped inside the latest Codex CLI
-binary and its live screens. Codex differs from Claude Code in one way that
+Patterns are checked against recorded Codex CLI strings and live screens.
+Codex differs from Claude Code in one way that
 matters a great deal here: it offers no "press enter to continue" affordance.
 When a Codex turn is cut short by a usage limit the TUI returns to its
 composer, so resuming means *typing* rather than pressing a key.
@@ -33,7 +33,7 @@ from agent_while_true.providers.base import (
 )
 
 NAME: Final = "codex"
-PATTERNS_VERSION: Final = "codex-0.163-capacity/12"
+PATTERNS_VERSION: Final = "codex-0.163-capacity/13"
 #: The latest release whose screens and strings were read. Only the newest
 #: Codex CLI release is supported; older ones are not tracked.
 VERIFIED_VERSIONS: Final = ("0.162.1",)
@@ -72,8 +72,10 @@ def _pattern(text: str) -> re.Pattern[str]:
 #: across the composer rows. They are decoration: they never carry a word of
 #: the prompt, they sit on the same row as the placeholder so the composer no
 #: longer strips to its tested text, and they change on every frame so the
-#: screen fingerprint would never be stable. Removing the block before any
-#: comparison restores both the exact composer match and a stable fingerprint.
+#: screen fingerprint would never be stable. Recognition can remove particles
+#: for observation, but input refuses particles in the current prompt area
+#: because they can obscure text or be draft text. Approval previews use
+#: the original screen for recognition and fingerprinting.
 _BRAILLE_PARTICLES = re.compile(r"[\u2800-\u28ff]")
 
 
@@ -86,22 +88,39 @@ _BRAILLE_PARTICLES = re.compile(r"[\u2800-\u28ff]")
 #: the shortcuts row, or show its exact Plan-mode cycle hint without a context
 #: percentage. Those are status chrome, not composer text.
 _CODEX_FOOTER = re.compile(
-    r"\b\d{1,3}% (?:used|left|context left)\b"
-    r"|(?:\? for shortcuts|to queue message)"
-    r"(?:\s+⚠\s+\d+\s+warnings?\s+·\s+f2 to view)?\s*$"
-    r"|Plan mode \(shift\+tab to cycle\)(?:\s+·\s+IDE context)?\s*$"
+    r"^\s*(?:(?:gpt|codex|o\d)[\w.-]*\s+(?:default|low|medium|high|xhigh|max|ultra)"
+    r"\s+·\s+(?:~|/)\S+\s+·\s+\d{1,3}% (?:used|left|context left)"
+    r"(?:\s+·\s+resets\s+\d{1,2}:\d{2}\s*[AP]M)?"
+    r"|(?:← for agents\s+·\s+)?\? for shortcuts"
+    r"(?:\s+⚠\s+\d+\s+warnings?\s+·\s+f2 to view)?"
+    r"|tab to queue message"
+    r"|(?:gpt[\w.-]*\s+(?:default|low|medium|high|xhigh|max|ultra)\s+)?"
+    r"Plan mode \(shift\+tab to cycle\)(?:\s+·\s+IDE context)?"
+    r")\s*$",
+    re.IGNORECASE,
 )
 #: Codex can omit context/usage from the ordinary status row. The current
 #: shipped snapshots render an empty composer above just
-#: ``MODEL EFFORT · DIRECTORY`` and may append one thread/status label. This
-#: row is anchored end to end and admits at most that one documented label. A
+#: ``MODEL EFFORT · DIRECTORY``. This row is anchored end to end. A
 #: model-looking draft, an unbounded middle-dot row or any further continuation
 #: still fails closed.
 _CODEX_STATUS_FOOTER = re.compile(
     r"^\s*(?:gpt|codex|o\d)[\w.-]*(?:\s+\([^\r\n)]+\))?"
     r"\s+(?:default|low|medium|high|xhigh|max|ultra)"
     r"\s+·\s+(?:~|/)\S+"
-    r"(?:\s+·\s+[^·\r\n]+)?\s*$",
+    r"\s*$",
+    re.IGNORECASE,
+)
+_LEGACY_STATUS_FOOTER = re.compile(
+    r"^\s*(?:gpt|codex|o\d)[\w.-]*\s+(?:default|low|medium|high|xhigh|max|ultra)"
+    r"\s+·\s+(?:~|/)\S+\s+·\s+\d{1,3}% (?:used|left|context left)"
+    r"(?:\s+·\s+resets\s+\d{1,2}:\d{2}\s*[AP]M)?\s*$",
+    re.IGNORECASE,
+)
+_CONTEXT_STATUS_FOOTER = re.compile(
+    r"^\s*(?:gpt|codex|o\d)[\w.-]*\s+(?:default|low|medium|high|xhigh|max|ultra)"
+    r"\s+·\s+Context \d{1,3}% left\s+·\s+(?:~|/)\S+"
+    r"(?:\s+·\s+[\w./-]+\s+·\s+Context \d{1,3}% used)?\s*$",
     re.IGNORECASE,
 )
 #: What an empty composer shows: nothing, or one of Codex's placeholders. 0.158
@@ -117,8 +136,15 @@ _CAPACITY_BANNER = re.compile(
 _CAPACITY_STATUS_FOOTER = re.compile(
     r"^\s*(?:GPT|codex|o\d)[\w.-]+\s+(?:low|medium|high|xhigh|max|ultra)"
     r" · Context \d{1,3}% left · (?:~|/)\S+ · (?:GPT|codex|o\d)[\w.-]+"
-    r" · [\w.-]+ · [\w./-]+ · Context \d{1,3}% used · 5h \d{1,3}% left …\s*$",
+    r" · [\w.-]+ · [\w./-]+ · Context \d{1,3}% used · 5h \d{1,3}% left (?:· )?…\s*$",
     re.IGNORECASE,
+)
+
+_LIMIT_BANNER = re.compile(
+    r"^[▌■] You've hit your usage limit\. "
+    r"(?:Upgrade to Pro \(https://chatgpt\.com/explore/pro\), visit "
+    r"https://chatgpt\.com/(?:codex/)?settings/usage to purchase more credits or )?"
+    r"[Tt]ry again at \d{1,2}:\d{2}\s*[AP]M\.?$"
 )
 
 
@@ -300,8 +326,9 @@ class CodexAdapter(ProviderAdapter):
         live_lines: int = CODEX_LIVE_LINES,
     ) -> Recognition:
         """Restrict Codex decisions to its immediate prompt area."""
+        original_lines = lines
         lines = _without_particles(lines)
-        block = _approval_block(lines)
+        block = _approval_block(original_lines)
         if block is not None:
             result = super().recognise(block, now=now, live_lines=len(block))
             return replace(
@@ -340,10 +367,9 @@ class CodexAdapter(ProviderAdapter):
             ),
             -1,
         )
-        # Compare what follows the glyph, with whitespace normalised. A particle
-        # drawn in the space after the glyph leaves the glyph glued to the
-        # placeholder once removed, and one drawn next to that space leaves a
-        # double space; the placeholder is the same placeholder either way.
+        # Compare what follows the glyph, with whitespace normalised. Particle
+        # removal supports observation; the original composer is checked below
+        # and cannot authorize input while any particle is visible there.
         body = (
             " ".join(
                 live[composer].split("\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}", 1)[1].split()
@@ -356,29 +382,56 @@ class CodexAdapter(ProviderAdapter):
         # empty and continues below it. For typing a fresh message, only the
         # footer may follow; the resume path keeps its tested ``input_ready``.
         trailing = [line for line in live[composer + 1 :] if line.strip()] if empty else []
-        status_rows = sum(bool(_CODEX_STATUS_FOOTER.fullmatch(line)) for line in trailing)
+        original_live = original_lines[-live_lines:]
+        ambiguous_particles = any(_BRAILLE_PARTICLES.search(line) for line in original_live)
+        status_rows = [
+            bool(
+                _CODEX_STATUS_FOOTER.fullmatch(line)
+                or _LEGACY_STATUS_FOOTER.fullmatch(line)
+                or _CONTEXT_STATUS_FOOTER.fullmatch(line)
+                or _CAPACITY_STATUS_FOOTER.fullmatch(line)
+            )
+            for line in trailing
+        ]
         composer_empty = (
             empty
-            and status_rows <= 1
+            and not ambiguous_particles
+            and len(trailing) <= 2
+            and (len(trailing) != 2 or status_rows == [True, False])
             and all(
-                _CODEX_FOOTER.search(line) or _CODEX_STATUS_FOOTER.fullmatch(line)
+                _CODEX_FOOTER.fullmatch(line)
+                or _CODEX_STATUS_FOOTER.fullmatch(line)
+                or _CONTEXT_STATUS_FOOTER.fullmatch(line)
+                or _CAPACITY_STATUS_FOOTER.fullmatch(line)
                 for line in trailing
             )
         )
         banner = next(
             (
                 index
-                for index, line in enumerate(live)
+                for index in range(len(live) - 1, -1, -1)
                 # Folded like every other comparison: 0.155 writes U+2019 here,
                 # and an unfolded anchor silently disabled the bounded retry.
-                if re.match(r"^\s*[▌■]\s+You've hit your usage limit\.", normalise_typography(line))
+                if re.match(
+                    r"^\s*[▌■]\s+You've hit your usage limit\.",
+                    normalise_typography(live[index]),
+                )
             ),
             -1,
         )
         exact = (
-            empty
+            composer_empty
             and banner >= 0
             and banner < composer
+            and bool(
+                _LIMIT_BANNER.fullmatch(
+                    " ".join(
+                        normalise_typography(line).strip()
+                        for line in original_live[banner:composer]
+                        if line.strip()
+                    )
+                )
+            )
             and result.reset_at is not None
             and {"codex/limit-usage", "codex/try-again-at"}.issubset(result.matched_ids)
             and not any(
@@ -386,7 +439,7 @@ class CodexAdapter(ProviderAdapter):
                 for line in live[banner + 1 :]
             )
         )
-        active = any(
+        active = not ambiguous_particles and any(
             re.match(r"^\s*[•●]\s+(?:Working|Explored|Ran|Thinking|Finished)\b", line)
             for line in live
         )
@@ -395,8 +448,14 @@ class CodexAdapter(ProviderAdapter):
             (index for index, line in enumerate(live) if _CAPACITY_BANNER.fullmatch(line)), -1
         )
         if capacity_banner >= 0:
-            active = any(index > capacity_banner for index in active_rows)
-        if active_rows and active_rows[-1] > max(banner, capacity_banner):
+            active = not ambiguous_particles and any(
+                index > capacity_banner for index in active_rows
+            )
+        if (
+            not ambiguous_particles
+            and active_rows
+            and active_rows[-1] > max(banner, capacity_banner)
+        ):
             # New assistant output below a historical limit is a different
             # turn, even before that old banner scrolls out of the live window.
             result = super().recognise(live[active_rows[-1] :], now=now, live_lines=live_lines)
@@ -420,10 +479,11 @@ class CodexAdapter(ProviderAdapter):
             and capacity_footer
             and capacity_banner >= 0
             and capacity_banner < composer
-            and all(not line.strip() for line in live[capacity_banner + 1 : composer])
+            and _CAPACITY_BANNER.fullmatch(original_live[capacity_banner]) is not None
+            and all(not line.strip() for line in original_live[capacity_banner + 1 : composer])
             and not any(
                 re.search(rf"\?\s*$|^\s*[{_MENU_GLYPH}]?\s*\d+\.\s", line)
-                for line in live[:capacity_banner]
+                for line in original_live[:capacity_banner]
             )
         )
         return replace(
@@ -431,7 +491,8 @@ class CodexAdapter(ProviderAdapter):
             retry_prompt=exact,
             capacity_prompt=capacity,
             active_evidence=active,
-            input_ready=empty and ("codex/model-capacity" not in result.matched_ids or capacity),
+            input_ready=composer_empty
+            and ("codex/model-capacity" not in result.matched_ids or capacity),
             composer_empty=composer_empty,
         )
 

@@ -13,6 +13,21 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.71.6] - 2026-11-05
+
+### Fixed
+
+- Require the exact tested Codex limit screen and a visibly empty composer for
+  continuation, and refuse unconfirmed elapsed-reset retries in ask mode.
+  Ambiguous draft and footer rows remain manual for resume and whip input.
+- Preserve the visible Codex approval preview when revalidating its fingerprint.
+- Keep a live Claude data-disclosure warning manual, with a redacted regression.
+
+### Changed
+
+- Clarify whip delivery to selected terminal sessions and the limits of
+  current provider-version verification.
+
 ## [0.71.5] - 2026-11-05
 
 ### Changed

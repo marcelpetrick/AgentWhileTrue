@@ -933,6 +933,35 @@ def scenario_codex_needs_opt_in(directory: Path) -> Result:
     )
 
 
+def scenario_codex_limit_ambiguous_composer(directory: Path) -> Result:
+    world = _world(
+        directory,
+        provider="codex",
+        screen=CODEX_BLOCKED_SCREEN,
+        policy=Policy(allow_codex_auto_resume=True),
+    )
+    world.step("anchor the limit")
+    session = world.supervisor.sessions[world.terminal.ref(SESSION).key()]
+    assert session.reset_at is not None
+    world.clock.advance((session.reset_at - world.clock.wall).total_seconds() + 301)
+    for row in (
+        "  a multiline draft",
+        "  draft 40% used",
+        "  gpt-5 high · ~/project · unrecognized draft",
+    ):
+        world.screen([*CODEX_BLOCKED_SCREEN, row])
+        world.step("a draft follows the empty-looking composer")
+    world.screen([CODEX_BLOCKED_SCREEN[0], "Which option?", "", "› "])
+    world.step("a question interrupts the limit screen")
+    return _result(
+        "codex-limit-ambiguous-composer",
+        "A Codex limit screen contains a draft or an unrelated question.",
+        "leave every ambiguous screen untouched",
+        world,
+        passed=world.terminal.sent == [],
+    )
+
+
 def scenario_codex_daemon_quota_gate(directory: Path) -> Result:
     world = _world(directory, provider="codex", screen=CODEX_BLOCKED_SCREEN)
     # All data is synthetic. Exercise the same response decoder as the bound
@@ -1401,6 +1430,7 @@ SCENARIOS: dict[str, ScenarioFn] = {
     "duplicate-prompt": scenario_duplicate_prompt,
     "crash-recovery": scenario_crash_between_send_and_persist,
     "codex-needs-opt-in": scenario_codex_needs_opt_in,
+    "codex-limit-ambiguous-composer": scenario_codex_limit_ambiguous_composer,
     "codex-daemon-quota-gate": scenario_codex_daemon_quota_gate,
     "codex-capacity-recovery": scenario_codex_capacity_recovery,
     "codex-capacity-refusals": scenario_codex_capacity_refusals,

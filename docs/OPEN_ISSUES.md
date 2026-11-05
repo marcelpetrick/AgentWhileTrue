@@ -106,6 +106,10 @@ session quoting the reset affordance was read as `READY_TO_RESUME` (F0). The
 accepted build therefore differs from the v0.45.6 release, and was published as
 `agentwhiletrue-v0.45.9`.
 
+The later composer safety review now refuses input while those particles are
+visible in the current prompt area: they can obscure text or be a draft.
+Recognition of a limit remains separate from permission to type.
+
 The original acceptance criteria remain the standard for future provider changes.
 
 The released build must supervise an intended Codex or Claude session through a

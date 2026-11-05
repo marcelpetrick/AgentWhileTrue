@@ -29,9 +29,7 @@ def test_changed_screen_fingerprints_share_one_bounded_episode(tmp_path) -> None
     first_episode = session.retry_episode_key
     first_prompt_key = session.reset_prompt_key
 
-    kit.terminal.set_screen(
-        "/Sessions/1", [*TONIGHTS_LIMIT[:-1], "status changed after send", COMPOSER]
-    )
+    kit.terminal.set_screen("/Sessions/1", [*TONIGHTS_LIMIT, "  ? for shortcuts"])
     kit.clock.advance(1)
     assert kit.supervisor.tick()[0].reason == "verify:still-blocked"
     kit.clock.advance(2)
