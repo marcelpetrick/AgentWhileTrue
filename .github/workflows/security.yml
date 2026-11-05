@@ -27,7 +27,7 @@ jobs:
         run: |
           python -m venv .audit-venv
           # ensurepip can seed an older installer than the runner's global pip.
-          .audit-venv/bin/python -m pip install --upgrade pip==26.2.2
+          .audit-venv/bin/python -m pip install --upgrade pip==26.3
           .audit-venv/bin/python -m pip install '.[dev]' setuptools==84.2.1
       - name: Audit installed dependency graph
         run: .audit-venv/bin/python -m pip_audit --progress-spinner off --format json --output dependency-audit.json

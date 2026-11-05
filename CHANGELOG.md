@@ -13,6 +13,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.71.5] - 2026-11-05
+
+### Changed
+
+- Update the pinned development tools pytest, mypy and reuse, the security
+  workflow's pip, two release actions and the Python 3.14-slim image digest.
+
 ## [0.71.4] - 2026-10-27
 
 ### Changed
