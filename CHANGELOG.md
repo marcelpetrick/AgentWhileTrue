@@ -13,6 +13,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.71.7] - 2026-11-05
+
+### Changed
+
+- Prepare the public release of the dependency refresh and input safety fixes;
+  align the tagged installation command with this release.
+
 ## [0.71.6] - 2026-11-05
 
 ### Fixed
