@@ -13,6 +13,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.73.2] - 2026-11-11
+
+### Changed
+
+- Prepare the public release of the whip that reaches every agent tab; align
+  the tagged installation command with this release.
+
 ## [0.73.1] - 2026-11-11
 
 ### Fixed
