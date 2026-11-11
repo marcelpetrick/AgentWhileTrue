@@ -574,6 +574,13 @@ deliberate exception does not apply to Claude.
 Ask mode also requires provider-confirmed availability: a confirmation at the
 dashboard does not establish that a budget has returned.
 
+The exact banner may print its reset as a clock time or, when the reset is not
+today, as an absolute date (`try again at Nov 11th, 2026 2:48 AM.`). Codex's
+`↳ Recap:` summary between banner and composer, and a status row ending in the
+thread title and `Main [default]`, are accepted only in their exact observed
+shape; recap text that reads like any recognised prompt, or any other row,
+keeps the screen manual.
+
 `RETRY_SCHEDULE=1,2,3,5,8,13,21,34,55,89,600` configures 11 attempts. The first
 delay replaces reset grace on this path; subsequent delays begin after the
 previous attempt's verification finishes (normally one second plus latency), so

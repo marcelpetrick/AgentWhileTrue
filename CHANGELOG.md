@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.71.8] - 2026-11-11
+
+### Fixed
+
+- Recognise Codex CLI 0.167.0's limit composer again: a dated reset
+  (`try again at Nov 11th, 2026 2:48 AM`), the `↳ Recap:` block above the
+  composer and the status row's thread title with `Main [default]` each hid the
+  exact screen, so an overnight limit was never continued after its reset.
+  Recap text that reads like any recognised prompt still fails closed.
+
 ## [0.71.7] - 2026-11-05
 
 ### Changed

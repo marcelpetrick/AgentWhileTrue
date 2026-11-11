@@ -108,6 +108,8 @@ _CODEX_STATUS_FOOTER = re.compile(
     r"^\s*(?:gpt|codex|o\d)[\w.-]*(?:\s+\([^\r\n)]+\))?"
     r"\s+(?:default|low|medium|high|xhigh|max|ultra)"
     r"\s+·\s+(?:~|/)\S+"
+    # 0.167.0 appends the thread title and the main agent's exact label.
+    r"(?:(?:\s+·\s+[^·\r\n]{1,120}?)?\s+·\s+Main \[default\])?"
     r"\s*$",
     re.IGNORECASE,
 )
@@ -144,8 +146,19 @@ _LIMIT_BANNER = re.compile(
     r"^[▌■] You've hit your usage limit\. "
     r"(?:Upgrade to Pro \(https://chatgpt\.com/explore/pro\), visit "
     r"https://chatgpt\.com/(?:codex/)?settings/usage to purchase more credits or )?"
-    r"[Tt]ry again at \d{1,2}:\d{2}\s*[AP]M\.?$"
+    # Codex writes an absolute date ("%b %-d" + ordinal ", %Y") when the
+    # reset is not today; 0.167.0 showed "Nov 11th, 2026 2:48 AM" overnight.
+    r"[Tt]ry again at (?:[A-Z][a-z]{2} \d{1,2}(?:st|nd|rd|th), \d{4} )?"
+    r"\d{1,2}:\d{2}\s*[AP]M\.?$"
 )
+
+#: Codex 0.167.0 prints a model-written conversation recap between the limit
+#: banner and the composer: "  ↳ Recap: ..." followed by rows indented to the
+#: text column. Only that exact shape directly above the blank rows of the
+#: composer is recognised, and only when its text matches no prompt pattern.
+_RECAP_FIRST = re.compile(r"^  ↳ Recap: \S.*$")
+_RECAP_CONTINUATION = re.compile(r"^ {11}\S.*$")
+_MAX_RECAP_ROWS: Final = 12
 
 
 def _without_particles(lines: list[str]) -> list[str]:
@@ -304,6 +317,48 @@ PATTERNS: Final[tuple[PromptPattern, ...]] = (
 )
 
 
+def _without_recap(lines: list[str]) -> list[str]:
+    """Drop Codex's exact recap block (and its trailing blanks) above the composer.
+
+    Anything else - a misindented row, a question, a menu, a draft, recap text
+    that reads like any recognised prompt - leaves the screen unchanged, so the
+    recap keeps the limit banner out of the live window and nothing is typed.
+    """
+    composer = next(
+        (
+            index
+            for index in range(len(lines) - 1, -1, -1)
+            if lines[index].strip().startswith("\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK}")
+        ),
+        -1,
+    )
+    if composer < 0:
+        return lines
+    end = composer
+    while end and not lines[end - 1].strip():
+        end -= 1
+    start = end
+    while (
+        start and end - start < _MAX_RECAP_ROWS and _RECAP_CONTINUATION.fullmatch(lines[start - 1])
+    ):
+        start -= 1
+    if not start or not _RECAP_FIRST.fullmatch(lines[start - 1]):
+        return lines
+    start -= 1
+    if start and lines[start - 1].strip():
+        return lines
+    text = " ".join(line.strip() for line in lines[start:end])
+    folded = normalise_typography(text)
+    if any(
+        regex.search(candidate)
+        for pattern in PATTERNS
+        for regex in pattern.all_of
+        for candidate in (text, folded)
+    ):
+        return lines
+    return [*lines[:start], *lines[composer:]]
+
+
 class CodexAdapter(ProviderAdapter):
     """Recognises Codex CLI's usage-limit prompts."""
 
@@ -326,8 +381,8 @@ class CodexAdapter(ProviderAdapter):
         live_lines: int = CODEX_LIVE_LINES,
     ) -> Recognition:
         """Restrict Codex decisions to its immediate prompt area."""
-        original_lines = lines
-        lines = _without_particles(lines)
+        original_lines = _without_recap(lines)
+        lines = _without_particles(original_lines)
         block = _approval_block(original_lines)
         if block is not None:
             result = super().recognise(block, now=now, live_lines=len(block))

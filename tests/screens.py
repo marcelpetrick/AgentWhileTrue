@@ -318,6 +318,34 @@ CODEX_REPEATED_LIMIT_2026_10_16 = [
     "› Ask Codex to do anything",
 ]
 
+# Redacted from the live Codex CLI 0.167.0 session behind the 2026-11-11
+# screenshot (142 columns). Three changes hid the exact tested limit composer:
+# the reset is an absolute "Nov 11th, 2026 2:48 AM" date (Codex prints the
+# date when the reset is not today), a model-written "↳ Recap:" block sits
+# between banner and composer, and the status row appends the thread title and
+# "Main [default]". The recap and thread title are redacted; the banner,
+# indentation, blank rows, composer and footers are verbatim.
+CODEX_0_167_LIMIT_WITH_RECAP = [
+    "• Ran python3 - <<'PY' …",
+    "    + Show details",
+    " ",
+    "■ You’ve hit your usage limit. Upgrade to Pro (https://chatgpt.com/explore/pro), "
+    "visit https://chatgpt.com/settings/usage to purchase more",
+    "credits or try again at Nov 11th, 2026 2:48 AM.",
+    " ",
+    "  ↳ Recap: The goal is to finish the outstanding items, starting with the work that",
+    "           blocks the next milestone. Checks identified two remaining problems and a",
+    "           candidate fix is being tested.",
+    "           Next: Complete the remaining fixes, then run fresh checks.",
+    " ",
+    " ",
+    " ",
+    "› Ask Codex to do anything",
+    " ",
+    "  GPT-6.1-Sol medium · ~/repos/project · Finish remaining repository work · Main [default]",
+    "  ← for agents · ? for shortcuts",
+]
+
 # Transcribed from Codex CLI 0.162.1's own ratatui approval snapshots. The
 # command/reason is illustrative; title, selected item, choice labels, shortcut
 # hints and footer are verbatim.
