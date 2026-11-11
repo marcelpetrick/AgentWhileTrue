@@ -59,6 +59,8 @@ TALKATIVE = {
         (simulate.SESSION, "\x1b[200~continue\x1b[201~\r"),
     ],
     "claude-timed-resume": [(simulate.SESSION, "\x1b[200~continue\x1b[201~\r")],
+    # Full-auto keeps the current model on Codex's switch dialog, once.
+    "codex-keeps-model": [(simulate.SESSION, "\x1b[B\r")],
     "whip-waits-for-draft": [(simulate.SESSION, "\x1b[200~Keep going.\x1b[201~\r")],
     # An answered box that stays gets exactly one more Enter, never a third.
     "auto-yes-resends-once": [(simulate.SESSION, "\r"), (simulate.SESSION, "\r")],

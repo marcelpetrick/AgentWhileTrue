@@ -407,6 +407,7 @@ environment < command line. Durations accept `ms`, `s`, `m`, `h`.
 | `ALLOW_CODEX_AUTO_RESUME` | `false` | May type `continue` into Codex's composer |
 | `ALLOW_CLAUDE_TIMED_RESUME` | `true` | Full-auto only: may type `continue` into Claude's exact limit composer after its printed reset |
 | `ALLOW_CODEX_CAPACITY_RETRY` | `true` | Full-auto only: bounded same-model retry of the exact capacity error |
+| `ALLOW_KEEP_CURRENT_MODEL` | `true` | Full-auto only: choose `2. Keep current model` on Codex's exact rate-limit model-switch dialog; never the switch or `never show again` |
 | `AUTO_ACCEPT_MODEL_DOWNGRADE`, `AUTO_USE_PAID_CREDITS`, `AUTO_BUY_CREDITS`, `AUTO_CONSUME_RESET_CREDIT` | `false` | Human-only actions: setting any to `true` is a configuration error |
 | `LOG_FILE`, `STATE_DIR`, `RUNTIME_DIR` | XDG defaults | Paths |
 | `ALLOW_ROOT`, `USE_FZF` | `false`, `true` | Diagnostics-only root; optional fzf picker |
@@ -456,12 +457,36 @@ a model independently. AWT does not modify provider settings to enforce it.
 It governs the provider choices AWT selects, not the semantics of arbitrary
 tool commands authorized by the operator's auto-yes switch; that switch still
 approves whatever tool use is requested, as explained below.
-It also does not type `stay with same model` into arbitrary questions. No full
-live stay-choice dialog was available during the current audit; model dialogs
-remain manual. Binary strings alone cannot establish the right key: `Keep
-current model (never show again)` changes settings, and another provider's
-decline choice can itself switch models. Only a future observed, exact tested
-stay choice could qualify for a narrowly gated action.
+It also does not type `stay with same model` into arbitrary questions. Model
+dialogs remain manual except one observed, exact tested stay choice: Codex's
+rate-limit model-switch dialog, drawn over its usage-limit banner:
+
+```text
+  Approaching rate limits
+  Switch to <model> for lower credit usage?
+
+› 1. Switch to <model>   <description>
+  2. Keep current model
+  3. Keep current model (never show again)  Hide future rate limit reminders ...
+
+  enter select · esc back
+```
+
+In full-auto, with `ALLOW_KEEP_CURRENT_MODEL` (default on), AWT presses Down
+then Enter once per appearance, which selects only `2. Keep current model`. It
+first re-reads the process identity and the dialog, and refuses on any other
+row, wording, cursor position or mismatched model. It never selects the switch
+and never item 3, which changes a Codex setting; choose item 3 yourself to stop
+the dialog appearing. A dialog still drawn three seconds after the keypress is
+reported (`keep-model-unanswered`) and left to you. Observe and ask mode never
+press anything here. The events are `model_kept` and `model_keep_refused`,
+with the dialog fingerprint only, never the model names.
+
+While the dialog is open, AWT still anchors the reset printed in the banner
+above it, so the timed continuation follows once the dialog closes. Codex
+prints a bare reset clock (`2:08 PM`) only when the reset falls on the day it
+printed the banner, and the full date otherwise, so a bare Codex clock already
+past is taken as passed today, never as tomorrow.
 
 Renewal is checked against provider-reported windows and reset timestamps, not a
 hard-coded five-hour/week timer. Five-hour availability cannot bypass a still

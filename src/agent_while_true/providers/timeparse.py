@@ -177,7 +177,7 @@ def _parse_explicit_date(text: str, now: datetime) -> tuple[bool, datetime | Non
     return True, candidate.astimezone(now.tzinfo)
 
 
-def parse_reset(text: str, now: datetime) -> datetime | None:
+def parse_reset(text: str, now: datetime, *, same_day: bool = False) -> datetime | None:
     """Parse a reset instant out of one line of provider output.
 
     Handles these supported shapes:
@@ -189,6 +189,10 @@ def parse_reset(text: str, now: datetime) -> datetime | None:
 
     An undated clock that has passed rolls forward; callers must anchor repeated
     observations to the first sighting. Explicit dates never roll forward.
+
+    ``same_day`` is for a provider that prints a bare clock only when the reset
+    falls on the day it printed it and a full date otherwise (Codex): a bare
+    clock already past then has passed today and does not roll to tomorrow.
     """
     dated, explicit = _parse_explicit_date(text, now)
     if dated:
@@ -216,7 +220,7 @@ def parse_reset(text: str, now: datetime) -> datetime | None:
         if ahead == 0 and candidate <= reference:
             ahead = DAYS_PER_WEEK
         candidate += timedelta(days=ahead)
-    elif candidate <= reference:
+    elif candidate <= reference and not same_day:
         candidate += timedelta(days=1)
 
     return candidate.astimezone(now.tzinfo)

@@ -334,8 +334,11 @@ without the corresponding maintainer request.
   stay/decline choice only when observed; otherwise show `stay with same model`
   and require the operator, rather than typing into an arbitrary question.
   Legacy opt-ins now reject `true`; model labels add veto-only coverage.
-  No full live stay-choice dialog was observed, so automatic model-decline input
-  remains evidence-blocked. The message is visible policy, not a typed reply.
+  The message is visible policy, not a typed reply. 2026-11-11: Codex 0.167.0's
+  rate-limit model-switch dialog was observed live blocking a timed
+  continuation; its exact `2. Keep current model` is now selected in full-auto
+  (`codex-keeps-model`), and a bare Codex reset clock no longer rolls to
+  tomorrow.
 - [x] Update usage, architecture and safety documentation; cover behavior with
   unit/lifecycle/dashboard tests, simulations and real offline PTY tests.
 - [x] Run the full local pipeline, `/reviewBranch` against `b224585`, fix every

@@ -135,7 +135,9 @@ The detail view explains why an approval is waiting (for example auto-yes off,
 paused, no input control or an unsupported layout). New structured events
 identify the emitting watcher/version and its approval context. AWT's policy is
 `stay with same model`: it never selects model changes or paid capacity, and
-configuration cannot enable those choices. Unknown model dialogs remain manual;
+configuration cannot enable those choices. In full-auto it answers Codex's exact
+rate-limit "switch to a cheaper model?" dialog with `Keep current model`, so the
+limit's timed continuation can follow. Unknown model dialogs remain manual;
 the policy message is not typed into arbitrary questions.
 
 For unattended work, open `agent-while-true run --observe --all`, press `A`

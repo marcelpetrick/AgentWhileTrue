@@ -56,6 +56,15 @@ when recognizer behavior changes.
   through its exact safe decline/stay choice, never by guessing an answer or
   typing free text into an arbitrary question. Without an observed, regression-
   tested stay choice, report `stay with same model` and leave the dialog manual.
+  The one tested stay choice is Codex's exact rate-limit model-switch dialog
+  ("Approaching rate limits", cursor on `1. Switch to <model>`, then exactly
+  `2. Keep current model`, `3. ... (never show again)` and its footer): in
+  full-auto (`ALLOW_KEEP_CURRENT_MODEL`, default on, maintainer request
+  2026-11-11) Down+Enter selects item 2 once per appearance after identity and
+  dialog revalidation, never the switch or the setting-changing item 3; a
+  dialog that outlives the keypress is reported and left to the operator.
+  Codex prints a bare reset clock only for a same-day reset, so a bare Codex
+  clock already past has passed today; it never rolls to tomorrow.
 - Quota exhaustion means wait for the relevant provider-confirmed budget
   renewal, not switch model or buy capacity. Respect every exhausted window
   (including weekly/model-specific limits), provider reset and grace period;

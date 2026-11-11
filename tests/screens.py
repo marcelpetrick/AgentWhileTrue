@@ -346,6 +346,42 @@ CODEX_0_167_LIMIT_WITH_RECAP = [
     "  ← for agents · ? for shortcuts",
 ]
 
+#: Codex CLI 0.167.0 live screen, 2026-11-11 17:41: its rate-limit model-switch
+#: dialog drawn over the usage-limit banner, cursor on the downgrade. Rows above
+#: the banner are redacted; banner, dialog rows and spacing are verbatim. The
+#: supervisor may only pick "2. Keep current model" here.
+CODEX_0_167_KEEP_MODEL_DIALOG = [
+    "• Ran git status --short",
+    "  └ M docs/notes.md",
+    "",
+    "■ You’ve hit your usage limit. Upgrade to Pro (https://chatgpt.com/explore/pro), "
+    "visit https://chatgpt.com/settings/usage to purchase more",
+    "credits or try again at 2:08 PM.",
+    "",
+    "",
+    "  Approaching rate limits",
+    "  Switch to gpt-6-luna for lower credit usage?",
+    "",
+    "",
+    "› 1. Switch to gpt-6-luna                   Fast and affordable model for easier tasks.",
+    "  2. Keep current model",
+    "  3. Keep current model (never show again)  Hide future rate limit reminders about switching "
+    "models",
+    "",
+    "  enter select · esc back",
+]
+
+#: The same tab once "Keep current model" closed the dialog: the limit banner
+#: above the empty composer, which the bounded timed continuation handles.
+CODEX_0_167_LIMIT_AFTER_KEEP_MODEL = [
+    *CODEX_0_167_KEEP_MODEL_DIALOG[:5],
+    " ",
+    "› Ask Codex to do anything",
+    " ",
+    "  GPT-6.1-Sol medium · ~/repos/project · Finish remaining repository work · Main [default]",
+    "  ← for agents · ? for shortcuts",
+]
+
 # Transcribed from Codex CLI 0.162.1's own ratatui approval snapshots. The
 # command/reason is illustrative; title, selected item, choice labels, shortcut
 # hints and footer are verbatim.

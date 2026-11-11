@@ -203,6 +203,12 @@ class SupervisedSession:
     approval_resent: bool = False
     #: The box outlived the extra Enter too, and that was reported once.
     approval_stuck: bool = False
+    #: The model-switch dialog this watcher answered with "Keep current model",
+    #: when, and whether it outlived that keypress (reported once, never
+    #: pressed again). Cleared once a real read shows no such dialog.
+    kept_model_fingerprint: str = ""
+    kept_model_at: float | None = None
+    keep_model_stuck: bool = False
     #: Cached presentation/diagnostic reason; never an authorization decision.
     approval_status: str = "not-evaluated"
     approval_context: tuple[object, ...] = ()
@@ -426,6 +432,7 @@ class Supervisor:
                     "waiting-for-reset",
                     "declined-by-user",
                     "send-failed",
+                    "keep-model-awaiting-transition",
                 }
                 and not decision.reason.startswith(("revalidation-failed:", "verify:"))
                 and session.observed_state not in {"ACTIVE", "LIMIT_WARNING", "APPROVAL_PENDING"}
@@ -516,6 +523,12 @@ class Supervisor:
             if pending is not None and pending.state is ActionState.SENT:
                 session.pending_key = pending.key
                 return self._verify(session, now)
+        # Only after any persisted continuation was verified: that attempt is
+        # settled before the dialog it may have caused gets its keypress.
+        if observation.recognition is not None and observation.recognition.keep_model_fingerprint:
+            decision = self._keep_model(session, observation)
+            self._record_state(session, observation, decision)
+            return decision
         decision = self._decide(session, observation)
         # Waiting gates input, never observation. New/manual activity is always
         # reflected even when a provider reset is hours away.
@@ -681,8 +694,13 @@ class Supervisor:
                 # Even stale evidence may anchor a date, never availability.
                 if dated:
                     reference = max(dated).replace(second=0, microsecond=0) - timedelta(seconds=1)
+            same_day = observation.provider is not None and (
+                observation.provider.undated_reset_is_same_day
+            )
             parsed = [
-                value for text in texts if (value := parse_reset(text, reference)) is not None
+                value
+                for text in texts
+                if (value := parse_reset(text, reference, same_day=same_day)) is not None
             ]
             if not parsed:
                 return observation
@@ -898,6 +916,14 @@ class Supervisor:
             session.approved_at = None
             session.approval_resent = False
             session.approval_stuck = False
+        if (
+            observation.screen_read
+            and recognition is not None
+            and not recognition.keep_model_fingerprint
+        ):
+            session.kept_model_fingerprint = ""
+            session.kept_model_at = None
+            session.keep_model_stuck = False
 
     def act(
         self, session: SupervisedSession, observation: Observation, decision: Decision
@@ -1462,6 +1488,94 @@ class Supervisor:
             return "prompt-changed"
         return ""
 
+    # -- keeping the current model ----------------------------------------
+
+    def _keep_model(self, session: SupervisedSession, observation: Observation) -> Decision:
+        """Choose "Keep current model" on Codex's exact model-switch dialog.
+
+        Full-auto only, behind ``allow_keep_current_model``. The adapter only
+        reports the dialog when its cursor is on the switch and item 2 is
+        exactly "Keep current model", so Down-then-Enter reaches nothing else.
+        Each appearance gets one keypress; a dialog still there after
+        :data:`APPROVAL_RECHECK_SECONDS` is left to the operator, because a
+        delayed second keypress could land in whatever Codex draws next.
+        Identity, dialog and foreground process are re-read before sending.
+        """
+        recognition = observation.recognition
+        expected = recognition.keep_model_fingerprint if recognition else ""
+        refusal = self._keep_model_refusal(session, observation, expected)
+        if refusal:
+            return Decision(allowed=False, reason=refusal)
+        fresh = self.observe(session.ref)
+        self._remember_observation(session, fresh)
+        if fresh.identity is None or fresh.identity != session.identity:
+            reason = "process-identity-changed"
+        elif not fresh.classification.automatable or fresh.recognition is None:
+            reason = f"not-automatable:{fresh.classification.blocker or 'unknown'}"
+        elif fresh.recognition.keep_model_fingerprint != expected:
+            reason = "prompt-changed"
+        else:
+            reason = self._live_process_drift(session)
+        if not reason:
+            try:
+                self.terminal.send_text(session.ref, KEEP_MODEL_KEYSTROKES)
+            except TerminalError as exc:
+                reason = f"send-failed:{type(exc).__name__}"
+        if reason:
+            self.log.warning(
+                "model_keep_refused",
+                provider=session.provider_name,
+                session=session.ref.key(),
+                process=session.describe_process(),
+                screen=expected,
+                reason=reason,
+            )
+            return Decision(allowed=False, reason=f"revalidation-failed:{reason}")
+        session.kept_model_fingerprint = expected
+        session.kept_model_at = self.monotonic_fn()
+        session.keep_model_stuck = False
+        # Identifiers and the dialog fingerprint only; never the model names.
+        self.log.info(
+            "model_kept",
+            provider=session.provider_name,
+            session=session.ref.key(),
+            process=session.describe_process(),
+            screen=expected,
+            reason="model-kept",
+        )
+        return Decision(allowed=True, reason="model-kept")
+
+    def _keep_model_refusal(
+        self, session: SupervisedSession, observation: Observation, expected: str
+    ) -> str:
+        if not self.config.mode.may_send_input:
+            return "observe-mode"
+        if self.config.mode is not Mode.AUTO:
+            return "keep-model-requires-full-auto"
+        if not self.config.policy.allow_keep_current_model:
+            return "keep-model-disabled"
+        if session.marked_unsafe:
+            return "session-unsafe"
+        if session.provider_name != "codex":
+            return "unsupported-provider"
+        if observation.identity is None or observation.identity != session.identity:
+            return "process-identity-changed"
+        if not observation.classification.automatable:
+            return f"not-automatable:{observation.classification.blocker or 'unknown'}"
+        pending = self.store.records.get(session.pending_key)
+        if session.verify_after is not None or (pending is not None and not pending.is_settled):
+            return "action-in-flight"
+        if expected and expected == session.kept_model_fingerprint:
+            settled = (
+                session.kept_model_at is not None
+                and self.monotonic_fn() - session.kept_model_at >= APPROVAL_RECHECK_SECONDS
+            )
+            if session.keep_model_stuck or settled:
+                session.keep_model_stuck = True
+                return "keep-model-unanswered"
+            return "keep-model-awaiting-transition"
+        return ""
+
     # -- verification ------------------------------------------------------
 
     def _verify(self, session: SupervisedSession, now: datetime) -> Decision:
@@ -1704,6 +1818,8 @@ def _whip_text(text: str, *, background: bool) -> str:
 
 #: Enter on the visibly selected "1. Yes": the one-time approval.
 APPROVE_KEYSTROKES = "\r"
+#: Down from the switch (item 1) to "Keep current model" (item 2), then Enter.
+KEEP_MODEL_KEYSTROKES: Final = ResumeAction(kind=ActionKind.ARROW_DOWN_THEN_ENTER).keystrokes()
 
 
 #: The banner matches whose rows carry a timed-retry episode's printed reset.

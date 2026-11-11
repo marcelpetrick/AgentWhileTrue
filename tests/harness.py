@@ -11,8 +11,9 @@ shared by the FSM tests and the ``simulate`` command.
 """
 
 from dataclasses import dataclass, field, replace
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from agent_while_true.config import Config, Mode
 from agent_while_true.fsm import Supervisor
@@ -155,7 +156,8 @@ def build(
     config: Config | None = None,
 ) -> Harness:
     """Wire a supervisor to fakes."""
-    clock = Clock(wall=now or datetime(2026, 9, 5, 20, 0, tzinfo=UTC))
+    # An explicit IANA zone keeps zone-less provider clocks host-independent.
+    clock = Clock(wall=now or datetime(2026, 9, 5, 20, 0, tzinfo=ZoneInfo("UTC")))
     terminal = FakeAdapter()
     inspector = FakeInspector()
     quota = {

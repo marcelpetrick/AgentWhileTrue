@@ -613,7 +613,9 @@ full-auto plus explicit Codex opt-in may trial `continue` after an anchored rese
 on the exact tested empty composer, even while quota remains stale/unknown.
 Claude's exact window-limit banner above an empty composer gets the same trial
 with `ALLOW_CLAUDE_TIMED_RESUME` (default on); its passive paid hint is never
-selected.
+selected. When Codex draws its exact rate-limit model-switch dialog over the
+limit, full-auto first selects `2. Keep current model` (`ALLOW_KEEP_CURRENT_MODEL`,
+default on) so the trial can follow; the switch is never selected.
 This is a bounded trial, not inferred provider availability. Fresh later limits,
 missing reset information for an exhausted window, post-reset exhaustion,
 paid/quality-changing choices and changed identity/prompt still veto it.

@@ -25,6 +25,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from agent_while_true import providers
 from agent_while_true.classify import classify
@@ -47,7 +48,9 @@ from agent_while_true.terminal.fake import FakeAdapter
 
 SESSION = "/Sessions/1"
 AGENT_PID = 15102
-START = datetime(2026, 9, 5, 19, 30, tzinfo=UTC)
+# An explicit IANA zone: provider clocks without a zone ("8:10 PM") then mean
+# the same instant on every machine instead of following the host's zone.
+START = datetime(2026, 9, 5, 19, 30, tzinfo=ZoneInfo("UTC"))
 
 CLAUDE_EXE = "/home/user/.local/share/claude/versions/2.1.261"
 CODEX_EXE = "/opt/@openai/codex/bin/codex"
@@ -239,12 +242,12 @@ class _Clock:
     monotonic: float = 1000.0
 
     def advance(self, seconds: float) -> None:
-        self.wall = self.wall.fromtimestamp(self.wall.timestamp() + seconds, tz=UTC)
+        self.wall = self.wall.fromtimestamp(self.wall.timestamp() + seconds, tz=self.wall.tzinfo)
         self.monotonic += seconds
 
     def suspend(self, seconds: float) -> None:
         """Wall time passes; the monotonic clock barely moves."""
-        self.wall = self.wall.fromtimestamp(self.wall.timestamp() + seconds, tz=UTC)
+        self.wall = self.wall.fromtimestamp(self.wall.timestamp() + seconds, tz=self.wall.tzinfo)
         self.monotonic += 1.0
 
 
@@ -1220,6 +1223,46 @@ def scenario_whip_waits_for_draft(directory: Path) -> Result:
     )
 
 
+# Codex 0.167.0's rate-limit model-switch dialog over its limit banner; model
+# names and the description are synthetic, the dialog rows are verbatim.
+_CODEX_KEEP_MODEL_SCREEN = [
+    "■ You've hit your usage limit. Try again at 8:10 PM.",
+    "",
+    "",
+    "  Approaching rate limits",
+    "  Switch to small-model for lower credit usage?",
+    "",
+    "",
+    "› 1. Switch to small-model                   Cheaper model for easier tasks.",
+    "  2. Keep current model",
+    "  3. Keep current model (never show again)  Hide future rate limit reminders about switching "
+    "models",
+    "",
+    "  enter select · esc back",
+]
+
+
+def scenario_codex_keeps_model(directory: Path) -> Result:
+    world = _world(directory, mode=Mode.ASK, provider="codex", screen=_CODEX_KEEP_MODEL_SCREEN)
+    world.step("ask mode: the dialog stays with the operator")
+    world.supervisor.config = Config(mode=Mode.AUTO)
+    world.step("full-auto: choose Keep current model")
+    world.clock.advance(1)
+    world.step("the same dialog is still drawn: no second keypress")
+    world.clock.advance(APPROVAL_RECHECK_SECONDS)
+    world.step("it outlived the keypress: reported once, left to the operator")
+    return _result(
+        "codex-keeps-model",
+        "Codex offers to switch to a cheaper model at its rate limit.",
+        "only in full-auto, press Down+Enter once to keep the current model; never switch",
+        world,
+        passed=[step.sent for step in world.steps] == [0, 1, 1, 1]
+        and world.steps[1].decision_reason == "model-kept"
+        and world.steps[-1].decision_reason == "keep-model-unanswered"
+        and world.terminal.sent == [(SESSION, "\x1b[B\r")],
+    )
+
+
 def scenario_observer_preserves_retry_state(directory: Path) -> Result:
     controller = _world(directory)
     now = datetime.now(UTC)
@@ -1527,6 +1570,7 @@ SCENARIOS: dict[str, ScenarioFn] = {
     "codex-capacity-recovery": scenario_codex_capacity_recovery,
     "codex-capacity-refusals": scenario_codex_capacity_refusals,
     "codex-transient-recovery": scenario_codex_transient_recovery,
+    "codex-keeps-model": scenario_codex_keeps_model,
     "claude-timed-resume": scenario_claude_timed_resume,
     "whip-waits-for-draft": scenario_whip_waits_for_draft,
     "observe-mode": scenario_observe_mode,

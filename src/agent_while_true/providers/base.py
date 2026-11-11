@@ -186,6 +186,10 @@ class Recognition:
     #: Fingerprint of that permission box alone, so an operator's approval
     #: binds to the prompt they saw rather than to a spinner redrawing above.
     approval_fingerprint: str = ""
+    #: Fingerprint of an exact tested model-switch dialog whose cursor sits on
+    #: the switch, with "Keep current model" as its next item. Only that item
+    #: may be chosen; empty for every other screen.
+    keep_model_fingerprint: str = ""
 
     @property
     def matched_ids(self) -> tuple[str, ...]:
@@ -266,6 +270,9 @@ class ProviderAdapter(ABC):
     #: recognizer simply stops understanding the screen. `doctor` compares the
     #: installed version against this so that silence gets announced.
     verified_versions: tuple[str, ...] = ()
+    #: The provider prints a bare reset clock only for a same-day reset and a
+    #: full date otherwise, so a bare clock already past has passed today.
+    undated_reset_is_same_day: bool = False
 
     @property
     @abstractmethod
@@ -297,7 +304,7 @@ class ProviderAdapter(ABC):
             provider=self.name,
             state=self._derive_state(matched),
             matches=matched,
-            reset_at=self._derive_reset(matched, now=now),
+            reset_at=self._derive_reset(matched, now=now, same_day=self.undated_reset_is_same_day),
             screen_fingerprint=fingerprint(live),
             blocked_scopes=frozenset(
                 match.pattern.scope
@@ -343,7 +350,9 @@ class ProviderAdapter(ABC):
         return tuple(vetoes)
 
     @staticmethod
-    def _derive_reset(matches: tuple[PromptMatch, ...], *, now: datetime) -> datetime | None:
+    def _derive_reset(
+        matches: tuple[PromptMatch, ...], *, now: datetime, same_day: bool = False
+    ) -> datetime | None:
         interesting = {
             PromptKind.LIMIT_BLOCKED,
             PromptKind.WILL_NOT_SELF_RESUME,
@@ -355,7 +364,9 @@ class ProviderAdapter(ABC):
                 continue
             # Prefer the triggering line; fall back to it plus its successor,
             # which is where a soft wrap puts the time.
-            parsed = parse_reset(match.line, now) or parse_reset(match.context, now)
+            parsed = parse_reset(match.line, now, same_day=same_day) or parse_reset(
+                match.context, now, same_day=same_day
+            )
             if parsed is not None:
                 candidates.append(parsed)
         # The latest reset wins: if both a five-hour and a weekly limit are on

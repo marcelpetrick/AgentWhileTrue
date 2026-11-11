@@ -7,6 +7,7 @@
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -489,7 +490,9 @@ def test_codex_is_resumed_once_the_user_opts_in(tmp_path: Path) -> None:
 
 def test_tick_warms_same_account_quota_before_the_first_decision(tmp_path: Path) -> None:
     config = Config(mode=Mode.AUTO, policy=Policy(allow_codex_auto_resume=True))
-    kit = harness_module.build(tmp_path, config=config)
+    # Before the banner's same-day 3:36 PM reset.
+    before = datetime(2026, 9, 5, 15, 0, tzinfo=ZoneInfo("UTC"))
+    kit = harness_module.build(tmp_path, config=config, now=before)
     blocked_pid, fresh_pid = 30000, 30001
     blocked_info = kit.inspector.add_codex(blocked_pid)
     fresh_info = kit.inspector.add_codex(fresh_pid, start_time=333, tty="pts/6")

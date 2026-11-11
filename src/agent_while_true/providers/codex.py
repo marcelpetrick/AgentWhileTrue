@@ -33,7 +33,7 @@ from agent_while_true.providers.base import (
 )
 
 NAME: Final = "codex"
-PATTERNS_VERSION: Final = "codex-0.163-capacity/13"
+PATTERNS_VERSION: Final = "codex-0.167-keep-model/14"
 #: The latest release whose screens and strings were read. Only the newest
 #: Codex CLI release is supported; older ones are not tracked.
 VERIFIED_VERSIONS: Final = ("0.162.1",)
@@ -159,6 +159,61 @@ _LIMIT_BANNER = re.compile(
 _RECAP_FIRST = re.compile(r"^  ↳ Recap: \S.*$")
 _RECAP_CONTINUATION = re.compile(r"^ {11}\S.*$")
 _MAX_RECAP_ROWS: Final = 12
+
+
+#: Codex's rate-limit model-switch dialog ("rate-limit-switch-prompt"), read
+#: live from 0.167.0 and confirmed in its binary strings. Every row is matched
+#: whole; the switch target must be the same model in subtitle and item 1.
+_KEEP_MODEL_TITLE = re.compile(r"^  Approaching rate limits$")
+_KEEP_MODEL_SUBTITLE = re.compile(r"^  Switch to (?P<model>[\w.-]+) for lower credit usage\?$")
+_KEEP_MODEL_SWITCH = re.compile(
+    rf"^{_MENU_GLYPH} 1\. Switch to (?P<model>[\w.-]+)(?: {{2,}}\S.*)?$"
+)
+_KEEP_MODEL_KEEP = re.compile(r"^  2\. Keep current model$")
+_KEEP_MODEL_NEVER = re.compile(
+    r"^  3\. Keep current model \(never show again\)"
+    r"(?: {2,}Hide future rate limit reminders about switching models)?$"
+)
+_KEEP_MODEL_FOOTER = re.compile(r"^  enter select · esc back$")
+_MAX_DIALOG_GAP: Final = 3
+
+
+def _keep_model_dialog(lines: list[str]) -> int | None:
+    """Row index of the exact model-switch dialog's title, or None.
+
+    The dialog must be the last thing on screen: title, subtitle, one to three
+    blank rows, the three exact items with the cursor on item 1, one blank row
+    and the footer. Any other row, wording, cursor position or model fails
+    closed, so Down-then-Enter can only ever reach "Keep current model".
+    """
+    rows = [line.rstrip() for line in lines]
+    end = len(rows)
+    while end and not rows[end - 1]:
+        end -= 1
+    if end < 8 or not _KEEP_MODEL_FOOTER.fullmatch(rows[end - 1]) or rows[end - 2]:
+        return None
+    if not (
+        _KEEP_MODEL_NEVER.fullmatch(rows[end - 3]) and _KEEP_MODEL_KEEP.fullmatch(rows[end - 4])
+    ):
+        return None
+    switch = _KEEP_MODEL_SWITCH.fullmatch(rows[end - 5])
+    if switch is None:
+        return None
+    index = end - 6
+    gap = 0
+    while index >= 0 and not rows[index] and gap < _MAX_DIALOG_GAP:
+        index -= 1
+        gap += 1
+    if not gap or index < 1:
+        return None
+    subtitle = _KEEP_MODEL_SUBTITLE.fullmatch(rows[index])
+    if (
+        subtitle is None
+        or subtitle.group("model") != switch.group("model")
+        or not _KEEP_MODEL_TITLE.fullmatch(rows[index - 1])
+    ):
+        return None
+    return index - 1
 
 
 def _without_particles(lines: list[str]) -> list[str]:
@@ -365,6 +420,9 @@ class CodexAdapter(ProviderAdapter):
     name = NAME
     patterns_version = PATTERNS_VERSION
     verified_versions = VERIFIED_VERSIONS
+    # Codex formats a reset as a bare clock only when it falls on the day the
+    # banner is printed, and with its full date otherwise.
+    undated_reset_is_same_day = True
 
     @property
     def patterns(self) -> tuple[PromptPattern, ...]:
@@ -383,6 +441,9 @@ class CodexAdapter(ProviderAdapter):
         """Restrict Codex decisions to its immediate prompt area."""
         original_lines = _without_recap(lines)
         lines = _without_particles(original_lines)
+        dialog = _keep_model_dialog(original_lines)
+        if dialog is not None:
+            return self._keep_model(original_lines, dialog, now=now)
         block = _approval_block(original_lines)
         if block is not None:
             result = super().recognise(block, now=now, live_lines=len(block))
@@ -549,6 +610,41 @@ class CodexAdapter(ProviderAdapter):
             input_ready=composer_empty
             and ("codex/model-capacity" not in result.matched_ids or capacity),
             composer_empty=composer_empty,
+        )
+
+    def _keep_model(self, lines: list[str], title: int, *, now: datetime) -> Recognition:
+        """The model-switch dialog, plus the limit banner directly above it.
+
+        The banner is recognised with the dialog so its printed reset is
+        anchored while the dialog is up; otherwise the first sighting after
+        the dialog closes could come after the reset. Nothing here is input
+        ready: the only keypress allowed is the supervisor's keep-model choice.
+        """
+        block = lines[title:]
+        above = title
+        while above and not lines[above - 1].strip():
+            above -= 1
+        banner = next(
+            (
+                start
+                for start in (above - 1, above - 2)
+                if start >= 0
+                and _LIMIT_BANNER.fullmatch(
+                    " ".join(normalise_typography(line).strip() for line in lines[start:above])
+                )
+            ),
+            None,
+        )
+        window = lines[banner:] if banner is not None else block
+        result = super().recognise(window, now=now, live_lines=len(window))
+        return replace(
+            result,
+            retry_prompt=False,
+            capacity_prompt=False,
+            active_evidence=False,
+            input_ready=False,
+            composer_empty=False,
+            keep_model_fingerprint=fingerprint(block),
         )
 
 

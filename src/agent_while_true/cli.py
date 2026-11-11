@@ -1116,6 +1116,9 @@ ALLOW_CODEX_AUTO_RESUME=false
 # Full-auto only: type continue into Claude's exact limit composer after its
 # printed reset, on the RETRY_SCHEDULE backoff. Paid hints are never selected.
 ALLOW_CLAUDE_TIMED_RESUME=true
+# Full-auto only: on Codex's exact rate-limit "switch model?" dialog choose
+# "Keep current model". The switch itself is never selected.
+ALLOW_KEEP_CURRENT_MODEL=true
 """
 
 

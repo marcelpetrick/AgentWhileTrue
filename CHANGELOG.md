@@ -13,6 +13,23 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.74.0] - 2026-11-11
+
+### Added
+
+- Always keep the current model on Codex's rate-limit model-switch dialog
+  ("Approaching rate limits - Switch to <model> for lower credit usage?"). In
+  full-auto (`ALLOW_KEEP_CURRENT_MODEL`, default on) the exact 0.167.0 dialog,
+  cursor on the switch, gets Down+Enter once per appearance onto
+  `2. Keep current model`, after identity and dialog revalidation. Never the
+  switch, never the setting-changing "never show again". A dialog that
+  outlives the keypress is reported once and left to the operator. Seen live:
+  the dialog covered a passed limit and its timed continuation never ran.
+- Anchor the limit banner's reset while that dialog is open, and read a bare
+  Codex reset clock already past as passed today, not tomorrow: Codex prints a
+  bare clock only for a same-day reset. The stuck tab's "2:08 PM", first seen
+  at 17:41, would otherwise have waited until the next afternoon.
+
 ## [0.73.2] - 2026-11-11
 
 ### Changed

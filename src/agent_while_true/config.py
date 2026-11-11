@@ -112,6 +112,10 @@ class Policy:
     #: Retry only the tested same-model capacity error in full-auto, with
     #: fresh available quota; never choose another model or paid capacity.
     allow_codex_capacity_retry: bool = True
+    #: Full-auto only: on Codex's exact rate-limit model-switch dialog choose
+    #: "Keep current model" (maintainer request 2026-11-11), so the limit's
+    #: timed continuation can run. Never the switch, never "never show again".
+    allow_keep_current_model: bool = True
 
     def __post_init__(self) -> None:
         # Keep false legacy keys readable, but never advertise a working opt-in
@@ -220,6 +224,7 @@ _KEYS: dict[str, tuple[str, str]] = {
     "ALLOW_CODEX_AUTO_RESUME": ("policy.allow_codex_auto_resume", "bool"),
     "ALLOW_CLAUDE_TIMED_RESUME": ("policy.allow_claude_timed_resume", "bool"),
     "ALLOW_CODEX_CAPACITY_RETRY": ("policy.allow_codex_capacity_retry", "bool"),
+    "ALLOW_KEEP_CURRENT_MODEL": ("policy.allow_keep_current_model", "bool"),
 }
 
 

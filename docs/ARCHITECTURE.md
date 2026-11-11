@@ -435,6 +435,10 @@ presentation activity feed. Automation policy and pre-send checks are unchanged.
 - Keep the existing model and leave all paid/credit decisions to the human.
   Legacy opt-in fields may remain false but cannot enable these actions.
   Unknown model dialogs stay manual; a status hint is not injected text.
+  The exception is Codex's exact rate-limit model-switch dialog: `Supervisor`
+  presses Down+Enter onto `2. Keep current model` once per appearance in
+  full-auto, revalidating identity and the dialog fingerprint first
+  (`_keep_model`), before the ordinary resume gate runs.
   Provider-internal model remapping is outside AWT's input-control boundary.
 - Bind selection to immutable process evidence, not a tab number or project path.
 - Revalidate every safety input immediately before terminal input.

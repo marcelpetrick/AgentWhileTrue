@@ -32,6 +32,8 @@ _MESSAGES = {
     "whip_delivered": "Operator reminder delivered",
     "whip_skipped": "Operator reminder skipped safely",
     "whip_cracked": "Operator reminder requested",
+    "model_kept": "Model switch declined; current model kept",
+    "model_keep_refused": "Model-switch dialog left for you",
 }
 _REASONS = {
     "provider-confirmation-required": "Waiting for fresh provider confirmation of available usage",
@@ -65,6 +67,11 @@ _REASONS = {
     "resume-sent": "Continuation sent; verification pending",
     "resume-verified": "Budget recovery verified",
     "verify:armed-provider-wait": "Claude will wait itself; work has not restarted yet",
+    "model-kept": "Kept the current model; the switch offer was declined",
+    "keep-model-unanswered": "Model-switch dialog still open after Keep current model; "
+    "answer in its tab",
+    "keep-model-requires-full-auto": "Keeping the model on a switch dialog needs full-auto",
+    "keep-model-disabled": "ALLOW_KEEP_CURRENT_MODEL is off; answer the dialog in its tab",
 }
 _STATES = {
     "CAPACITY_BLOCKED": "Model at capacity; same-model retry checks pending",
