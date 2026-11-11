@@ -640,12 +640,7 @@ def _crack_whip(
         sessions=len(outcomes),
     )
     summary = f"whip cracked: reached {len(used)}/{len(outcomes)}"
-    if used:
-        different = len(set(used))
-        summary += (
-            f" with {different} different reminder{'s' if different != 1 else ''}, "
-            f'e.g. "{whip.PHRASES[used[0]]}"'
-        )
+    # Counts first: a long sample phrase may be cut off at the panel edge.
     if waiting:
         summary += (
             f"; {sum(waiting.values())} waiting for a free input box ("
@@ -660,6 +655,12 @@ def _crack_whip(
     if skipped:
         summary += "; skipped " + ", ".join(
             f"{count}x {reason}" for reason, count in sorted(skipped.items())
+        )
+    if used:
+        different = len(set(used))
+        summary += (
+            f"; {different} different reminder{'s' if different != 1 else ''}, "
+            f'e.g. "{whip.PHRASES[used[0]]}"'
         )
     return summary
 

@@ -73,7 +73,7 @@ def test_an_armed_crack_animates_then_delivers(tmp_path: Path) -> None:
 
     assert whip.HANDLE in stream.getvalue()
     assert "CRACK" in stream.getvalue() or "____" in stream.getvalue()
-    assert note.startswith('whip cracked: reached 1/1 with 1 different reminder, e.g. "')
+    assert note.startswith('whip cracked: reached 1/1; 1 different reminder, e.g. "')
     assert note.endswith('"')
     assert len(kit.sent) == 1
     assert counter.cracks == 1
@@ -200,7 +200,7 @@ def test_every_session_hears_a_different_reminder(tmp_path: Path) -> None:
     finally:
         lock.release()
 
-    assert "reached 4/4 with 4 different reminders" in note
+    assert "reached 4/4; 4 different reminders" in note
     assert len({text for _, text in kit.sent}) == 4
     assert counter.delivered == 4
 

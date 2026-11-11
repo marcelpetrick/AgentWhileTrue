@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.73.1] - 2026-11-11
+
+### Fixed
+
+- Put the whip's waiting and skip counts before its sample reminder in the
+  last-event line, so a long reminder cut off at the panel edge no longer hides
+  them.
+
 ## [0.73.0] - 2026-11-11
 
 ### Added
