@@ -30,7 +30,7 @@ revalidated from scratch (DANGER 9 and 10).
 import hashlib
 import json
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from typing import Final, Protocol
@@ -246,8 +246,11 @@ class Supervisor:
 
     sessions: dict[str, SupervisedSession] = field(default_factory=dict)
     activity: RunActivity = field(default_factory=RunActivity)
+    #: One undelivered reminder per tab, in memory only, never persisted.
+    whip_queue: dict[str, QueuedWhip] = field(default_factory=dict)
     _last_wall: datetime | None = None
     _last_monotonic: float | None = None
+    _whip_background: bool = False
 
     # -- selection ---------------------------------------------------------
 
@@ -1077,42 +1080,113 @@ class Supervisor:
 
     # -- the whip ----------------------------------------------------------
 
-    def whip(self, messages: Iterator[tuple[int, str]]) -> dict[str, WhipOutcome]:
-        """Type one reminder into every supervised session that can take it.
+    def whip(
+        self,
+        messages: Iterator[tuple[int, str]],
+        *,
+        others: Iterable[tuple[SessionRef, ProcessIdentity, str]] = (),
+    ) -> dict[str, WhipOutcome]:
+        """Offer one reminder to every Claude/Codex tab, watched or not.
 
-        A whip crack is one operator keypress and one attempt per session:
-        nothing is persisted, planned or retried, and a refusal is final. Each
-        session is still revalidated from scratch, and only a plain working
-        screen with the provider's own composer visibly empty qualifies, so the
-        reminder can never finish a draft, answer a menu or resume a limit.
-        Every session that qualifies takes the next ``(phrase, text)`` message,
-        so one crack types a different reminder into each session it reaches.
+        A whip crack is one operator keypress and one message per tab. Each tab
+        is revalidated from scratch, and only a plain working screen with the
+        provider's own composer visibly empty is typed into, so the reminder can
+        never finish a draft, answer a menu or resume a limit. A tab that is
+        merely busy for now - a draft, a prompt, spent quota, an action in
+        flight - keeps its message in memory (:meth:`deliver_queued_whips`)
+        for up to :data:`WHIP_QUEUE_SECONDS`. ``others`` are unwatched agent
+        tabs bound to the identity discovery saw at the crack.
         The foreground process is re-read last, directly before ``sendText``.
 
-        Returns the outcome for every session key.
+        Returns the outcome for every tab key.
         """
+        targets = list(self.sessions.items())
+        for ref, identity, provider in others:
+            if ref.key() not in self.sessions:
+                targets.append(
+                    (
+                        ref.key(),
+                        SupervisedSession(ref=ref, identity=identity, provider_name=provider),
+                    )
+                )
         results: dict[str, WhipOutcome] = {}
-        for key, session in list(self.sessions.items()):
-            reason = self._whip_refusal(session)
+        for key, session in targets:
+            reason, background = self._whip_check(session)
             phrase: int | None = None
-            if not reason:
+            if not reason or reason in WHIP_DEFERRABLE:
                 picked = next(messages, None)
                 if picked is None:
                     reason = "no-message-left"
+                elif reason:
+                    phrase, text = picked
+                    self.whip_queue[key] = QueuedWhip(
+                        session=session,
+                        phrase=phrase,
+                        text=text,
+                        queued_at=self.monotonic_fn(),
+                        waiting_for=reason,
+                    )
+                    reason = f"queued:{reason}"
                 else:
                     phrase, text = picked
-                    reason = self._whip_send(session, text)
-            results[key] = WhipOutcome(reason, phrase if reason == "delivered" else None)
-            # The phrase index, never its text: prompt text is not logged.
-            self.log.info(
-                "whip_delivered" if reason == "delivered" else "whip_skipped",
-                provider=session.provider_name,
-                session=key,
-                process=session.describe_process(),
-                phrase="-" if phrase is None else phrase,
-                reason=reason,
-            )
+                    self.whip_queue.pop(key, None)
+                    reason = self._whip_send(session, _whip_text(text, background=background))
+            kept = reason == "delivered" or reason.startswith("queued:")
+            results[key] = WhipOutcome(reason, phrase if kept else None)
+            self._log_whip(session, key, reason, phrase)
         return results
+
+    def deliver_queued_whips(self) -> dict[str, WhipOutcome]:
+        """Type each waiting reminder once its tab can take it.
+
+        Called by the dashboard after a scan, only while it holds input control
+        and is not paused. Every attempt runs the whole whip gate again; a tab
+        that is still busy keeps waiting silently, anything else (another
+        process, observe mode, an unsafe mark, expiry) drops the reminder.
+        """
+        results: dict[str, WhipOutcome] = {}
+        now = self.monotonic_fn()
+        for key, entry in list(self.whip_queue.items()):
+            if now - entry.queued_at > WHIP_QUEUE_SECONDS:
+                reason = "queue-expired"
+            else:
+                reason, background = self._whip_check(entry.session)
+                if reason in WHIP_DEFERRABLE:
+                    continue
+                if not reason:
+                    reason = self._whip_send(
+                        entry.session, _whip_text(entry.text, background=background)
+                    )
+            del self.whip_queue[key]
+            results[key] = WhipOutcome(reason, entry.phrase if reason == "delivered" else None)
+            self._log_whip(entry.session, key, reason, entry.phrase, queued=True)
+        return results
+
+    def _log_whip(
+        self,
+        session: SupervisedSession,
+        key: str,
+        reason: str,
+        phrase: int | None,
+        *,
+        queued: bool = False,
+    ) -> None:
+        # The phrase index, never its text: prompt text is not logged.
+        event = (
+            "whip_delivered"
+            if reason == "delivered"
+            else "whip_queued"
+            if reason.startswith("queued:")
+            else "whip_skipped"
+        )
+        self.log.info(
+            event,
+            provider=session.provider_name,
+            session=key,
+            process=session.describe_process(),
+            phrase="-" if phrase is None else phrase,
+            reason="delivered-after-wait" if queued and reason == "delivered" else reason,
+        )
 
     def _whip_send(self, session: SupervisedSession, text: str) -> str:
         if not text or not text.isascii() or not text.isprintable():
@@ -1126,8 +1200,14 @@ class Supervisor:
             return f"send-failed:{type(exc).__name__}"
         return "delivered"
 
+    def _whip_check(self, session: SupervisedSession) -> tuple[str, bool]:
+        """The refusal reason (empty when deliverable) and the background-agents flag."""
+        reason = self._whip_refusal(session)
+        return reason, self._whip_background
+
     def _whip_refusal(self, session: SupervisedSession) -> str:
         """Everything but the final process re-read, which ``_whip_send`` does last."""
+        self._whip_background = False
         if not self.config.mode.may_send_input:
             return "observe-mode"
         if session.marked_unsafe:
@@ -1150,6 +1230,7 @@ class Supervisor:
             return "prompt-on-screen"
         if not recognition.composer_empty:
             return "composer-not-empty"
+        self._whip_background = recognition.background_agents
         # A limit banner that scrolled away does not mean usage came back; a
         # turn submitted into spent quota only earns a fresh limit prompt.
         if observation.quota.availability is Availability.EXHAUSTED:
@@ -1590,6 +1671,35 @@ class WhipOutcome:
     @property
     def delivered(self) -> bool:
         return self.reason == "delivered"
+
+    @property
+    def queued(self) -> bool:
+        return self.reason.startswith("queued:")
+
+
+#: How long a skipped tab keeps its reminder waiting for a free composer.
+WHIP_QUEUE_SECONDS: Final = 15 * 60
+#: Refusals that only mean "not now": the tab keeps its reminder.
+WHIP_DEFERRABLE: Final = frozenset(
+    {"composer-not-empty", "prompt-on-screen", "quota-exhausted", "action-in-flight"}
+)
+#: Appended when Claude visibly runs background agents beside its main thread.
+WHIP_BACKGROUND_SUFFIX: Final = " Pass this on to your background agents as well."
+
+
+@dataclass(slots=True)
+class QueuedWhip:
+    """A reminder waiting for its tab; in memory only, never persisted."""
+
+    session: SupervisedSession
+    phrase: int
+    text: str
+    queued_at: float
+    waiting_for: str
+
+
+def _whip_text(text: str, *, background: bool) -> str:
+    return text + WHIP_BACKGROUND_SUFFIX if background else text
 
 
 #: Enter on the visibly selected "1. Yes": the one-time approval.

@@ -13,6 +13,15 @@ evidence and remaining evidence-dependent work are in [OPEN_ISSUES.md](OPEN_ISSU
 
 ## Current status
 
+### Whip everywhere — 2026-11-11
+
+At the maintainer's request a whip crack reaches every Claude/Codex tab: tabs
+not selected in the dashboard are bound to their identity at the crack, a tab
+that is only busy (draft, prompt, exhausted quota, action in flight) keeps one
+in-memory reminder for up to 15 minutes and receives it through the full gate
+once its input box is free, and Claude visibly running background agents is
+asked to pass it on. Drafts and prompts are still never typed into.
+
 ### Overnight limit follow-up — 2026-11-11
 
 A Codex CLI 0.167.0 limit hit at 22:52 was never continued after its 2:48 AM

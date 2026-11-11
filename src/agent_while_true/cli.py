@@ -614,10 +614,31 @@ def _crack_whip(
         # Observe mode, or another watcher holds input control: this one types nothing.
         supervisor.log.info("whip_cracked", delivered=0, reason="observe-mode")
         return "whip cracked in the air: observe mode sends nothing (Shift+A arms input)"
-    outcomes = supervisor.whip((phrase, whip.message(phrase)) for phrase in itertools.cycle(order))
-    used = [outcome.phrase for outcome in outcomes.values() if outcome.phrase is not None]
+    # Every agent tab hears the crack, watched or not; each is bound to the
+    # identity seen now and revalidated again directly before typing.
+    others = [
+        (candidate.session.ref, candidate.info.identity, candidate.provider)
+        for candidate in discover(supervisor.terminal, supervisor.inspector, include_titles=False)
+        if candidate.eligible and candidate.info is not None and candidate.provider is not None
+    ]
+    outcomes = supervisor.whip(
+        ((phrase, whip.message(phrase)) for phrase in itertools.cycle(order)), others=others
+    )
+    used = [
+        outcome.phrase
+        for outcome in outcomes.values()
+        if outcome.delivered and outcome.phrase is not None
+    ]
     counter.record_delivery(used)
-    supervisor.log.info("whip_cracked", delivered=len(used), sessions=len(outcomes))
+    waiting = collections.Counter(
+        outcome.reason.removeprefix("queued:") for outcome in outcomes.values() if outcome.queued
+    )
+    supervisor.log.info(
+        "whip_cracked",
+        delivered=len(used),
+        queued=sum(waiting.values()),
+        sessions=len(outcomes),
+    )
     summary = f"whip cracked: reached {len(used)}/{len(outcomes)}"
     if used:
         different = len(set(used))
@@ -625,14 +646,39 @@ def _crack_whip(
             f" with {different} different reminder{'s' if different != 1 else ''}, "
             f'e.g. "{whip.PHRASES[used[0]]}"'
         )
+    if waiting:
+        summary += (
+            f"; {sum(waiting.values())} waiting for a free input box ("
+            + ", ".join(f"{count}x {reason}" for reason, count in sorted(waiting.items()))
+            + ")"
+        )
     skipped = collections.Counter(
-        outcome.reason for outcome in outcomes.values() if not outcome.delivered
+        outcome.reason
+        for outcome in outcomes.values()
+        if not outcome.delivered and not outcome.queued
     )
     if skipped:
         summary += "; skipped " + ", ".join(
             f"{count}x {reason}" for reason, count in sorted(skipped.items())
         )
     return summary
+
+
+def _deliver_queued_whips(
+    supervisor: Supervisor, lock: SingleInstanceLock, counter: whip.WhipCounter, config: Config
+) -> str:
+    """Hand each waiting reminder to its tab once the tab can take it."""
+    if not lock.held or not config.mode.may_send_input:
+        # Input control moved or observe mode began: a reminder never waits
+        # for another watcher, it is simply dropped.
+        supervisor.whip_queue.clear()
+        return ""
+    outcomes = supervisor.deliver_queued_whips()
+    delivered = [outcome.phrase for outcome in outcomes.values() if outcome.delivered]
+    counter.record_delivery([phrase for phrase in delivered if phrase is not None])
+    if not delivered:
+        return ""
+    return f"whip reached {len(delivered)} more tab{'s' if len(delivered) != 1 else ''} once free"
 
 
 def _auto_yes_note(
@@ -766,6 +812,10 @@ def _loop(
                 if dashboard.auto_yes and lock.held:
                     approvals = supervisor.approve_pending()
                     last_event = _approval_summary(approvals) or last_event
+                if supervisor.whip_queue:
+                    last_event = (
+                        _deliver_queued_whips(supervisor, lock, whip_counter, config) or last_event
+                    )
                 if interactive:
                     event_history = read_activity_history(
                         config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES

@@ -783,8 +783,8 @@ def render_status(
                         "e       show/hide persisted action history",
                         "l       cycle history length: 5, 10, 20, 50",
                         "d       show/hide resume explanation; [ / ] previous/next session",
-                        "w       crack the whip: one reminder to every idle, empty agent "
-                        "composer; five cracks a minute, then a cooldown",
+                        "w       crack the whip: one reminder to every Claude/Codex tab; busy "
+                        "tabs get it once their input box is free; five cracks a minute",
                         "y       toggle auto-yes: answer the selected one-turn item on exact "
                         "Claude/Codex prompts; approves tool use; off at start, never saved",
                         "j / k   scroll down/up; g / G jump to top/end",

@@ -179,6 +179,10 @@ class Recognition:
     #: An exact provider-tested one-turn tool-permission menu with the cursor
     #: visibly on its first affirmative item. Every other shape leaves it False.
     approval_prompt: bool = False
+    #: The provider visibly runs background agents beside its main thread
+    #: (Claude's agent panel or its stop-background-agents hint). Display and
+    #: whip wording only; never a permission or a resume signal.
+    background_agents: bool = False
     #: Fingerprint of that permission box alone, so an operator's approval
     #: binds to the prompt they saw rather than to a spinner redrawing above.
     approval_fingerprint: str = ""

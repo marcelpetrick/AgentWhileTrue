@@ -185,7 +185,7 @@ observe mode.
 | `[` / `]` | Select the previous / next session explanation |
 | `j` / `k` | Scroll down / up through the dashboard |
 | `g` / `G` | Jump to the top / end of the dashboard |
-| `w` | Crack the whip: send one reminder to each eligible selected terminal session (see [The whip](#the-whip)) |
+| `w` | Crack the whip: send one reminder to every Claude/Codex tab, busy tabs once their input box is free (see [The whip](#the-whip)) |
 | `y` | Toggle auto-yes: answer the selected one-turn item on exact Claude Code or Codex CLI permission prompts (see [Permission prompts](#permission-prompts)); off at every start, never saved |
 | `q` | Quit and restore the terminal |
 
@@ -309,9 +309,12 @@ identity are untouched, and the toggle resets when the process exits.
 current theme (the grip, lash, spark and `CRACK!` each take one of the theme's
 colours on its background; the plain theme, `--no-color` and `NO_COLOR` keep
 it bare ASCII), and then types a
-short, good-humoured reminder into each eligible *selected* terminal session,
-a different one in each session. Claude-managed background subagents are not
-separate terminal sessions and are not addressed individually. Lines delivered
+short, good-humoured reminder into every Claude and Codex tab, watched or not,
+a different one in each. Tabs not selected in the dashboard are found at the
+crack and bound to the process seen then. Background subagents have no input
+box of their own: when Claude visibly runs background agents (its agent panel
+or the stop-background-agents hint), the reminder ends with "Pass this on to
+your background agents as well." Lines delivered
 recently wait at the back of the queue, so
 consecutive cracks do not repeat them. The fifty lines include "Work faster.
 This is work, not your holiday.", "You are a machine. No breaks for you. Ship
@@ -334,8 +337,15 @@ revalidated per session immediately before `sendText`:
   only cracks the whip in the air: the animation plays, the counter moves,
   nothing is read or typed. Ask and auto mode type it; the keypress is the
   confirmation.
-- Only selected sessions are considered, never another Konsole tab, and never
-  an unsafe session or one whose resume is still being verified.
+- Every Konsole tab running Claude or Codex is considered; shells and other
+  programs never are. An unsafe session is skipped.
+- A tab that is only busy - your draft in its input box, a limit or other
+  prompt on screen, exhausted quota, or a resume still being verified - keeps
+  its reminder in memory, never on disk, for up to 15 minutes. After each scan
+  the whole gate below runs again and the reminder is typed as soon as the
+  input box is empty on a plain working screen; it is never typed into the
+  draft or the prompt. A newer crack replaces it; another process in the tab,
+  observe mode or losing input control drops it.
 - The foreground must still be the bound, automatable agent process - no
   shell, SSH, multiplexer or container - re-read last, right before sending.
 - The screen must be a plain working screen: any recognised limit, menu, paid
@@ -354,7 +364,8 @@ revalidated per session immediately before `sendText`:
   session.
 
 The dashboard's last-event line names how many sessions received a terminal
-write and why the others were skipped; a write does not prove that an agent
+write, how many wait for a free input box and why the others were skipped,
+and later reports reminders delivered once a tab became free; a write does not prove that an agent
 or subagent read the reminder. The log records the phrase number, never its text.
 
 ### Saved preferences

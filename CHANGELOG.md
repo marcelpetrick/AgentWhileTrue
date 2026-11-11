@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.73.0] - 2026-11-11
+
+### Added
+
+- The whip reaches every Claude/Codex tab, watched or not. A tab with a draft,
+  a prompt, exhausted quota or an action in flight keeps its reminder in memory
+  for up to 15 minutes and gets it once its input box is free, through the full
+  revalidating gate; drafts and prompts are never typed into. Claude visibly
+  running background agents is asked to pass the reminder on.
+
 ## [0.72.3] - 2026-11-11
 
 ### Changed

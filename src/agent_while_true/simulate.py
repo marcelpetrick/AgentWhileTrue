@@ -1169,6 +1169,57 @@ def scenario_claude_timed_resume(directory: Path) -> Result:
     )
 
 
+_WHIP_DRAFT_SCREEN = [
+    "\u25cf Tests pass.",
+    _CLAUDE_RULE,
+    "\u276f half a sentence the operator is still typing",
+    _CLAUDE_RULE,
+    "  Opus 5.5 ctx:33%",
+]
+_WHIP_IDLE_SCREEN = [
+    "\u25cf Tests pass.",
+    _CLAUDE_RULE,
+    "\u276f ",
+    _CLAUDE_RULE,
+    "  Opus 5.5 ctx:33%",
+]
+
+
+def scenario_whip_waits_for_draft(directory: Path) -> Result:
+    world = _world(directory, screen=_WHIP_DRAFT_SCREEN)
+    world.step("the operator is typing a draft")
+    outcomes = world.supervisor.whip(iter([(0, "Keep going.")]))
+    queued = all(outcome.queued for outcome in outcomes.values())
+    world.steps.append(
+        Step(
+            label="a crack lands while the draft is open",
+            decision_reason=next(iter(outcomes.values())).reason,
+            sent=len(world.terminal.sent),
+        )
+    )
+    world.supervisor.deliver_queued_whips()
+    world.step("still drafting: the reminder keeps waiting")
+    world.screen(_WHIP_IDLE_SCREEN)
+    delivered = world.supervisor.deliver_queued_whips()
+    world.steps.append(
+        Step(
+            label="the draft was sent; the input box is free",
+            decision_reason=",".join(outcome.reason for outcome in delivered.values()),
+            sent=len(world.terminal.sent),
+        )
+    )
+    return _result(
+        "whip-waits-for-draft",
+        "A whip crack lands while the operator has a draft in the input box.",
+        "never type into the draft; deliver the reminder once, when the box is free",
+        world,
+        passed=queued
+        and [step.sent for step in world.steps] == [0, 0, 0, 1]
+        and world.terminal.sent == [(SESSION, "\x1b[200~Keep going.\x1b[201~\r")]
+        and not world.supervisor.whip_queue,
+    )
+
+
 def scenario_observer_preserves_retry_state(directory: Path) -> Result:
     controller = _world(directory)
     now = datetime.now(UTC)
@@ -1477,6 +1528,7 @@ SCENARIOS: dict[str, ScenarioFn] = {
     "codex-capacity-refusals": scenario_codex_capacity_refusals,
     "codex-transient-recovery": scenario_codex_transient_recovery,
     "claude-timed-resume": scenario_claude_timed_resume,
+    "whip-waits-for-draft": scenario_whip_waits_for_draft,
     "observe-mode": scenario_observe_mode,
     "observer-preserves-retry-state": scenario_observer_preserves_retry_state,
     "approval-waits-for-operator": scenario_approval_waits_for_the_operator,

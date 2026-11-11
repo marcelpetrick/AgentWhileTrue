@@ -109,7 +109,7 @@ def test_anything_but_an_empty_working_composer_is_skipped(
 ) -> None:
     kit, claude, codex = _kit(tmp_path, claude=claude_screen, codex=codex_screen)
 
-    assert _whip(kit) == {claude: reason, codex: reason}
+    assert _whip(kit) == {claude: f"queued:{reason}", codex: f"queued:{reason}"}
     assert kit.sent == []
 
 
@@ -159,7 +159,7 @@ def test_unsafe_sessions_and_pending_resumes_are_left_alone(tmp_path: Path) -> N
 
     assert _whip(kit) == {
         claude: "session-unsafe",
-        codex: "action-in-flight",
+        codex: "queued:action-in-flight",
     }
     assert kit.sent == []
 
@@ -207,7 +207,7 @@ def test_an_unsettled_persisted_resume_blocks_the_whip(tmp_path: Path, state: Ac
     kit.supervisor.store.mark("resume-1", state)
     session.pending_key = "resume-1"
 
-    assert _whip(kit)[claude] == "action-in-flight"
+    assert _whip(kit)[claude] == "queued:action-in-flight"
 
 
 @pytest.mark.parametrize("state", [ActionState.FAILED, ActionState.VERIFIED])
@@ -226,7 +226,7 @@ def test_a_resume_awaiting_verification_blocks_the_whip(tmp_path: Path) -> None:
     kit, claude, _ = _kit(tmp_path)
     kit.supervisor.sessions[claude].verify_after = kit.clock.wall
 
-    assert _whip(kit)[claude] == "action-in-flight"
+    assert _whip(kit)[claude] == "queued:action-in-flight"
 
 
 def test_an_exhausted_quota_is_not_whipped_into_a_fresh_limit(tmp_path: Path) -> None:
@@ -238,7 +238,7 @@ def test_an_exhausted_quota_is_not_whipped_into_a_fresh_limit(tmp_path: Path) ->
     kit, claude, codex = _kit(tmp_path)
     kit.quota["claude"].availability = Availability.EXHAUSTED
 
-    assert _whip(kit) == {claude: "quota-exhausted", codex: "delivered"}
+    assert _whip(kit) == {claude: "queued:quota-exhausted", codex: "delivered"}
     assert [session for session, _ in kit.sent] == [CODEX]
 
 
@@ -250,16 +250,23 @@ def test_unknown_quota_does_not_block_a_reminder(tmp_path: Path) -> None:
     assert _whip(kit)[claude] == "delivered"
 
 
-def test_each_session_gets_its_own_reminder_and_skips_spend_none(tmp_path: Path) -> None:
-    """A skipped session does not use up a phrase, so the next one gets it."""
+def test_each_session_gets_its_own_reminder_and_refusals_spend_none(tmp_path: Path) -> None:
+    """A queued tab keeps its own phrase; a refused one does not use one up."""
     kit, claude, codex = _kit(tmp_path, claude=screens.CLAUDE_DRAFT)
 
     outcomes = kit.supervisor.whip(_messages())
 
-    assert outcomes[claude].reason == "composer-not-empty"
+    assert outcomes[claude].reason == "queued:composer-not-empty"
+    assert outcomes[claude].phrase == 0
+    assert outcomes[codex].phrase == 1
+    assert kit.sent == [(CODEX, whip_keystrokes(message(1)))]
+
+    (tmp_path / "unsafe").mkdir()
+    kit, claude, codex = _kit(tmp_path / "unsafe")
+    kit.supervisor.mark_unsafe(claude, "operator")
+    outcomes = kit.supervisor.whip(_messages())
     assert outcomes[claude].phrase is None
     assert outcomes[codex].phrase == 0
-    assert kit.sent == [(CODEX, whip_keystrokes(message(0)))]
 
 
 def test_a_crack_that_runs_out_of_messages_types_nothing_more(tmp_path: Path) -> None:
@@ -300,4 +307,4 @@ def test_unknown_text_after_the_codex_shortcut_hint_still_refuses_the_whip(tmp_p
     screen = [*screens.CODEX_0_160_WARNING_FOOTER[:-1], "  ? for shortcuts · unfinished draft"]
     kit, _, codex = _kit(tmp_path, codex=screen)
 
-    assert _whip(kit)[codex] == "composer-not-empty"
+    assert _whip(kit)[codex] == "queued:composer-not-empty"

@@ -179,9 +179,9 @@ half-typed draft is left alone.*
 
 Press `w` and an ASCII bullwhip unrolls across the whole dashboard, in the
 colours of whichever theme you picked with `t`, snaps taut and lands with a
-`CRACK!`. Then each eligible selected terminal session gets its own short pep
-talk, picked from fifty. Claude-managed background subagents do not have
-separate supervised composers and are not addressed individually. No two tabs hear the same line
+`CRACK!`. Then every Claude and Codex tab, watched or not, gets its own short
+pep talk, picked from fifty. A tab where you are typing gets it once its input
+box is free again, and Claude running background agents is asked to pass it on. No two tabs hear the same line
 in one crack, and recently used lines wait their turn, so it stays fresh:
 
 > *Work faster. This is work, not your holiday.* ·
@@ -216,7 +216,8 @@ session is re-checked immediately before anything is typed:
   input control and let it land.
 - Only the bound agent process is typed into, and only when there is no limit,
   menu or paid prompt on screen and the quota is not exhausted.
-- Your own half-written draft is never submitted.
+- Your own half-written draft is never submitted: the reminder waits, in
+  memory and for at most 15 minutes, until the input box is free.
 
 The last-event line tells you who heard it and why anyone was skipped. Details are
 in [docs/USAGE.md](docs/USAGE.md#the-whip).

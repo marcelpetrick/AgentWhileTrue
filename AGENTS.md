@@ -80,9 +80,15 @@ when recognizer behavior changes.
   least three seconds apart; credit only this watcher's verified actions.
 - The dashboard whip (`w`) is the only operator-initiated free-text input. It
   never types in observe mode, while paused or without input control; only
-  into a selected, revalidated session with a plain working screen, a visibly
-  empty provider composer and quota that is not exhausted; it is never
-  persisted or retried, and it is limited to five cracks per rolling minute.
+  into a revalidated Claude/Codex tab (selected, or an unwatched agent tab
+  bound to its identity at the crack) with a plain working screen, a visibly
+  empty provider composer and quota that is not exhausted. A tab that is only
+  busy (draft, prompt, exhausted quota, action in flight) keeps one in-memory
+  reminder for at most 15 minutes and receives it once the same gate passes;
+  it is never typed into a draft or a prompt, never persisted, dropped on
+  identity change, observe mode or loss of input control, and a newer crack
+  replaces it. A Claude tab visibly running background agents gets the request
+  to pass it on. Five cracks per rolling minute.
 - Claude Code and Codex CLI permission prompts are never resume prompts. Only the operator's
   dashboard auto-yes switch (`y`) answers one: off at every start, never
   persisted, only in full-auto - never in ask or observe mode, while paused or

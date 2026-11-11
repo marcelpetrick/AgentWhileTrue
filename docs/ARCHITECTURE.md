@@ -294,10 +294,14 @@ does not reset either state, and nothing about it is persisted.
 ## Operator whip
 
 The dashboard's `w` key is the one input path an operator starts by hand. It
-is deliberately outside the resume lifecycle: a crack is a single attempt per
-session and is never planned, persisted or retried, so a restart cannot repeat
-it. Sessions are selected top-level Konsole sessions; provider-managed
-background subagents have no individually addressed composer. A successful
+is deliberately outside the resume lifecycle: a crack is never planned or
+persisted, so a restart cannot repeat it. It reaches every Claude/Codex tab:
+selected sessions plus unwatched agent tabs bound to the identity discovered at
+the crack. A tab refused only for being busy (draft, prompt, exhausted quota,
+action in flight) keeps one in-memory `QueuedWhip` for up to 15 minutes;
+`Supervisor.deliver_queued_whips` reruns the full gate after each scan and
+types it once the tab is free. Provider-managed background subagents have no
+composer; Claude's visible agent panel only adds a pass-it-on sentence. A successful
 write does not prove that an agent consumed the reminder. Each attempt passes
 its own revalidating gate in `Supervisor.whip`:
 
@@ -308,8 +312,9 @@ flowchart LR
     rate -->|yes| anim["ASCII crack animation"]
     anim --> armed{"unpaused and holding the input lock?"}
     armed -->|no| air["cracked in the air; nothing read or typed"]
-    armed -->|yes| each["for each selected session"]
+    armed -->|yes| each["for each Claude/Codex tab, watched or not"]
     each --> gate{"fresh observation: not unsafe, nothing in flight,<br/>same identity, automatable, ACTIVE with no prompt matched,<br/>composer visibly empty, quota not EXHAUSTED"}
+    gate -->|busy| wait["queued in memory; gate rerun after each scan, max 15 min"]
     gate -->|no| skip["skipped, reason logged"]
     gate -->|yes| phrase["next phrase from this crack's order"]
     phrase --> reread{"foreground process re-read unchanged?"}

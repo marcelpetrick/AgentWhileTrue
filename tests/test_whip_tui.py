@@ -91,7 +91,7 @@ def test_skipped_sessions_are_summarised_by_reason(tmp_path: Path) -> None:
         )
     finally:
         lock.release()
-    assert note.endswith("reached 0/1; skipped 1x composer-not-empty")
+    assert note.endswith("reached 0/1; 1 waiting for a free input box (1x composer-not-empty)")
     assert kit.sent == []
 
 

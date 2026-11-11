@@ -398,6 +398,8 @@ class ClaudeAdapter(ProviderAdapter):
             result,
             composer_empty=composer_empty,
             active_evidence=_working(lines, result),
+            background_agents=panel_start != end
+            or any(_STOP_AGENTS_HINT.search(line) for line in lines[max(0, end - 8) : end]),
             approval_prompt=block is not None,
             approval_fingerprint=fingerprint(block) if block is not None else "",
         )
@@ -477,6 +479,8 @@ _LIMIT_HINT_ROW = re.compile(
 _TURN_SUMMARY_ROW = re.compile(
     r"^\s*\S\s+\S+ for (?:\d+[hms]\s*)+(?:\N{MIDDLE DOT}\s*done \d{1,2}:\d{2}\s*[AP]M)?\s*$"
 )
+#: The footer hint Claude shows while background agents run.
+_STOP_AGENTS_HINT = re.compile(r"\bto stop background agents\b", re.IGNORECASE)
 #: Claude's own working indicator, and its assistant marker.
 _WORKING_ROW = re.compile(r"\besc to interrupt\b", re.IGNORECASE)
 _ASSISTANT_ROW = re.compile(r"^\s*\N{BLACK CIRCLE}\s+\S")
