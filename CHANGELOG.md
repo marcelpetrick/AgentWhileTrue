@@ -13,6 +13,20 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.74.1] - 2026-11-11
+
+### Changed
+
+- Profiled a real dashboard scan and removed its avoidable costs. Claude
+  statusline files of exited processes, untouched for a day, are now pruned
+  once an hour: they can never match a live process again, yet every scan
+  stat'ed them twice. On this machine 338 of 344 files were such leftovers;
+  Claude quota reads fell from 12.6 ms to 0.4 ms per scan.
+- Cache the dashboard's rendering of its activity-feed log lines: retokenising
+  the same lines on every frame was the largest per-frame cost (3 ms to ~0).
+- `summary` parses log timestamps by fixed width instead of strptime: 1.56 s to
+  0.89 s over 215,000 retained log lines, identical output.
+
 ## [0.74.0] - 2026-11-11
 
 ### Added

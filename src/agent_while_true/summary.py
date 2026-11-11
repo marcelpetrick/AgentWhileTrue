@@ -50,10 +50,21 @@ def _log_paths(path: Path) -> tuple[Path, ...]:
 
 def _local_stamp(raw: str, now: datetime) -> datetime | None:
     try:
-        parsed = datetime.strptime(raw, "%Y-%m-%d %H:%M:%S,%f")
+        # Fixed width, already shape-checked by ``_PREFIX``. Equivalent to
+        # strptime("%Y-%m-%d %H:%M:%S,%f"), which was most of `summary`'s
+        # runtime over retained logs (profile 2026-11-11).
+        parsed = datetime(
+            int(raw[0:4]),
+            int(raw[5:7]),
+            int(raw[8:10]),
+            int(raw[11:13]),
+            int(raw[14:16]),
+            int(raw[17:19]),
+            int(raw[20:23]) * 1000,
+        )
         # Logging timestamps use the host's local wall clock. Extreme dates
         # can parse successfully but fail while converting the local offset.
-        return parsed.astimezone(UTC).astimezone(now.tzinfo or UTC)
+        return parsed.astimezone(now.tzinfo or UTC)
     except ValueError, OverflowError, OSError:
         return None
 

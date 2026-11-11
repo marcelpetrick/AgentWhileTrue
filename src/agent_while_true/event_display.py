@@ -4,6 +4,7 @@
 
 """Plain-language views of structured metadata, without arbitrary field text."""
 
+import functools
 import re
 import shlex
 from pathlib import Path
@@ -103,6 +104,10 @@ def explain_reason(reason: str) -> str:
     return f"{message} [{reason}]" if message else reason
 
 
+# The dashboard redraws the same tail of metadata-only log lines every frame;
+# tokenising them with shlex was its largest per-frame cost (profile
+# 2026-11-11). The result depends on the line alone, so a bounded cache is exact.
+@functools.lru_cache(maxsize=256)
 def describe_event(line: str) -> str:
     """Render only known messages and a small allowlist of metadata tokens."""
     if len(line) > 16384:

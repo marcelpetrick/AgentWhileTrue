@@ -121,8 +121,7 @@ def test_unconvertible_timestamp_does_not_break_report(tmp_path: Path, monkeypat
             raise ValueError("year 0 is out of range")
 
     class LocalDatetime:
-        @staticmethod
-        def strptime(raw, fmt):
+        def __new__(cls, *fields):
             return BadLocalDate()
 
     path = tmp_path / "agent-while-true.log"

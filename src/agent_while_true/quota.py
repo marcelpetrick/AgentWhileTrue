@@ -33,6 +33,7 @@ import enum
 import json
 import math
 import os
+import time
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -476,6 +477,12 @@ _CLAUDE_SCOPES = {
 }
 _CLAUDE_CACHE_LIMIT = 512
 _CLAUDE_FILE_BYTES = 64 * 1024
+#: A bridge file untouched this long whose bound process is gone can never
+#: match a live process again (PID plus start time); it is removed so every
+#: scan does not stat it. Profiling 2026-11-11: 338 of 344 files were such
+#: leftovers and cost two stat calls each per Claude snapshot.
+_CLAUDE_STALE_SECONDS = 24 * 3600
+_CLAUDE_PRUNE_INTERVAL_SECONDS = 3600.0
 type _FileVersion = tuple[int, int, int, int, int]
 
 
@@ -559,6 +566,55 @@ class ClaudeStatuslineSource(QuotaSource):
     _parsed: dict[Path, tuple[_FileVersion, _ClaudeQuotaDocument | None]] = field(
         default_factory=dict, init=False, repr=False
     )
+    _pruned_at: float | None = field(default=None, init=False, repr=False)
+
+    def prune_stale(self, *, now: float | None = None) -> int:
+        """Remove bridge files of exited processes untouched for a day.
+
+        Only a valid Claude document naming a PID and start time qualifies, and
+        only when that process is gone or its start time differs: such a file
+        can never be selected again. Unparsable, unbound, recent or live files
+        are kept. Returns how many files were removed; errors remove nothing.
+        """
+        current = time.time() if now is None else now
+        removed = 0
+        try:
+            candidates = [
+                path
+                for path in self.path.parent.iterdir()
+                if path.name.startswith("claude-") and path.name.endswith(".json")
+            ]
+        except OSError:
+            return 0
+        for path in candidates:
+            try:
+                version = _file_version(path)
+                if current - version[3] / 1e9 < _CLAUDE_STALE_SECONDS:
+                    continue
+                document = self._read_document(path, version)
+                if document is None or document.pid is None or document.start_time is None:
+                    continue
+                try:
+                    alive = read_start_time(document.pid) == document.start_time
+                except ProcessGoneError:
+                    alive = False
+                if alive or _file_version(path) != version:
+                    continue
+                path.unlink(missing_ok=True)
+            except OSError, ValueError:
+                continue
+            self._parsed.pop(path, None)
+            removed += 1
+        return removed
+
+    def _maybe_prune(self) -> None:
+        moment = time.monotonic()
+        if self._pruned_at is not None and moment - self._pruned_at < (
+            _CLAUDE_PRUNE_INTERVAL_SECONDS
+        ):
+            return
+        self._pruned_at = moment
+        self.prune_stale()
 
     def _read_document(self, path: Path, version: _FileVersion) -> _ClaudeQuotaDocument | None:
         cached = self._parsed.get(path)
@@ -587,6 +643,9 @@ class ClaudeStatuslineSource(QuotaSource):
 
     def snapshot(self, *, pid: int | None = None) -> QuotaSnapshot:
         try:
+            # Housekeeping first, so this scan's directory version is taken
+            # after any removal and stays a valid change detector.
+            self._maybe_prune()
             try:
                 directory_version = _file_version(self.path.parent)
                 candidates = tuple(

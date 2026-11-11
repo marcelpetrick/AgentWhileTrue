@@ -346,3 +346,71 @@ def test_invalid_utf8_file_does_not_fall_back_to_other_available_document(
     snapshot = source.snapshot(pid=1)
     assert snapshot.availability is Availability.UNKNOWN
     assert snapshot.note == "error:UnicodeDecodeError"
+
+
+DAY = 24 * 3600
+
+
+def _aged(path: Path, seconds: float) -> None:
+    moment = path.stat().st_mtime - seconds
+    os.utime(path, (moment, moment))
+
+
+def test_prune_removes_only_day_old_files_of_exited_processes(tmp_path, monkeypatch) -> None:
+    live = {1: 100, 2: 100}
+
+    def start_time(pid: int) -> int:
+        if pid not in live:
+            raise quota.ProcessGoneError(str(pid))
+        return live[pid]
+
+    monkeypatch.setattr(quota, "read_start_time", start_time)
+    source = ClaudeStatuslineSource(tmp_path / "claude.json")
+    files = {
+        "gone-old": (3, 100, DAY + 60),
+        "reused-pid-old": (2, 999, DAY + 60),  # same PID, other start time
+        "live-old": (1, 100, DAY + 60),  # an idle but running Claude
+        "gone-recent": (4, 100, 60),
+    }
+    for name, (pid, start, age) in files.items():
+        path = tmp_path / f"claude-{name}.json"
+        _write(path, pid=pid, start=start)
+        _aged(path, age)
+    junk = tmp_path / "claude-junk.json"
+    junk.write_text("not json")
+    _aged(junk, 3 * DAY)
+    unrelated = tmp_path / "other.json"
+    unrelated.write_text("{}")
+    _aged(unrelated, 3 * DAY)
+
+    assert source.prune_stale() == 2
+
+    remaining = sorted(path.name for path in tmp_path.iterdir())
+    assert remaining == [
+        "claude-gone-recent.json",
+        "claude-junk.json",
+        "claude-live-old.json",
+        "other.json",
+    ]
+    assert source.snapshot(pid=1).availability is Availability.AVAILABLE
+
+
+def test_snapshot_prunes_at_most_once_per_interval(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(
+        quota, "read_start_time", lambda pid: (_ for _ in ()).throw(quota.ProcessGoneError(""))
+    )
+    source = ClaudeStatuslineSource(tmp_path / "claude.json")
+    calls = []
+    monkeypatch.setattr(source, "prune_stale", lambda: calls.append(1) or 0)
+    clock = iter([1000.0, 1001.0, 1000.0 + quota._CLAUDE_PRUNE_INTERVAL_SECONDS + 1])
+    monkeypatch.setattr(quota.time, "monotonic", lambda: next(clock))
+
+    for _ in range(3):
+        source.snapshot(pid=7)
+
+    assert len(calls) == 2
+
+
+def test_prune_survives_an_unreadable_directory(tmp_path) -> None:
+    source = ClaudeStatuslineSource(tmp_path / "missing" / "claude.json")
+    assert source.prune_stale() == 0
