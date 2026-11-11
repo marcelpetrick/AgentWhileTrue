@@ -853,7 +853,10 @@ ls -l ~/.local/state/agent-while-true/quota/claude-*.json
 The bridge writes one owner-only, atomically replaced quota document per Claude
 session. Legacy global files are display-only and cannot authorize an action for
 a selected process. Bridge failures never prevent the existing status line from
-running.
+running. Once an hour a watcher removes a session's document when it is older
+than a day and its Claude process (PID plus start time) has exited, because it
+can never match a live process again. Running, recent, unbound or unreadable
+documents are kept.
 
 ## 9. Background service
 
