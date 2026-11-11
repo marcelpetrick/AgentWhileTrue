@@ -132,11 +132,12 @@ def test_overnight_limit_continues_once_after_its_dated_reset(tmp_path):
     assert session.reset_at == RESET
     assert kit.sent == []
 
-    kit.clock.advance((RESET - SEEN).total_seconds() - 60)
+    first = kit.supervisor.config.retry_schedule[0]
+    kit.clock.advance((RESET - SEEN).total_seconds() + first - 1)
     kit.supervisor.tick()
     assert kit.sent == []
 
-    kit.clock.advance(61)
+    kit.clock.advance(1)
     kit.supervisor.tick()
     assert len(kit.sent) == 1
     assert "continue" in kit.sent[0][1]

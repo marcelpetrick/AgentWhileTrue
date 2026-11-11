@@ -1103,7 +1103,8 @@ def scenario_codex_transient_recovery(directory: Path) -> Result:
     reset = session.reset_at
     episode = session.retry_episode_key
     assert reset is not None
-    world.clock.advance((reset - world.clock.wall).total_seconds() + 1)
+    schedule = world.supervisor.config.retry_schedule
+    world.clock.advance((reset - world.clock.wall).total_seconds() + schedule[0])
     world.step("the first bounded trial reaches the composer")
     world.screen(["• Working (1s · esc to interrupt)", "", "› "])
     world.clock.advance(1)
@@ -1111,7 +1112,7 @@ def scenario_codex_transient_recovery(directory: Path) -> Result:
     world.screen(CODEX_BLOCKED_SCREEN)
     world.clock.advance(3)
     world.step("the identical limit returns")
-    world.clock.advance(2)
+    world.clock.advance(schedule[1])
     world.step("retry using the original anchor and remaining budget")
     record = world.supervisor.store.get_episode(episode)
     return _result(

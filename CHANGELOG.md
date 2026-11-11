@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.71.9] - 2026-11-11
+
+### Changed
+
+- Back off continuation retries after a printed reset: the default
+  `RETRY_SCHEDULE` now waits one minute, then 2, 5, 10, 15, 30, 30 and 4x60
+  minutes (11 attempts, about six hours) instead of retrying within seconds.
+
 ## [0.71.8] - 2026-11-11
 
 ### Fixed

@@ -1048,7 +1048,7 @@ RETRY_DELAYS=5s 30s 60s
 
 # Opted-in Codex timed retries: first delay after anchored reset, subsequent
 # delays after verification. Other providers retain MAX_RESUME_ATTEMPTS above.
-RETRY_SCHEDULE=1,2,3,5,8,13,21,34,55,89,600
+RETRY_SCHEDULE=60,120,300,600,900,1800,1800,3600,3600,3600,3600
 
 # Nothing below costs money or changes model quality unless you turn it on.
 RESUME_AFTER_RESET=true

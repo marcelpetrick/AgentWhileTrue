@@ -389,7 +389,7 @@ environment < command line. Durations accept `ms`, `s`, `m`, `h`.
 | `RESET_GRACE` | `60s` | Extra wait after a nominal reset |
 | `MAX_RESUME_ATTEMPTS` | `3` | Attempt budget per prompt outside Codex timed retries |
 | `RETRY_DELAYS` | `5s 30s 60s` | Back-off between those attempts |
-| `RETRY_SCHEDULE` | `1,2,3,5,8,13,21,34,55,89,600` | Opted-in Codex timed-retry delays (11 attempts) |
+| `RETRY_SCHEDULE` | `60,120,300,600,900,1800,1800,3600,3600,3600,3600` | Opted-in Codex timed-retry delays (11 attempts) |
 | `VISIBLE_LINES` | `40` | Screen lines read per observation |
 | `RESUME_AFTER_RESET` | `true` | Master switch for any continuation |
 | `ALLOW_CLAUDE_AUTO_WAIT` | `true` | May arm Claude's own "wait, then continue" menu item |
@@ -581,8 +581,11 @@ thread title and `Main [default]`, are accepted only in their exact observed
 shape; recap text that reads like any recognised prompt, or any other row,
 keeps the screen manual.
 
-`RETRY_SCHEDULE=1,2,3,5,8,13,21,34,55,89,600` configures 11 attempts. The first
-delay replaces reset grace on this path; subsequent delays begin after the
+`RETRY_SCHEDULE=60,120,300,600,900,1800,1800,3600,3600,3600,3600` configures
+11 attempts with a delayed backoff: the first trial one minute after the
+printed reset, then two, five, ten and fifteen minutes, two half-hours and four
+hours, about six hours in total, so a provider whose clock or budget lags the
+printed reset is not hammered. The first delay replaces reset grace on this path; subsequent delays begin after the
 previous attempt's verification finishes (normally one second plus latency), so
 the delays are not absolute offsets from the reset. Near deadlines wake the scan
 loop sooner than its ordinary interval.

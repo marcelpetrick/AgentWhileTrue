@@ -615,7 +615,8 @@ This is a bounded trial, not inferred provider availability. Fresh later limits,
 missing reset information for an exhausted window, post-reset exhaustion,
 paid/quality-changing choices and changed identity/prompt still veto it.
 
-`RETRY_SCHEDULE=1,2,3,5,8,13,21,34,55,89,600` supplies one delay per attempt.
+`RETRY_SCHEDULE=60,120,300,600,900,1800,1800,3600,3600,3600,3600` supplies one
+delay per attempt, a delayed backoff spanning about six hours.
 The first replaces reset grace only on this path; later delays start after the
 previous verification. Episode reservations survive screen changes/restarts,
 and exhaustion stops the schedule. Other providers retain the policy below.

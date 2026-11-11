@@ -138,7 +138,7 @@ class Config:
     reset_grace: float = 60.0
     max_resume_attempts: int = 3
     retry_delays: tuple[float, ...] = (5.0, 30.0, 60.0)
-    retry_schedule: tuple[float, ...] = (1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 600)
+    retry_schedule: tuple[float, ...] = (60, 120, 300, 600, 900, 1800, 1800, 3600, 3600, 3600, 3600)
     visible_lines: int = 40
     log_file: Path | None = None
     state_dir: Path | None = None

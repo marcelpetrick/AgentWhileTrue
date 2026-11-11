@@ -25,6 +25,8 @@ NOW = datetime(2026, 9, 18, 14, 56, tzinfo=ZoneInfo("Europe/Berlin"))
 COMPOSER = "\N{SINGLE RIGHT-POINTING ANGLE QUOTATION MARK} "
 TONIGHTS_LIMIT = ["▌ You've hit your usage limit. Try again at 9:52 PM.", "", COMPOSER]
 START = datetime(2026, 9, 10, 21, 50, 52, tzinfo=ZoneInfo("Europe/Berlin"))
+#: The default delay between an anchored reset and the first trial.
+FIRST = int(Config().retry_schedule[0])
 
 
 def setup_codex(tmp_path, *, availability=Availability.UNKNOWN, config=None):
@@ -47,7 +49,7 @@ def test_reset_does_not_move_to_tomorrow_and_retry_occurs(tmp_path):
     kit.supervisor.tick()
     anchored = session.reset_at
     assert anchored == START.replace(hour=21, minute=52, second=0)
-    kit.clock.advance(69)
+    kit.clock.advance(68 + FIRST)
     kit.supervisor.tick()
     assert session.reset_at == anchored
     assert len(kit.sent) == 1
@@ -58,7 +60,7 @@ def test_transient_working_redraw_does_not_complete_retry_or_move_reset(tmp_path
     kit.supervisor.tick()
     reset = session.reset_at
     episode = session.retry_episode_key
-    kit.clock.advance(69)
+    kit.clock.advance(68 + FIRST)
     kit.supervisor.tick()
     kit.terminal.set_screen("/Sessions/1", ["• Working (1s · esc to interrupt)", "", COMPOSER])
     kit.clock.advance(1)
@@ -72,7 +74,10 @@ def test_transient_working_redraw_does_not_complete_retry_or_move_reset(tmp_path
     assert session.reset_at == reset
     assert session.retry_episode_key == episode
     assert not kit.supervisor.store.get_episode(episode).completed
-    kit.clock.advance(2)
+    kit.clock.advance(kit.supervisor.config.retry_schedule[1] - 4)
+    kit.supervisor.tick()
+    assert len(kit.sent) == 1
+    kit.clock.advance(4)
     kit.supervisor.tick()
     assert len(kit.sent) == 2
 
@@ -81,7 +86,7 @@ def test_particle_obscured_working_does_not_verify_retry(tmp_path):
     kit, session = setup_codex(tmp_path)
     kit.supervisor.tick()
     episode = session.retry_episode_key
-    kit.clock.advance(69)
+    kit.clock.advance(68 + FIRST)
     assert kit.supervisor.tick()[0].allowed
     kit.terminal.set_screen("/Sessions/1", [*TONIGHTS_LIMIT, "● Wor⠁king", COMPOSER])
     for delay in (1, 3):
@@ -102,7 +107,7 @@ def test_reported_repeated_limit_stays_an_exact_retry_prompt() -> None:
 def test_resume_into_exact_permission_menu_verifies_then_auto_yes_can_answer(tmp_path):
     kit, session = setup_codex(tmp_path)
     kit.supervisor.tick()
-    kit.clock.advance(69)
+    kit.clock.advance(68 + FIRST)
     assert kit.supervisor.tick()[0].allowed
     kit.terminal.set_screen("/Sessions/1", screens.CODEX_APPROVAL_EXEC_0_162_1)
     kit.clock.advance(1)
@@ -147,7 +152,7 @@ def test_completed_retry_reopens_identical_limit_after_restart_with_original_bud
     )
     kit.supervisor.tick()
     reset, episode_key = session.reset_at, session.retry_episode_key
-    kit.clock.advance(69)
+    kit.clock.advance(68 + FIRST)
     kit.supervisor.tick()
     _complete_retry_with_stable_activity(kit, session)
 
@@ -173,7 +178,7 @@ def test_completed_last_attempt_cannot_mint_new_budget_for_identical_limit(tmp_p
     )
     kit.supervisor.tick()
     episode_key, reset = session.retry_episode_key, session.reset_at
-    kit.clock.advance(69)
+    kit.clock.advance(68 + FIRST)
     kit.supervisor.tick()
     _complete_retry_with_stable_activity(kit, session)
     kit.terminal.set_screen("/Sessions/1", TONIGHTS_LIMIT)
@@ -193,7 +198,7 @@ def test_fresh_absolute_next_day_reset_starts_a_genuine_new_episode(tmp_path):
     kit, session = setup_codex(tmp_path)
     kit.supervisor.tick()
     old_reset, old_episode = session.reset_at, session.retry_episode_key
-    kit.clock.advance(69)
+    kit.clock.advance(68 + FIRST)
     kit.supervisor.tick()
     _complete_retry_with_stable_activity(kit, session)
     kit.clock.advance(86400 - 65)
@@ -224,7 +229,7 @@ def test_migration_ignores_bogus_unstarted_tomorrow_episode(tmp_path):
     kit.supervisor.tick()
     episode_key, reset = session.retry_episode_key, session.reset_at
     original = kit.supervisor.store.get_episode(episode_key)
-    kit.clock.advance(69)
+    kit.clock.advance(68 + FIRST)
     kit.supervisor.tick()
     _complete_retry_with_stable_activity(kit, session)
     kit.supervisor.store.ensure_episode(
@@ -279,7 +284,7 @@ def test_backoff_is_bounded_across_fingerprint_changes_and_reselection(tmp_path)
     kit, session = setup_codex(tmp_path)
     kit.supervisor.tick()
     reset = session.reset_at
-    kit.clock.advance(69)
+    kit.clock.advance(68 + FIRST)
     sent_at = []
     for attempt, delay in enumerate(kit.supervisor.config.retry_schedule, 1):
         if attempt > 1:
@@ -294,7 +299,7 @@ def test_backoff_is_bounded_across_fingerprint_changes_and_reselection(tmp_path)
             kit.supervisor.store = StateStore.in_directory(tmp_path).load(now=kit.clock.wall)
             kit.supervisor.select(session.ref, session.identity, "codex", "synthetic")
             session = kit.supervisor.sessions[session.ref.key()]
-    assert sent_at[0] == reset + timedelta(seconds=1)
+    assert sent_at[0] == reset + timedelta(seconds=FIRST)
     assert [int((right - left).total_seconds()) for left, right in pairwise(sent_at)] == [
         delay + 1 for delay in kit.supervisor.config.retry_schedule[1:]
     ]
@@ -333,7 +338,7 @@ def test_retry_episode_not_written_without_auto_lock_workflow(tmp_path, mode):
 def test_fresh_later_weekly_exhaustion_vetoes_timed_retry(tmp_path):
     kit, session = setup_codex(tmp_path)
     kit.supervisor.tick()
-    kit.clock.advance(69)
+    kit.clock.advance(68 + FIRST)
     kit.quota["codex"].availability = Availability.EXHAUSTED
     kit.quota["codex"].observed_at = kit.clock.wall
     kit.quota["codex"].windows = (QuotaWindow("weekly", 100, kit.clock.wall + timedelta(days=2)),)
@@ -354,7 +359,7 @@ def test_pre_reset_exhaustion_can_be_trialed_but_post_reset_exhaustion_vetoes(tm
     kit.quota["codex"].windows = (QuotaWindow("session", 100, reset),)
     kit.supervisor.tick()
     assert kit.sent == []
-    kit.clock.advance(69)
+    kit.clock.advance(68 + FIRST)
     assert kit.supervisor.tick()[0].allowed
     assert session.quota.availability is Availability.EXHAUSTED  # No fabricated availability.
     kit.clock.advance(1)
@@ -397,7 +402,7 @@ def test_config_schedule_parses_commas_and_summary_counts_retry_events(tmp_path)
 def test_old_limit_or_nonempty_draft_never_gets_continue(tmp_path, tail):
     kit, _ = setup_codex(tmp_path, availability=Availability.AVAILABLE)
     kit.supervisor.tick()
-    kit.clock.advance(69)
+    kit.clock.advance(68 + FIRST)
     kit.terminal.set_screen("/Sessions/1", [*TONIGHTS_LIMIT[:-1], *tail])
     kit.supervisor.tick()
     assert kit.sent == []
@@ -503,7 +508,7 @@ def test_codex_0_162_unconditional_vetoes_block_timed_retry(tmp_path, banner: st
     kit.terminal.set_screen("/Sessions/1", [banner, "", COMPOSER])
 
     kit.supervisor.tick()
-    kit.clock.advance(69)
+    kit.clock.advance(68 + FIRST)
     kit.supervisor.tick()
 
     assert kit.sent == []
