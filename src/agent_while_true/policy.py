@@ -473,8 +473,12 @@ def authorization_for(request: ResumeRequest) -> tuple[Authorization, datetime |
     # A sample from before the limit was reached must not override the printed
     # reset. For opted-in bounded Codex retries the first schedule delay replaces
     # reset grace; other paths retain their existing grace period.
+    # Claude's limit composer is held to its printed reset the same way: a
+    # status-line gauge cannot say "available" for a window that has not reset.
     if request.recognition.reset_at is not None and (
-        request.recognition.provider == "codex" or request.timed_retry
+        request.recognition.provider == "codex"
+        or request.timed_retry
+        or "claude/limit-composer" in request.recognition.matched_ids
     ):
         delay = (
             request.config.retry_schedule[0] if request.timed_retry else request.config.reset_grace

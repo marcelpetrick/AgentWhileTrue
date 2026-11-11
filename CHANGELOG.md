@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.72.1] - 2026-11-11
+
+### Fixed
+
+- Hold Claude's limit composer to its printed reset in every mode: in ask mode
+  a fresh status-line gauge reading "available" no longer offers `continue`
+  before the reset (found by the branch review).
+
 ## [0.72.0] - 2026-11-11
 
 ### Added

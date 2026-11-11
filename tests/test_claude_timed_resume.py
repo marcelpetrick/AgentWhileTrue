@@ -186,3 +186,19 @@ def test_a_menu_replacing_the_composer_never_gets_continue(tmp_path):
     _until(kit, RESET + timedelta(hours=7))
 
     assert not any("continue" in text for _, text in kit.sent)
+
+
+def test_ask_mode_never_offers_continue_before_the_printed_reset(tmp_path):
+    """A fresh gauge saying "available" cannot override the printed reset."""
+    kit, _ = _setup(tmp_path, mode=Mode.ASK)
+    asked = []
+    kit.supervisor.confirm = lambda observation, decision: asked.append(decision) or False
+    quota = kit.quota["claude"]
+    quota.availability = Availability.AVAILABLE
+    quota.observed_at = kit.clock.wall
+
+    decision = kit.supervisor.tick()[0]
+    assert asked == []
+    assert decision.reason == "usage-not-confirmed-available"
+    assert decision.retry_at is not None
+    assert decision.retry_at >= RESET
