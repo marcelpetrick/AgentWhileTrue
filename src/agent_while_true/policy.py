@@ -71,8 +71,9 @@ class ResumeRequest:
     attempts: int = 0
     actioned_fingerprints: frozenset[str] = frozenset()
     marked_unsafe: bool = False
-    #: Set only for a supervisor-bound persistent Codex blocking episode.
-    codex_retry: bool = False
+    #: Set only for a supervisor-bound persistent timed-retry episode on an
+    #: exact Codex or Claude limit composer.
+    timed_retry: bool = False
     retry_state_valid: bool = True
     #: This process was observed blocked by a limit since its last verified
     #: resume. Only the supervisor's own observations can set it.
@@ -212,7 +213,7 @@ def _check_capacity(request: ResumeRequest) -> str | None:
         and action.kind is ActionKind.TEXT_THEN_ENTER
         and action.text == "continue"
         and action.requires_policy == "allow_codex_capacity_retry"
-        and not request.codex_retry
+        and not request.timed_retry
     ):
         return "unsupported-capacity-prompt"
     if request.config.mode is not Mode.AUTO:
@@ -244,6 +245,19 @@ def _check_no_veto(request: ResumeRequest) -> str | None:
                 "paid-action-required:claude/upgrade-plan-offer",
                 "paid-action-required:claude/usage-credits-offer",
             }
+        )
+    if (
+        request.recognition.provider == "claude"
+        and request.recognition.retry_prompt
+        and action is not None
+        and action.kind is ActionKind.TEXT_THEN_ENTER
+        and "claude/limit-composer" in request.recognition.matched_ids
+    ):
+        # Claude's window-limit banner carries a passive "/upgrade or
+        # /usage-credits" hint. Typing a message into the composer cannot run
+        # either command; every other veto stays unconditional.
+        vetoes = tuple(
+            veto for veto in vetoes if veto != "paid-action-required:claude/usage-credits-offer"
         )
     if (
         request.recognition.provider == "codex"
@@ -301,6 +315,25 @@ def _check_codex_limit_prompt(request: ResumeRequest) -> str | None:
     return None
 
 
+def timed_retry_allowed(config: Config, recognition: Recognition) -> bool:
+    """Whether an exact limit composer may get bounded trials after its reset.
+
+    Full-auto only, with the provider's own switch: Codex stays an explicit
+    opt-in, Claude follows ``allow_claude_timed_resume``. The adapter must have
+    validated the exact screen and anchored a printed reset.
+    """
+    switch = {
+        "codex": config.policy.allow_codex_auto_resume,
+        "claude": config.policy.allow_claude_timed_resume,
+    }.get(recognition.provider, False)
+    return (
+        config.mode is Mode.AUTO
+        and switch
+        and recognition.retry_prompt
+        and recognition.reset_at is not None
+    )
+
+
 def _check_not_already_actioned(request: ResumeRequest) -> str | None:
     if idempotency_key(request) in request.actioned_fingerprints:
         return "already-actioned"
@@ -308,19 +341,13 @@ def _check_not_already_actioned(request: ResumeRequest) -> str | None:
 
 
 def _check_attempts(request: ResumeRequest) -> str | None:
-    if request.codex_retry and not (
-        request.config.mode is Mode.AUTO
-        and request.config.policy.allow_codex_auto_resume
-        and request.recognition.provider == "codex"
-        and request.recognition.retry_prompt
-        and request.recognition.reset_at is not None
-    ):
-        return "invalid-codex-retry-prompt"
-    if request.codex_retry and not request.retry_state_valid:
+    if request.timed_retry and not timed_retry_allowed(request.config, request.recognition):
+        return "invalid-timed-retry-prompt"
+    if request.timed_retry and not request.retry_state_valid:
         return "retry-state-unreadable"
     budget = (
         len(request.config.retry_schedule)
-        if request.codex_retry
+        if request.timed_retry
         else request.config.max_resume_attempts
     )
     if request.attempts >= budget:
@@ -350,7 +377,7 @@ def _expired_codex_windows(request: ResumeRequest) -> bool:
     reset = request.recognition.reset_at
     exhausted = [window for window in request.quota.windows if window.exhausted]
     return bool(
-        request.codex_retry
+        request.timed_retry
         and reset is not None
         and exhausted
         and request.quota.observed_at is not None
@@ -446,9 +473,11 @@ def authorization_for(request: ResumeRequest) -> tuple[Authorization, datetime |
     # A sample from before the limit was reached must not override the printed
     # reset. For opted-in bounded Codex retries the first schedule delay replaces
     # reset grace; other paths retain their existing grace period.
-    if request.recognition.provider == "codex" and request.recognition.reset_at is not None:
+    if request.recognition.reset_at is not None and (
+        request.recognition.provider == "codex" or request.timed_retry
+    ):
         delay = (
-            request.config.retry_schedule[0] if request.codex_retry else request.config.reset_grace
+            request.config.retry_schedule[0] if request.timed_retry else request.config.reset_grace
         )
         due = request.recognition.reset_at + timedelta(seconds=delay)
         if request.now < due:
@@ -467,7 +496,7 @@ def authorization_for(request: ResumeRequest) -> tuple[Authorization, datetime |
     if fresh and quota.availability is Availability.AVAILABLE:
         return Authorization.PROVIDER_CONFIRMED, None
 
-    if request.codex_retry and request.recognition.reset_at is not None:
+    if request.timed_retry and request.recognition.reset_at is not None:
         return Authorization.TIME_ONLY, None
 
     resume_at = _resume_at(request)
@@ -522,7 +551,7 @@ def evaluate(request: ResumeRequest) -> Decision:
             idempotency_key=key,
         )
 
-    if authorization is Authorization.TIME_ONLY and not request.codex_retry:
+    if authorization is Authorization.TIME_ONLY and not request.timed_retry:
         # Confirmation by the operator does not establish provider availability.
         return Decision(
             allowed=False,

@@ -29,12 +29,14 @@ from agent_while_true.providers.base import (
     DEFAULT_LIVE_LINES,
     ActionKind,
     PromptKind,
+    PromptMatch,
     PromptPattern,
     ProviderAdapter,
     Recognition,
     ResumeAction,
     normalise_typography,
 )
+from agent_while_true.states import SessionState
 
 NAME: Final = "claude"
 PATTERNS_VERSION: Final = "claude-2.1.x/13"
@@ -382,9 +384,20 @@ class ClaudeAdapter(ProviderAdapter):
             ):
                 result = candidate
         block = _approval_block(lines)
+        composer_empty = _composer_empty(lines)
+        headline = _limit_composer_headline(lines, result, composer_empty=composer_empty)
+        if headline is not None and block is None:
+            # The exact limit composer: the only input is the provider's own
+            # suggestion, "continue", typed as a fresh message after the reset.
+            result = replace(
+                result,
+                matches=(*result.matches, PromptMatch(LIMIT_COMPOSER, line=lines[headline])),
+                retry_prompt=True,
+            )
         return replace(
             result,
-            composer_empty=_composer_empty(lines),
+            composer_empty=composer_empty,
+            active_evidence=_working(lines, result),
             approval_prompt=block is not None,
             approval_fingerprint=fingerprint(block) if block is not None else "",
         )
@@ -432,6 +445,120 @@ class ClaudeAdapter(ProviderAdapter):
             for index, line in enumerate(live)
         ]
         return super().recognise(scoped, now=now, live_lines=live_lines)
+
+
+#: The window limits whose printed reset ends the wait. Credit, spend, admin
+#: and organisation caps are not windows and never reach the timed path.
+_WINDOW_LIMIT_IDS: Final = frozenset(
+    {
+        "claude/limit-session",
+        "claude/limit-weekly",
+        "claude/limit-opus",
+        "claude/limit-sonnet",
+        "claude/limit-fast",
+        "claude/limit-fable",
+        "claude/limit-generic",
+    }
+)
+_CREDITS_OFFER_ID: Final = "claude/usage-credits-offer"
+_LIMIT_HEADLINE_ROW = re.compile(
+    r"^\s*(?:[\u23bf\u2514]\s*)?You've (?:hit|reached) your "
+    r"(?:(?:session|weekly|Opus|Sonnet|fast|Fable|usage) )?limit"
+    r"\s*\N{MIDDLE DOT}\s*resets?\s+\S.*$",
+    re.IGNORECASE,
+)
+#: The passive paid hint Claude prints under a window limit. Typing a message
+#: into the composer cannot run either slash command.
+_LIMIT_HINT_ROW = re.compile(
+    r"^\s*(?:/upgrade or )?/(?:usage-credits|extra-usage) to finish what you're working on\.\s*$"
+)
+#: The turn summary Claude leaves above an idle composer ("✳ Crunched for 0s ·
+#: done 7:31 PM"). Spinner glyph, one verb, a duration and an optional time.
+_TURN_SUMMARY_ROW = re.compile(
+    r"^\s*\S\s+\S+ for (?:\d+[hms]\s*)+(?:\N{MIDDLE DOT}\s*done \d{1,2}:\d{2}\s*[AP]M)?\s*$"
+)
+#: Claude's own working indicator, and its assistant marker.
+_WORKING_ROW = re.compile(r"\besc to interrupt\b", re.IGNORECASE)
+_ASSISTANT_ROW = re.compile(r"^\s*\N{BLACK CIRCLE}\s+\S")
+
+#: Proposed only for the exact limit composer below; never matched as text.
+LIMIT_COMPOSER: Final = PromptPattern(
+    id="claude/limit-composer",
+    provider=NAME,
+    kind=PromptKind.LIMIT_BLOCKED,
+    scope="session",
+    all_of=(),
+    action=ResumeAction(
+        kind=ActionKind.TEXT_THEN_ENTER,
+        text="continue",
+        requires_policy="allow_claude_timed_resume",
+    ),
+    note="Exact window-limit banner above an empty composer; typed after the printed reset.",
+    verified_against=VERIFIED_AGAINST,
+)
+
+
+def _limit_composer_headline(
+    lines: list[str], result: Recognition, *, composer_empty: bool
+) -> int | None:
+    """The row of an exact window-limit banner directly above an empty composer.
+
+    Between that banner and the composer only blank rows, Claude's rules, its
+    passive paid hint and the finished-turn summary may appear. A menu, a
+    question, a draft, a self-healing wait, a credit/spend/admin cap, a
+    downgrade offer or any other row leaves the screen manual.
+    """
+    ids = set(result.matched_ids)
+    if not (
+        composer_empty
+        and result.state is SessionState.LIMIT_BLOCKED
+        and result.reset_at is not None
+        and ids & _WINDOW_LIMIT_IDS
+        and ids <= _WINDOW_LIMIT_IDS | {_CREDITS_OFFER_ID}
+        and set(result.vetoes) <= {f"paid-action-required:{_CREDITS_OFFER_ID}"}
+    ):
+        return None
+    end = len(lines)
+    while end and not lines[end - 1].strip():
+        end -= 1
+    end = _without_agent_panel(lines, end)
+    composer = next(
+        (
+            index
+            for index in range(end - 1, max(0, end - CLAUDE_COMPOSER_ROWS) - 1, -1)
+            if lines[index].strip().startswith(_COMPOSER_GLYPH)
+        ),
+        -1,
+    )
+    for index in range(composer - 1, -1, -1):
+        row = normalise_typography(lines[index])
+        if _LIMIT_HEADLINE_ROW.match(row):
+            return index
+        if not (
+            not row.strip()
+            or _RULE_ROW.match(row)
+            or _LIMIT_HINT_ROW.match(row)
+            or _TURN_SUMMARY_ROW.match(row)
+        ):
+            return None
+    return None
+
+
+def _working(lines: list[str], result: Recognition) -> bool:
+    """Claude visibly working below any limit banner: spinner or assistant output."""
+    if result.state is not SessionState.ACTIVE or result.matches:
+        return False
+    last_limit = max(
+        (
+            index
+            for index, line in enumerate(lines)
+            if _LIMIT_HEADLINE_ROW.match(normalise_typography(line))
+        ),
+        default=-1,
+    )
+    return any(
+        _WORKING_ROW.search(line) or _ASSISTANT_ROW.match(line) for line in lines[last_limit + 1 :]
+    )
 
 
 #: Claude draws its composer cursor with this glyph; the menu cursor uses it too.

@@ -1014,7 +1014,7 @@ def scenario_codex_daemon_quota_gate(directory: Path) -> Result:
                 limit_seen=True,
                 # This is the ordinary provider-confirmed path, not the
                 # independently opted-in persistent timed retry exception.
-                codex_retry=False,
+                timed_retry=False,
             )
         )
         passed &= quota.availability is availability and decision.allowed is permitted
@@ -1126,6 +1126,46 @@ def scenario_codex_transient_recovery(directory: Path) -> Result:
         and record is not None
         and record.attempts == 2
         and not record.completed,
+    )
+
+
+# Claude's window-limit banner above its idle composer: no wait menu and no
+# armed wait, only the passive paid hint. Status text is synthetic.
+_CLAUDE_RULE = "\u2500" * 60
+CLAUDE_LIMIT_COMPOSER_SCREEN = [
+    "  \u23bf  You've hit your session limit \u00b7 resets in 5m",
+    "     /upgrade or /usage-credits to finish what you're working on.",
+    "",
+    _CLAUDE_RULE,
+    "\u276f ",
+    _CLAUDE_RULE,
+    "  Opus 5.5 ctx:33% 5h:99%",
+]
+
+
+def scenario_claude_timed_resume(directory: Path) -> Result:
+    world = _world(directory, screen=CLAUDE_LIMIT_COMPOSER_SCREEN)
+    world.quota["claude"].availability = Availability.UNKNOWN
+    world.step("anchor the printed Claude reset; quota stays unknown")
+    session = world.supervisor.sessions[world.terminal.ref(SESSION).key()]
+    reset = session.reset_at
+    assert reset is not None
+    first = world.supervisor.config.retry_schedule[0]
+    world.clock.advance((reset - world.clock.wall).total_seconds() + first - 1)
+    world.step("the reset passed but the first backoff delay has not")
+    world.clock.advance(1)
+    world.step("the first bounded trial types continue")
+    world.clock.advance(1)
+    world.step("the identical limit is still on screen")
+    world.clock.advance(world.supervisor.config.retry_schedule[1] - 2)
+    world.step("the next trial waits for its backoff delay")
+    return _result(
+        "claude-timed-resume",
+        "Claude's exact limit composer stays on screen after its printed reset.",
+        "type continue once after the reset plus backoff; never select a paid hint",
+        world,
+        passed=[step.sent for step in world.steps] == [0, 0, 1, 1, 1]
+        and all(text == "\x1b[200~continue\x1b[201~\r" for _, text in world.terminal.sent),
     )
 
 
@@ -1436,6 +1476,7 @@ SCENARIOS: dict[str, ScenarioFn] = {
     "codex-capacity-recovery": scenario_codex_capacity_recovery,
     "codex-capacity-refusals": scenario_codex_capacity_refusals,
     "codex-transient-recovery": scenario_codex_transient_recovery,
+    "claude-timed-resume": scenario_claude_timed_resume,
     "observe-mode": scenario_observe_mode,
     "observer-preserves-retry-state": scenario_observer_preserves_retry_state,
     "approval-waits-for-operator": scenario_approval_waits_for_the_operator,

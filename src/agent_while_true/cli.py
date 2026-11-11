@@ -1046,8 +1046,9 @@ RESET_GRACE=60s
 MAX_RESUME_ATTEMPTS=3
 RETRY_DELAYS=5s 30s 60s
 
-# Opted-in Codex timed retries: first delay after anchored reset, subsequent
-# delays after verification. Other providers retain MAX_RESUME_ATTEMPTS above.
+# Timed retries of exact Codex/Claude limit composers: first delay after the
+# anchored reset, subsequent delays after verification. Everything else
+# retains MAX_RESUME_ATTEMPTS above.
 RETRY_SCHEDULE=60,120,300,600,900,1800,1800,3600,3600,3600,3600
 
 # Nothing below costs money or changes model quality unless you turn it on.
@@ -1061,6 +1062,9 @@ AUTO_CONSUME_RESET_CREDIT=false
 # affordance: resuming it means typing into the composer, so it is opt-in.
 ALLOW_CLAUDE_AUTO_WAIT=true
 ALLOW_CODEX_AUTO_RESUME=false
+# Full-auto only: type continue into Claude's exact limit composer after its
+# printed reset, on the RETRY_SCHEDULE backoff. Paid hints are never selected.
+ALLOW_CLAUDE_TIMED_RESUME=true
 """
 
 

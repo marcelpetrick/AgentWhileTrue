@@ -293,5 +293,5 @@ def test_capacity_gate_does_not_trust_unvalidated_flags(tmp_path, monkeypatch, f
     request = kit.supervisor._request(session, observation)
     recognition = replace(request.recognition, **{field: value})
     if field == "retry_prompt":
-        request = replace(request, codex_retry=True)
+        request = replace(request, timed_retry=True)
     assert not evaluate(replace(request, recognition=recognition)).allowed

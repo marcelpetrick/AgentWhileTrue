@@ -389,11 +389,12 @@ environment < command line. Durations accept `ms`, `s`, `m`, `h`.
 | `RESET_GRACE` | `60s` | Extra wait after a nominal reset |
 | `MAX_RESUME_ATTEMPTS` | `3` | Attempt budget per prompt outside Codex timed retries |
 | `RETRY_DELAYS` | `5s 30s 60s` | Back-off between those attempts |
-| `RETRY_SCHEDULE` | `60,120,300,600,900,1800,1800,3600,3600,3600,3600` | Opted-in Codex timed-retry delays (11 attempts) |
+| `RETRY_SCHEDULE` | `60,120,300,600,900,1800,1800,3600,3600,3600,3600` | Timed-retry backoff for exact Codex/Claude limit composers (11 attempts) |
 | `VISIBLE_LINES` | `40` | Screen lines read per observation |
 | `RESUME_AFTER_RESET` | `true` | Master switch for any continuation |
 | `ALLOW_CLAUDE_AUTO_WAIT` | `true` | May arm Claude's own "wait, then continue" menu item |
 | `ALLOW_CODEX_AUTO_RESUME` | `false` | May type `continue` into Codex's composer |
+| `ALLOW_CLAUDE_TIMED_RESUME` | `true` | Full-auto only: may type `continue` into Claude's exact limit composer after its printed reset |
 | `ALLOW_CODEX_CAPACITY_RETRY` | `true` | Full-auto only: bounded same-model retry of the exact capacity error |
 | `AUTO_ACCEPT_MODEL_DOWNGRADE`, `AUTO_USE_PAID_CREDITS`, `AUTO_BUY_CREDITS`, `AUTO_CONSUME_RESET_CREDIT` | `false` | Human-only actions: setting any to `true` is a configuration error |
 | `LOG_FILE`, `STATE_DIR`, `RUNTIME_DIR` | XDG defaults | Paths |
@@ -569,8 +570,15 @@ finite and earned.
 
 With full-auto and `ALLOW_CODEX_AUTO_RESUME=true`, the exact tested Codex limit
 banner and empty composer may receive a bounded trial continuation after their
-anchored reset. A stale/unknown quota display stays stale/unknown; this
-deliberate exception does not apply to Claude.
+anchored reset. Claude gets the same in full-auto with
+`ALLOW_CLAUDE_TIMED_RESUME=true` (the default): a window-limit banner
+(`You've hit your session limit · resets 8:10pm`, likewise weekly and model
+limits) directly above an empty composer, with at most Claude's passive
+`/upgrade or /usage-credits` hint and its turn summary between them, receives
+`continue` after the printed reset. Claude's wait menu is still answered by
+arming its own wait, an armed wait is left alone, and credit, spend, admin,
+reset-credit and model-change screens stay manual. A stale/unknown quota
+display stays stale/unknown; the trial is not a claim that usage returned.
 Ask mode also requires provider-confirmed availability: a confirmation at the
 dashboard does not establish that a budget has returned.
 

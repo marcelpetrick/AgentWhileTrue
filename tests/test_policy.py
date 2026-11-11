@@ -432,10 +432,10 @@ def test_bounded_codex_retry_requires_full_auto_even_if_requested(mode: Mode) ->
     recognition = providers.CODEX.recognise(screens.CODEX_USAGE_LIMIT, now=NOW - timedelta(days=1))
     request = _codex_request(recognition=recognition, quota=QUOTA_UNKNOWN)
     decision = evaluate(
-        replace(request, codex_retry=True, config=replace(request.config, mode=mode))
+        replace(request, timed_retry=True, config=replace(request.config, mode=mode))
     )
     assert not decision.allowed
-    assert decision.reason == "invalid-codex-retry-prompt"
+    assert decision.reason == "invalid-timed-retry-prompt"
 
 
 @pytest.mark.parametrize("quota", [QUOTA_UNKNOWN, QUOTA_AVAILABLE])

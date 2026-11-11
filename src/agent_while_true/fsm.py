@@ -40,7 +40,13 @@ from agent_while_true.activity import RunActivity
 from agent_while_true.classify import Classification, Confidence, ProcessClass, classify
 from agent_while_true.config import Config, Mode
 from agent_while_true.logging_setup import EventLogger, get_logger
-from agent_while_true.policy import Decision, ResumeRequest, capacity_idempotency_key, evaluate
+from agent_while_true.policy import (
+    Decision,
+    ResumeRequest,
+    capacity_idempotency_key,
+    evaluate,
+    timed_retry_allowed,
+)
 from agent_while_true.proc import ProcessGoneError, ProcessIdentity, ProcessInfo
 from agent_while_true.proc import identify as proc_identify
 from agent_while_true.proc import inspect as proc_inspect
@@ -598,11 +604,13 @@ class Supervisor:
 
     def _anchor_reset(self, session: SupervisedSession, observation: Observation) -> Observation:
         recognition = observation.recognition
-        if (
-            recognition is None
-            or recognition.provider != "codex"
-            or observation.identity != session.identity
-        ):
+        # Codex anchors every printed reset; Claude only its exact limit
+        # composer, the one Claude screen that can receive a timed trial.
+        anchored = recognition is not None and (
+            recognition.provider == "codex"
+            or (recognition.provider == "claude" and recognition.retry_prompt)
+        )
+        if recognition is None or not anchored or observation.identity != session.identity:
             return observation
         if recognition.reset_at is None:
             return observation
@@ -614,14 +622,14 @@ class Supervisor:
                     ).split()
                 )
                 for match in recognition.matches
-                if match.id == "codex/try-again-at"
+                if match.id in _RESET_HINT_IDS
             }
         )
         if not texts:
             return observation
         hint = hashlib.sha256(json.dumps(texts).encode()).hexdigest()
         saved = self.store.find_episode(
-            provider="codex",
+            provider=recognition.provider,
             session=session.ref.key(),
             process=session.describe_process(),
             prompt_key=hint,
@@ -692,7 +700,7 @@ class Supervisor:
             and observation.screen_read
             and observation.identity == session.identity
             and recognition is not None
-            and _codex_recovery_progress(recognition)
+            and _recovery_progress(recognition)
         ):
             session.retry_active_since = None
             return False
@@ -724,10 +732,8 @@ class Supervisor:
     def _prepare_retry(self, session: SupervisedSession, observation: Observation) -> None:
         recognition = observation.recognition
         if not (
-            self.config.mode is Mode.AUTO
-            and self.config.policy.allow_codex_auto_resume
-            and recognition is not None
-            and recognition.retry_prompt
+            recognition is not None
+            and timed_retry_allowed(self.config, recognition)
             and recognition.reset_at is not None
             and session.reset_first_seen is not None
             and observation.identity == session.identity
@@ -737,7 +743,7 @@ class Supervisor:
         key = hashlib.sha256(
             json.dumps(
                 [
-                    "codex",
+                    recognition.provider,
                     session.ref.key(),
                     session.describe_process(),
                     recognition.reset_at.isoformat(),
@@ -751,7 +757,7 @@ class Supervisor:
         )
         episode = self.store.ensure_episode(
             key,
-            provider="codex",
+            provider=recognition.provider,
             session=session.ref.key(),
             process=session.describe_process(),
             prompt_key=session.reset_prompt_key,
@@ -773,7 +779,7 @@ class Supervisor:
             self.store.update_episode(key, next_retry_at=due.isoformat())
             self.log.info(
                 "resume_retry_scheduled",
-                provider="codex",
+                provider=recognition.provider,
                 session=session.ref.key(),
                 process=session.describe_process(),
                 episode=key,
@@ -788,13 +794,7 @@ class Supervisor:
         if recognition is None:  # pragma: no cover - unreachable via _decide
             raise ValueError("cannot build a resume request without a recognition")
         episode = self.store.get_episode(session.retry_episode_key)
-        timed = (
-            self.config.mode is Mode.AUTO
-            and self.config.policy.allow_codex_auto_resume
-            and recognition.provider == "codex"
-            and recognition.retry_prompt
-            and recognition.reset_at is not None
-        )
+        timed = timed_retry_allowed(self.config, recognition)
         return ResumeRequest(
             now=observation.at,
             config=self.config,
@@ -825,7 +825,7 @@ class Supervisor:
                 and record.state is ActionState.VERIFIED
             ),
             marked_unsafe=session.marked_unsafe,
-            codex_retry=timed,
+            timed_retry=timed,
             retry_state_valid=self.store.retry_state_valid and (not timed or episode is not None),
             limit_seen=session.limit_seen,
         )
@@ -1427,7 +1427,7 @@ class Supervisor:
         capacity = key.startswith("capacity-")
         if session.retry_episode_key or capacity:
             confirmed = self._retry_activity_confirmed(session, observation)
-            if resumed and _codex_recovery_progress(observation.recognition) and not confirmed:
+            if resumed and _recovery_progress(observation.recognition) and not confirmed:
                 session.verify_after = now + timedelta(seconds=RETRY_ACTIVITY_CONFIRM_SECONDS)
                 session.state = SessionState.VERIFYING
                 return Decision(allowed=False, reason="verifying", retry_at=session.verify_after)
@@ -1515,7 +1515,7 @@ class Supervisor:
             session.next_check_at = None
             self.log.warning(
                 "resume_gave_up",
-                provider="codex",
+                provider=session.provider_name,
                 session=session.ref.key(),
                 process=session.describe_process(),
                 episode=episode.key,
@@ -1528,7 +1528,7 @@ class Supervisor:
         session.next_check_at = due
         self.log.info(
             "resume_retry_scheduled",
-            provider="codex",
+            provider=session.provider_name,
             session=session.ref.key(),
             process=session.describe_process(),
             episode=episode.key,
@@ -1596,8 +1596,30 @@ class WhipOutcome:
 APPROVE_KEYSTROKES = "\r"
 
 
-def _codex_recovery_progress(recognition: Recognition) -> bool:
+#: The banner matches whose rows carry a timed-retry episode's printed reset.
+_RESET_HINT_IDS = frozenset(
+    {
+        "codex/try-again-at",
+        "claude/limit-session",
+        "claude/limit-weekly",
+        "claude/limit-opus",
+        "claude/limit-sonnet",
+        "claude/limit-fast",
+        "claude/limit-fable",
+        "claude/limit-generic",
+    }
+)
+
+
+def _recovery_progress(recognition: Recognition) -> bool:
     """Positive working output or an exact one-turn tool request shows progress."""
+    if recognition.provider == "claude":
+        return (recognition.state is SessionState.ACTIVE and recognition.active_evidence) or (
+            recognition.state is SessionState.APPROVAL_PENDING
+            and recognition.approval_prompt
+            and recognition.matched_ids == ("claude/tool-approval",)
+            and not recognition.vetoes
+        )
     return recognition.provider == "codex" and (
         (
             recognition.state in {SessionState.ACTIVE, SessionState.LIMIT_WARNING}

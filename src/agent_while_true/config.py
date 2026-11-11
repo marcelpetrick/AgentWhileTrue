@@ -105,6 +105,10 @@ class Policy:
     #: affordance. Codex has no such affordance: resuming means typing text into
     #: the composer, which is strictly more dangerous, so it stays opt-in.
     allow_codex_auto_resume: bool = False
+    #: Full-auto only: type "continue" into Claude's exact window-limit
+    #: composer on a bounded backoff after the printed reset, even while quota
+    #: is stale or unknown. Paid, credit, admin and model choices stay manual.
+    allow_claude_timed_resume: bool = True
     #: Retry only the tested same-model capacity error in full-auto, with
     #: fresh available quota; never choose another model or paid capacity.
     allow_codex_capacity_retry: bool = True
@@ -214,6 +218,7 @@ _KEYS: dict[str, tuple[str, str]] = {
     "AUTO_CONSUME_RESET_CREDIT": ("policy.auto_consume_reset_credit", "bool"),
     "ALLOW_CLAUDE_AUTO_WAIT": ("policy.allow_claude_auto_wait", "bool"),
     "ALLOW_CODEX_AUTO_RESUME": ("policy.allow_codex_auto_resume", "bool"),
+    "ALLOW_CLAUDE_TIMED_RESUME": ("policy.allow_claude_timed_resume", "bool"),
     "ALLOW_CODEX_CAPACITY_RETRY": ("policy.allow_codex_capacity_retry", "bool"),
 }
 

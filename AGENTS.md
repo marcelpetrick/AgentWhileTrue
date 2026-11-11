@@ -33,11 +33,15 @@ when recognizer behavior changes.
 - Observe mode never sends input.
 - Unknown, missing, stale, or malformed quota data never means available.
 - A reset timestamp never means quota is available. The sole timed-retry
-  exception is explicitly opted-in Codex continuation of its exact tested limit
-  composer after an anchored reset, with a persistent bounded retry schedule,
-  no fresh contradictory quota and immediate identity/prompt/policy revalidation.
-  Claude and every other action still require provider confirmation.
-  Codex recovery needs two working observations at least three seconds apart;
+  exception is full-auto continuation of an exact tested limit composer after
+  its anchored printed reset: Codex's (explicit `ALLOW_CODEX_AUTO_RESUME`
+  opt-in) and Claude's window-limit banner above an empty composer
+  (`ALLOW_CLAUDE_TIMED_RESUME`, default on, maintainer request 2026-11-11). Both
+  type only `continue`, on the persistent bounded backoff `RETRY_SCHEDULE`,
+  with no fresh contradictory quota and immediate identity/prompt/policy
+  revalidation; a passive paid hint in that banner is not a choice and never
+  gets selected. Every other action still requires provider confirmation.
+  Timed-trial recovery needs two working observations at least three seconds apart;
   an identical returning limit reuses its retained reset and spent attempts,
   including after restart. A genuinely later date needs matching fresh absolute
   provider evidence before it can replace a completed anchor.
@@ -56,7 +60,7 @@ when recognizer behavior changes.
   renewal, not switch model or buy capacity. Respect every exhausted window
   (including weekly/model-specific limits), provider reset and grace period;
   resume only a still-bound tested limit continuation after fresh availability,
-  or the existing explicitly opted-in bounded Codex exception. An already-armed
+  or the bounded timed-retry exception above. An already-armed
   Claude wait is left to Claude. Never infer task completion or renewed budget
   from the reset clock alone.
 - Select Claude's automatic-wait item only for the exact tested menu with the

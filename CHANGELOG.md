@@ -13,6 +13,17 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.72.0] - 2026-11-11
+
+### Added
+
+- Continue Claude's exact window-limit composer after its printed reset in
+  full-auto (`ALLOW_CLAUDE_TIMED_RESUME`, default on): `continue` is typed on
+  the same persistent `RETRY_SCHEDULE` backoff as Codex, verified by two
+  working observations, while the passive `/upgrade or /usage-credits` hint is
+  never selected and every credit, spend, admin, reset-credit, model-change,
+  wait-menu and armed-wait screen keeps its existing handling.
+
 ## [0.71.9] - 2026-11-11
 
 ### Changed

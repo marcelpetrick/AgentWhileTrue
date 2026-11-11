@@ -227,9 +227,11 @@ flowchart TD
 
 Observe mode never reaches `PLANNED` or `sendText`. Unknown/stale quota remains
 unknown/stale; it does not become available. The sole trial exception is the
-owner-requested exact Codex limit composer after an anchored reset, with the
-explicit Codex opt-in, persistent episode budget and no fresh contradictory
-limit. Claude and other actions still require provider confirmation.
+owner-requested exact limit composer after an anchored reset: Codex's with its
+explicit opt-in, Claude's window-limit banner above an empty composer with
+`allow_claude_timed_resume`, both in full-auto with a persistent backoff
+episode budget and no fresh contradictory limit. Every other action still
+requires provider confirmation.
 
 Waiting gates actions, not observations. Each normal scan updates displayed
 state; action/verification deadlines can wake the loop sooner. Codex reset

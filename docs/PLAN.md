@@ -13,6 +13,17 @@ evidence and remaining evidence-dependent work are in [OPEN_ISSUES.md](OPEN_ISSU
 
 ## Current status
 
+### Overnight limit follow-up — 2026-11-11
+
+A Codex CLI 0.167.0 limit hit at 22:52 was never continued after its 2:48 AM
+reset: the dated reset, the new `↳ Recap:` block and the extended status row hid
+the exact composer (v0.71.8). Timed retries now back off from one minute to
+hourly over about six hours (v0.71.9). At the maintainer's request Claude's exact
+window-limit composer gets the same bounded timed continuation in full-auto;
+paid hints, credit/spend/admin caps, reset credits and model changes stay
+manual. The Claude composer shape is assembled from earlier live captures; it
+still needs confirmation against a live Claude Code 2.1.322 limit screen.
+
 ### Input safety review — 2026-11-05
 
 Codex continuation now requires the exact tested limit frame and a visibly

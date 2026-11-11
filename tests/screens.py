@@ -488,6 +488,23 @@ CLAUDE_IDLE_COMPOSER = [
     "  ⏵⏵ bypass permissions on · 2 shells",
 ]
 
+#: Claude's window-limit banner (CLAUDE_SESSION_LIMIT, a live capture) above
+#: the idle composer chrome of CLAUDE_IDLE_COMPOSER: no menu, no armed wait.
+#: The 2026-11-10 08:37 live session sat on this shape (refused as
+#: `paid-action-required:claude/usage-credits-offer`) until the operator typed.
+CLAUDE_LIMIT_COMPOSER = [
+    "● Ran the quality gate.",
+    "  ⎿  You've hit your session limit · resets 8:10pm (Europe/Berlin)",
+    "     /upgrade or /usage-credits to finish what you're working on.",
+    "",
+    "✳ Crunched for 0s · done 7:31 PM",
+    _RULE,
+    "❯ ",
+    _RULE,
+    "  Opus 5.5 ctx:33% 5h:99% reset:38m",
+    "  ⏵⏵ bypass permissions on · 2 shells",
+]
+
 #: Claude Code 2.1.292 with subagents running: below the status lines it draws
 #: a background-agent panel, the main thread first and one row per subagent.
 #: Transcribed from a live Konsole tab (descriptions generalised). Each agent

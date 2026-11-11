@@ -607,10 +607,13 @@ CONTINUE_SENT
 
 ## 20. Retry Policy
 
-Current owner-approved Codex exception (2026-09-11; incident summary in
-[OPEN_ISSUES.md](OPEN_ISSUES.md)):
+Current owner-approved timed exception (Codex 2026-09-11, Claude 2026-11-11;
+incident summary in [OPEN_ISSUES.md](OPEN_ISSUES.md)):
 full-auto plus explicit Codex opt-in may trial `continue` after an anchored reset
 on the exact tested empty composer, even while quota remains stale/unknown.
+Claude's exact window-limit banner above an empty composer gets the same trial
+with `ALLOW_CLAUDE_TIMED_RESUME` (default on); its passive paid hint is never
+selected.
 This is a bounded trial, not inferred provider availability. Fresh later limits,
 missing reset information for an exhausted window, post-reset exhaustion,
 paid/quality-changing choices and changed identity/prompt still veto it.
@@ -619,7 +622,7 @@ paid/quality-changing choices and changed identity/prompt still veto it.
 delay per attempt, a delayed backoff spanning about six hours.
 The first replaces reset grace only on this path; later delays start after the
 previous verification. Episode reservations survive screen changes/restarts,
-and exhaustion stops the schedule. Other providers retain the policy below.
+and exhaustion stops the schedule. Every other prompt retains the policy below.
 
 Example default:
 
