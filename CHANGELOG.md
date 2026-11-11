@@ -13,6 +13,12 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.72.2] - 2026-11-11
+
+### Changed
+
+- Update ruff 0.17.4 and refresh the Python 3.14-slim image digest.
+
 ## [0.72.1] - 2026-11-11
 
 ### Fixed
