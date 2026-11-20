@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.76.3] - 2026-11-20
+
+### Changed
+
+- Documentation describes the default-on auto-yes and the attaching dashboard
+  in the README first flight, the permission-approval requirements and the
+  background-service section.
+
 ## [0.76.2] - 2026-11-20
 
 ### Fixed

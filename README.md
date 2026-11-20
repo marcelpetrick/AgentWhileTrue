@@ -43,8 +43,9 @@ terminal bot, a way around provider limits, or a task-completion guarantee.
    sessions and quota evidence. Nothing is typed in this mode.
 3. **Arm deliberately:** enable Konsole input as described in the
    [flight manual](docs/USAGE.md#1-enable-konsole-input-once), then press `A`
-   for full-auto. Press `y` separately for one-time tool permissions; you accept
-   whatever tool use the exact supported menu requests.
+   for full-auto. Auto-yes for one-time tool permissions comes on with it
+   (`y` turns it off); you accept whatever tool use the exact supported menu
+   requests.
 4. **Check the instruments:** A/y state, quota meters and **THIS RUN** counters.
    Press `d` for a reason, `p` to pause, `q` to quit.
 

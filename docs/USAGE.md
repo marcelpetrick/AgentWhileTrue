@@ -436,7 +436,9 @@ confirmation. Neither a reset clock nor this supervisor guarantees that the
 provider is available.
 
 Permission approvals require a selected session and an unpaused, input-owning
-full-auto dashboard with `y` enabled. A headless service cannot enable auto-yes.
+full-auto watcher with auto-yes on - which it is from the start unless
+`AUTO_YES_AT_START=false` or `y` switched it off. The `--auto` service
+qualifies on its own; an attached dashboard shows and toggles its switches.
 Unknown questions, MCP elicitation and paid or model-changing choices remain
 manual. An idle shell or exited agent cannot be continued.
 
@@ -898,7 +900,10 @@ scripts/install-user-service.sh --auto --allow-codex-auto-resume
 ```
 
 Both forms enable and start `agent-while-true.service` immediately and on
-future desktop logins. Running the installer without `--auto` restores the
+future desktop logins. An `--auto` service starts with auto-yes on (see
+[Permission prompts](#permission-prompts)), and `agent-while-true run` in any
+terminal attaches to it (see
+[Opening the dashboard while the service runs](#opening-the-dashboard-while-the-service-runs)). Running the installer without `--auto` restores the
 managed observe-only configuration; `--uninstall` removes the service and its
 drop-in.
 
