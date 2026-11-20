@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.76.2] - 2026-11-20
+
+### Fixed
+
+- An attached dashboard opens in the operator's saved theme and panels: the
+  headless service now loads the display preferences it draws with, instead
+  of defaults that a display key would then partly save over them.
+- The headless service stops provider-health polling a minute after the last
+  attached dashboard request instead of polling until it exits.
+
 ## [0.76.1] - 2026-11-20
 
 ### Fixed

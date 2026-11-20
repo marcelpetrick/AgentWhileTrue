@@ -964,8 +964,9 @@ view socket gets one as well. A standalone watcher has two options:
   controls input. It checks the lock every second and freshly reloads/rebinds
   before resuming. Its standby gap is not counted as observed session-time.
   An explicitly observe-only service still scans/logs independently; stop it
-  if you want a single observer. Headless services do not fetch unused provider
-  health panels or load dashboard activity history.
+  if you want a single observer. A headless service fetches provider health
+  and dashboard activity history only while a dashboard is attached, and stops
+  the health polling a minute after the last attached request.
 
 ## 10. One-shot full-auto launcher
 

@@ -121,6 +121,44 @@ def test_an_attached_whip_cracks_on_the_service_without_animating_there(
     assert "whip cracked" in (tmp_path / "agent-while-true.log").read_text().replace("_", " ")
 
 
+def test_health_polling_stops_once_no_dashboard_is_attached(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    clock = [1000.0]
+    real_monotonic = time.monotonic
+    monkeypatch.setattr(cli, "VIEW_IDLE_SECONDS", 0.0)
+    replies: list[dict[str, object]] = []
+
+    def client(runtime: Path) -> None:
+        replies.append(request_view(runtime, {"keys": [], "width": 168, "height": 40}))
+        clock[0] += 1
+
+    monkeypatch.setattr(cli.time, "monotonic", lambda: real_monotonic() + clock[0])
+    _service(tmp_path, monkeypatch, client)
+
+    assert replies
+    cli.HealthMonitor.start.assert_called()  # type: ignore[attr-defined]
+    # Once when the viewer went idle, once more when the loop ended.
+    assert cli.HealthMonitor.stop.call_count >= 2  # type: ignore[attr-defined]
+
+
+def test_an_attached_view_uses_the_saved_display_preferences(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (tmp_path / "preferences.json").write_text(
+        '{"details_visible":true,"help_visible":false,"history_length":20,'
+        '"show_events":true,"theme":"vivid","version":1}'
+    )
+    replies: list[dict[str, object]] = []
+
+    def client(runtime: Path) -> None:
+        replies.append(request_view(runtime, {"keys": [], "width": 168, "height": 40}))
+
+    _service(tmp_path, monkeypatch, client)
+
+    assert replies[0]["theme"] == "vivid"
+
+
 def _fake_service(runtime: Path, frames: int) -> tuple[threading.Thread, list[list[str]]]:
     """A view socket that answers ``frames`` requests, then disappears."""
     server = ControlServer.in_directory(runtime, VIEW_SOCKET_FILENAME)

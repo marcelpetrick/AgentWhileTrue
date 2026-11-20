@@ -107,6 +107,8 @@ VIEW_MAX_KEYS = 16
 VIEW_LOCAL_KEYS = frozenset({"q", "\x03"})
 #: How often an attached dashboard asks for a fresh frame at most.
 VIEW_REFRESH_SECONDS = 1.0
+#: How long after the last attached request the service stops health polling.
+VIEW_IDLE_SECONDS = 60.0
 PREFERENCE_FIELDS_BY_KEY = {
     "t": frozenset({"theme"}),
     "e": frozenset({"show_events"}),
@@ -848,8 +850,8 @@ def _loop(
     )
     dashboard = DashboardState.from_interval(config.scan_interval)
     preferences_path = config.resolved_state_dir() / "preferences.json"
-    if interactive:
-        load_preferences(preferences_path, dashboard)
+    # A headless service draws for attached dashboards, in the saved style.
+    load_preferences(preferences_path, dashboard)
     if (deferred or config).starts_auto_yes:
         dashboard.auto_yes = True
         supervisor.log.info("auto_yes_toggled", enabled=True, source="start")
@@ -887,6 +889,8 @@ def _loop(
         except ControlError as exc:
             supervisor.log.warning("view_unavailable", reason=str(exc))
     history_read_at = -math.inf
+    #: When an attached dashboard last asked; health polling stops when idle.
+    viewed_at: float | None = None
 
     def compose(*, width: int, height: int, paint: bool, badge: bool) -> str:
         """Render the dashboard from cached observations; height 0 = no viewport."""
@@ -1010,7 +1014,7 @@ def _loop(
         exactly as it would at this watcher's own keyboard, through the same
         gates. The frame is drawn from cached observations, like a redraw.
         """
-        nonlocal history_read_at, event_history
+        nonlocal history_read_at, event_history, viewed_at
         if op != OP_VIEW:
             return {"ok": False, "reason": "unknown-op"}
         keys_pressed = request.get("keys", [])
@@ -1023,6 +1027,7 @@ def _loop(
         height = _bounded_int(request.get("height"), 24, 1, 1000)
         # Provider-health workers run only while someone looks at them.
         health.start()
+        viewed_at = time.monotonic()
         if time.monotonic() - history_read_at >= 1.0:
             event_history = read_activity_history(
                 config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
@@ -1046,6 +1051,10 @@ def _loop(
             config, control_note = control.tick(config)
             last_event = control_note or last_event
             view.poll(serve_view)
+            if viewed_at is not None and time.monotonic() - viewed_at > VIEW_IDLE_SECONDS:
+                # Nobody is looking any more: no public status requests for nobody.
+                health.stop()
+                viewed_at = None
             if not interactive and not args.once and control.rearm is not None and not lock.held:
                 # A deferred input-capable service is not another observer.
                 # The lock remains authoritative even if its holder has no
