@@ -25,8 +25,8 @@ def test_image_is_a_pinned_non_root_exact_wheel_simulator() -> None:
     dockerfile = DOCKERFILE.read_text(encoding="utf-8")
 
     assert dockerfile.startswith(
-        "# syntax=docker/dockerfile:1.28.0@"
-        "sha256:bb22d9815c728170f72750f4e5b0d672e06176142e1d602c7e66c050100b7e5b"
+        "# syntax=docker/dockerfile:1.29.0@"
+        "sha256:572cebbc2b15e6f84c077742952674889cb63cd5e9b80abdffcbe587b6f19183"
     )
     assert (
         "python:3.14-slim@sha256:9aaa474097d094040649f2162a627c0049b408f52138d980916788d80f04802f"

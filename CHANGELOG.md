@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.74.4] - 2026-11-20
+
+### Changed
+
+- Update dependencies to their latest stable releases: Ruff 0.17.4 → 0.17.6
+  and the Dockerfile frontend 1.28.0 → 1.29.0. setuptools, the other dev
+  tools, every pinned GitHub Action and the Python 3.14-slim base digest were
+  already current.
+
 ## [0.74.3] - 2026-11-11
 
 ### Changed
