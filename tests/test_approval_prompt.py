@@ -156,16 +156,17 @@ def test_the_failing_frame_stage_is_named_without_screen_text(
     assert _recognise(list(screen)).approval_layout == ("" if stage == "exact" else stage)
 
 
-def test_a_historical_question_between_a_distant_rule_and_the_menu_fails_closed() -> None:
-    """A far rule only frames the box when no other question or cursor lies between."""
+def test_a_rule_beyond_the_box_bound_never_excuses_an_unknown_explanation() -> None:
+    """A tall box's distant top rule is not trusted; its explanation must be a template."""
     screen = list(screens.CLAUDE_APPROVAL_TALL_BOX_2_1_329)
-    screen[20] = " Do you want to delete the repository?"
-    screen[30] = screens.CLAUDE_APPROVAL_TALL_BOX_2_1_329[-5]
+    screen[-8] = " │ An unrelated assistant status row happens to be here."
+    screen[-7] = ""
 
     recognition = _recognise(screen)
 
     assert recognition.state is SessionState.APPROVAL_PENDING
     assert not recognition.approval_prompt
+    assert recognition.approval_layout == "explanation"
 
 
 @pytest.mark.parametrize(

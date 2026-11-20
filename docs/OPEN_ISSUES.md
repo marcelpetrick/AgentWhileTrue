@@ -39,7 +39,7 @@ a reproduction of all seven historical appearances. Read-only follow-up observed
 Capture the next actual unsupported menu before adding any new explanation or
 footer rule. The 2026-11-20 capture (a ~75-row Claude Code 2.1.329 subagent
 box with a bordered read-block explanation) was such a capture; its fixture
-added the tall-box rule search and Claude's explanation template families. Unknown choices, paid/model choices and company denials remain
+added border stripping and Claude's explanation template families. Unknown choices, paid/model choices and company denials remain
 non-automatable; do not change provider policy to conceal this evidence gap.
 
 ## Completed acceptance

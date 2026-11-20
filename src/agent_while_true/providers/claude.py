@@ -734,16 +734,8 @@ def _approval_frame(lines: list[str]) -> tuple[list[str] | None, str]:
     question = row - 1
     if not _APPROVAL_QUESTION.match(normalise_typography(lines[question])):
         return None, "question"
-    for top in range(question - 1, -1, -1):
+    for top in range(question - 1, max(-1, question - 1 - APPROVAL_BOX_ROWS), -1):
         if _RULE_ROW.match(lines[top]):
-            if question - top > APPROVAL_BOX_ROWS and any(
-                _COMPOSER_GLYPH in line or _APPROVAL_QUESTION.match(normalise_typography(line))
-                for line in lines[top + 1 : question]
-            ):
-                # A tall preview may push the box's own rule beyond the usual
-                # bound. That far rule frames this box only while nothing that
-                # looks like another menu or question lies in between.
-                return None, "box-top"
             return lines[top:end], "exact"
     # A full-height command preview can scroll the solid rule away. Current
     # Claude leaves its dashed separator followed by up to four permission

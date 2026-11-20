@@ -741,9 +741,9 @@ the prompt is an exact tested permission menu, at the bottom of the screen:
 
 with the box's solid top rule above the question, or the visible command/file
 preview, dashed separator and bounded permission explanation when a full-height
-preview scrolls that rule away. A rule more than 40 rows above the question
-still frames the box when no other question or cursor lies between them. The
-explanation, with the box's `│` border removed, must consist of sentences from
+preview scrolls that rule away (or, in a box taller than 40 rows, pushes it
+beyond reach). The explanation, with the box's `│` border removed, must
+consist of sentences from
 Claude's own templates: "... cannot be checked against the read block ...",
 "Contains <shell construct>", "... requires confirmation for this command."
 or "Rule ... overrides auto mode.". The bracketed footer hint is the one Claude

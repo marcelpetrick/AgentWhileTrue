@@ -13,6 +13,17 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.76.1] - 2026-11-20
+
+### Fixed
+
+- Claude's permission box again looks for its solid top rule only within 40
+  rows of the question. v0.74.5 searched the whole screen, so an unrelated
+  rule far above a tall preview would have framed the box without the
+  explanation check. Tall boxes such as Claude Code 2.1.329's subagent prompt
+  are still answered through the dashed separator, the stripped `│` border and
+  the explanation template families.
+
 ## [0.76.0] - 2026-11-20
 
 ### Added
