@@ -652,19 +652,36 @@ _APPROVAL_ITEM = re.compile(r"^\s*\d+\.\s")
 _APPROVAL_QUESTION = re.compile(r"^\s*Do you want to \S.{0,200}\?\s*$")
 #: The dashed rule Claude draws between a file preview and the question.
 _DASHED_ROW = re.compile(r"^\s*[\u254c\u2504\u2508]{8,}\s*$")
-#: Exact explanation families observed between a full-window command preview
-#: and its permission question. Joining the bounded rows removes soft wrapping
-#: without accepting unrelated assistant prose in the fallback frame.
+#: Explanation families Claude composes between a full-window command preview
+#: and its permission question. Each sentence comes from one of Claude Code
+#: 2.1.329's fixed templates (read from its binary and live screens); only the
+#: inserted path, command, rule or classifier name varies. Joining the bounded
+#: rows removes soft wrapping without accepting unrelated assistant prose in
+#: the fallback frame: every sentence must match a template.
+_EXPLANATION_SENTENCE = (
+    r"(?:"
+    # "<what> cannot be checked against the read block (...)": computed paths,
+    # subshells, stdin code, unsafe environment prefixes, unlisted sed scripts.
+    r"\S.{0,240}?cannot be checked against the read block"
+    r"(?: \(permissions\.blockReadsOutsideWorkingDirectories\))?"
+    r"(?: or the Read deny rules\. Spell the path without the glob\.)?"
+    # Shell constructs the safety parser refuses to reason about.
+    r"|Contains (?:[a-z]+(?:_[a-z]+)+|brace with quote character \(expansion obfuscation\)"
+    r"|zsh (?:~\[ dynamic directory syntax|=cmd equals expansion|<N-M> numeric-range glob)"
+    r"|backslash-escaped whitespace|Unicode whitespace|control characters|lone surrogate)"
+    # Auto-mode rules and classifiers that ask instead of deciding.
+    r"|(?:Ask r|R)ule \S.{0,200}? overrides auto mode(?: for this command)?\."
+    r"|/permissions to let auto mode decide"
+    r"|(?:Auto mode classifier|Classifier \S.{0,80}?) requires confirmation for this command\."
+    r")"
+)
 _APPROVAL_EXPLANATION = re.compile(
-    r"^(?:Contains brace with quote character \(expansion obfuscation\) "
-    r"Ask rule Bash\(.{1,200}\) overrides auto mode for this command\. "
-    r"/permissions to let auto mode decide"
-    r"|Auto mode classifier requires confirmation for this command\. "
-    r"Contains brace with quote character \(expansion obfuscation\)"
-    r"|\S+ names a path that is computed at run time, which cannot be checked against "
-    r"the read block \(permissions\.blockReadsOutsideWorkingDirectories\))$",
+    rf"^{_EXPLANATION_SENTENCE}(?: {_EXPLANATION_SENTENCE}){{0,3}}$",
     re.IGNORECASE,
 )
+#: The permission box's left border, drawn before every explanation row of
+#: Claude Code 2.1.329. It is framing, not explanation text.
+_BOX_BORDER = re.compile(r"^\s*\u2502\s?")
 
 
 def _approval_block(lines: list[str]) -> list[str] | None:
@@ -716,8 +733,16 @@ def _approval_block(lines: list[str]) -> list[str] | None:
     question = row - 1
     if not _APPROVAL_QUESTION.match(normalise_typography(lines[question])):
         return None
-    for top in range(question - 1, max(-1, question - 1 - APPROVAL_BOX_ROWS), -1):
+    for top in range(question - 1, -1, -1):
         if _RULE_ROW.match(lines[top]):
+            if question - top > APPROVAL_BOX_ROWS and any(
+                _COMPOSER_GLYPH in line or _APPROVAL_QUESTION.match(normalise_typography(line))
+                for line in lines[top + 1 : question]
+            ):
+                # A tall preview may push the box's own rule beyond the usual
+                # bound. That far rule frames this box only while nothing that
+                # looks like another menu or question lies in between.
+                return None
             return lines[top:end]
     # A full-height command preview can scroll the solid rule away. Current
     # Claude leaves its dashed separator followed by up to four permission
@@ -729,7 +754,9 @@ def _approval_block(lines: list[str]) -> list[str] | None:
             between = lines[top + 1 : question]
             if any(_APPROVAL_ITEM.match(line) or _COMPOSER_GLYPH in line for line in between):
                 return None
-            explanation = " ".join(line.strip() for line in between if line.strip())
+            explanation = " ".join(
+                _BOX_BORDER.sub("", line).strip() for line in between if line.strip()
+            )
             if explanation and not _APPROVAL_EXPLANATION.fullmatch(
                 normalise_typography(explanation)
             ):

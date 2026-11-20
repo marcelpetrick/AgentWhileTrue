@@ -4,6 +4,7 @@
 
 """Claude Code's tool-permission prompt is recognised, shown and never resumed."""
 
+import textwrap
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -45,6 +46,8 @@ def test_the_live_yes_no_prompt_is_the_exact_tested_shape() -> None:
         screens.CLAUDE_APPROVAL_FOUR_OPTIONS_2_1_296,
         screens.CLAUDE_APPROVAL_RULE_OVERRIDE_2_1_296,
         screens.CLAUDE_APPROVAL_CLASSIFIER_2_1_300,
+        screens.CLAUDE_APPROVAL_TALL_BOX_2_1_329,
+        screens.CLAUDE_APPROVAL_TALL_BOX_NO_RULE_2_1_329,
     ],
     ids=[
         "dont-ask-again",
@@ -53,6 +56,8 @@ def test_the_live_yes_no_prompt_is_the_exact_tested_shape() -> None:
         "four-options",
         "rule-override",
         "auto-mode-classifier",
+        "tall-box-2.1.329",
+        "tall-box-rule-scrolled-away-2.1.329",
     ],
 )
 def test_current_permission_menus_with_the_cursor_on_yes_are_exact(screen: list[str]) -> None:
@@ -84,6 +89,50 @@ def test_unrecognised_full_window_permission_explanation_fails_closed() -> None:
         )
         for line in screens.CLAUDE_APPROVAL_RULE_OVERRIDE_2_1_296
     ]
+
+    recognition = _recognise(screen)
+
+    assert recognition.state is SessionState.APPROVAL_PENDING
+    assert not recognition.approval_prompt
+
+
+@pytest.mark.parametrize(
+    "explanation",
+    [
+        "An environment variable prefix that is not known to be safe cannot be checked against"
+        " the read block",
+        "A subshell cannot be checked against the read block",
+        "sed runs code from stdin, which cannot be checked against the read block",
+        "This sed script is not on the allowlist and can read or write any file, which cannot be"
+        " checked against the read block (permissions.blockReadsOutsideWorkingDirectories)",
+        "'~/notes/*.md' is expanded by the shell before the path is opened, so the target cannot"
+        " be checked against the read block (permissions.blockReadsOutsideWorkingDirectories)"
+        " or the Read deny rules. Spell the path without the glob.",
+        "Contains zsh =cmd equals expansion",
+        "Contains simple_expansion",
+        "Classifier bash-safety requires confirmation for this command.",
+        "Rule Bash(git push*) overrides auto mode.",
+    ],
+)
+def test_claude_2_1_329_explanation_families_are_accepted_below_the_dashed_rule(
+    explanation: str,
+) -> None:
+    """Claude composes these explanations at run time from a few fixed templates."""
+    rows = textwrap.wrap(explanation, 100)
+    screen = [
+        *screens.CLAUDE_APPROVAL_TALL_BOX_NO_RULE_2_1_329[:65],
+        *[f" │ {row}" for row in rows],
+        *screens.CLAUDE_APPROVAL_TALL_BOX_NO_RULE_2_1_329[-6:],
+    ]
+
+    assert _recognise(screen).approval_prompt
+
+
+def test_a_historical_question_between_a_distant_rule_and_the_menu_fails_closed() -> None:
+    """A far rule only frames the box when no other question or cursor lies between."""
+    screen = list(screens.CLAUDE_APPROVAL_TALL_BOX_2_1_329)
+    screen[20] = " Do you want to delete the repository?"
+    screen[30] = screens.CLAUDE_APPROVAL_TALL_BOX_2_1_329[-5]
 
     recognition = _recognise(screen)
 

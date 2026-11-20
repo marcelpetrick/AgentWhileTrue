@@ -262,8 +262,9 @@ Reset clocks never turn either state into AVAILABLE.
 
 ## Auto-yes
 
-Claude's existing exact permission grammar may contain a solid top rule up to
-40 rows above its question, plus menu/footer rows. The normal 40-row transport
+Claude's exact permission grammar normally finds a solid top rule within 40
+rows above its question, plus menu/footer rows; a farther rule on the visible
+screen still counts when no other question or cursor lies between. The normal 40-row transport
 tail can therefore clip an otherwise valid frame. For an automatable Claude
 approval observation that is not exact, `Supervisor.observe` performs one
 bounded 80-row reread when the configured read is smaller. It rechecks the

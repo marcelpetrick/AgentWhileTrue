@@ -855,6 +855,34 @@ CLAUDE_APPROVAL_CLASSIFIER_2_1_300 = [
     " Esc to cancel · Tab to amend",
 ]
 
+#: A subagent's Bash permission box from Claude Code 2.1.329 in the MPT company
+#: profile, transcribed from the maintainer's screenshot on 2026-11-20. The
+#: command preview is about seventy rows tall, so the box's solid top rule sits
+#: far above the 40-row box bound, and the two explanation rows carry the box's
+#: left border. The proprietary command is replaced by placeholder rows; the
+#: header, separators, bordered explanation, menu and footer are verbatim.
+CLAUDE_APPROVAL_TALL_BOX_2_1_329 = [
+    "─" * 139,
+    " Bash command · from the general-purpose agent",
+    " Run shell command",
+    "╌" * 139,
+    *[f" │ command preview row {number}" for number in range(68)],
+    "╌" * 139,
+    " │ file names a path that is computed at run time, which cannot be checked against"
+    " the read block",
+    " │ (permissions.blockReadsOutsideWorkingDirectories)",
+    "",
+    " Do you want to proceed?",
+    " ❯ 1. Yes",
+    "   2. No",
+    "",
+    " Esc to cancel · Tab to amend · ctrl+x ctrl+k twice to stop background agents",
+]
+
+#: The same Claude Code 2.1.329 box after the preview has scrolled its solid top
+#: rule away: only the dashed separator and the bordered explanation remain.
+CLAUDE_APPROVAL_TALL_BOX_NO_RULE_2_1_329 = CLAUDE_APPROVAL_TALL_BOX_2_1_329[8:]
+
 #: Claude Code 2.1.296 can offer two persistent choices between one-time Yes
 #: and No. Enter on item 1 remains the only permitted answer.
 CLAUDE_APPROVAL_FOUR_OPTIONS_2_1_296 = [

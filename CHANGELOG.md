@@ -13,6 +13,20 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.74.5] - 2026-11-20
+
+### Fixed
+
+- Auto-yes answers Claude Code 2.1.329's tall subagent permission boxes. A
+  command preview of about seventy rows pushed the box's solid top rule beyond
+  the 40-row search, and the explanation rows below the dashed separator carry
+  the box's `│` border, so the prompt was refused as an unsupported layout.
+  A farther rule on the visible screen now frames the box when no other
+  question or cursor lies between, the border is stripped, and the fallback
+  explanation accepts Claude's own template families (read-block, `Contains`,
+  classifier and rule-override sentences). Menu, footer and veto checks are
+  unchanged.
+
 ## [0.74.4] - 2026-11-20
 
 ### Changed

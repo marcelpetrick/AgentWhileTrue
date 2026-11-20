@@ -110,7 +110,8 @@ when recognizer behavior changes.
   exactly one more Enter, through the full revalidation; if it stays after
   that too it is reported once and left to the operator. If a full-window
   preview scrolls away the box's top rule, require the dashed separator plus
-  an exact observed permission explanation and fingerprint the visible preview
+  an explanation built only from Claude's observed explanation templates
+  (border glyphs stripped) and fingerprint the visible preview
   too. Never select a "Yes, and ..." item: those change provider settings or
   session modes. For Codex, require one of the complete 0.162.1 command,
   patch, terminal-input, one-time-network or turn-permission menus, its exact

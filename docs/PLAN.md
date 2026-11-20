@@ -13,6 +13,15 @@ evidence and remaining evidence-dependent work are in [OPEN_ISSUES.md](OPEN_ISSU
 
 ## Current status
 
+### More auto-yes coverage and an attaching dashboard — 2026-11-20
+
+About 250 Claude permission prompts since late October were refused as
+`unsupported-permission-layout`, rising to 30+ a day in the MPT company
+profile. A maintainer screenshot showed the cause for one family: a ~75-row
+subagent box whose top rule lay beyond the 40-row bound and whose explanation
+rows carry the box border. The rule is now searched across the visible screen
+and the explanation accepts Claude 2.1.329's template families (v0.74.5).
+
 ### Whip everywhere — 2026-11-11
 
 At the maintainer's request a whip crack reaches every Claude/Codex tab: tabs

@@ -730,7 +730,12 @@ the prompt is an exact tested permission menu, at the bottom of the screen:
 
 with the box's solid top rule above the question, or the visible command/file
 preview, dashed separator and bounded permission explanation when a full-height
-preview scrolls that rule away. The bracketed footer hint is the one Claude
+preview scrolls that rule away. A rule more than 40 rows above the question
+still frames the box when no other question or cursor lies between them. The
+explanation, with the box's `│` border removed, must consist of sentences from
+Claude's own templates: "... cannot be checked against the read block ...",
+"Contains <shell construct>", "... requires confirmation for this command."
+or "Rule ... overrides auto mode.". The bracketed footer hint is the one Claude
 Code adds while background agents run, with the user's own key binding
 (`ctrl+x ctrl+k` by default); `twice` is shown initially and `again` after the
 first stop chord. Any other footer wording fails closed. A cursor anywhere but
@@ -745,7 +750,8 @@ until someone comes back to the tab. Auto-yes lets such a limited account keep
 working unattended, within the gates below. It is validated against Claude
 Code 2.1.300, including managed-account Bash rule overrides and its new
 auto-mode-classifier explanation whose full-window command preview hides the
-box's top rule.
+box's top rule, and against Claude Code 2.1.329's ~75-row subagent box with a
+bordered read-block explanation.
 
 Codex CLI 0.162.1 uses a different complete overlay. Auto-yes recognizes only
 its exact command, patch, terminal-input, one-time-network and turn-permission
