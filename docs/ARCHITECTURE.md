@@ -418,7 +418,13 @@ may coexist. The holder also serves a control socket beside the lock, so a
 watcher started later can ask for the lock instead of being locked out for the
 lifetime of a service: the holder releases before it answers and re-arms when
 the successor exits, which keeps the single-writer guarantee that the lock, not
-the protocol, enforces. D-Bus access, state files, and the service all remain
+the protocol, enforces. A non-interactive watcher additionally serves a view
+socket for its whole run, whatever its mode: an interactive `run` attaches
+there instead of starting a second watcher, sends its keys and terminal size,
+and receives the frame the service renders from cached observations. Keys run
+through `apply_key`, the same path as the service's own keyboard, so every
+gate applies unchanged; a forwarded `q` is ignored. The viewer process does no
+discovery, quota, log or terminal access. D-Bus access, state files, and the service all remain
 within the desktop user account; root execution, SSH, containers, tmux/screen,
 and ambiguous process ancestry are non-automatable.
 

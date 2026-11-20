@@ -141,10 +141,10 @@ rate-limit "switch to a cheaper model?" dialog with `Keep current model`, so the
 limit's timed continuation can follow. Unknown model dialogs remain manual;
 the policy message is not typed into arbitrary questions.
 
-For unattended work, open `agent-while-true run --observe --all`, press `A`
-to take input control and enable Codex continuation, then `y` for one-time
-permissions. Check that both switches show ON and the dashboard is unpaused.
-The background service alone cannot enable auto-yes. Both Codex profiles'
+For unattended work, run the background service in full auto (see
+[docs/USAGE.md](docs/USAGE.md)): it starts with both switches on. Opening
+`agent-while-true run` then attaches to that service instead of starting a
+second watcher; check that both switches show ON and it is unpaused. Both Codex profiles'
 quota meters follow the native process's worker-spawned rollout writers. When
 the current Codex keeps those writers in its detached app server, a bounded
 read-only quota request uses the selected process's profile and verifies its
@@ -300,8 +300,9 @@ every key.
 | Ask | `run --ask` | Only after you confirm each action. |
 | Auto | `run --auto` | Yes, for policy-approved exact prompts, after fresh revalidation. |
 
-A background service is its own watcher: a dashboard started beside it does
-not attach to it but runs a second one, see
+A dashboard started while the background service runs attaches to it: one
+watcher, its keys acting on the service, `q` closing only the view
+(`--standalone` starts a second watcher instead), see
 [docs/USAGE.md §9](docs/USAGE.md#opening-the-dashboard-while-the-service-runs).
 The background user service, the Claude quota bridge, configuration
 keys, Codex timed retries and the full dashboard reference are all in

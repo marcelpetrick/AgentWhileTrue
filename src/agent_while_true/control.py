@@ -19,21 +19,36 @@ requester then takes the lock through the ordinary, unchanged path.
 The protocol carries no terminal contents, no prompt text and no account data -
 only the mode, this process's id, and the version - because a control reply is
 just as readable as a log line.
+
+A second socket, the *view*, lets an interactive dashboard attach to the
+background service instead of starting a second watcher. The service holds it
+for as long as it runs, whatever its mode, and answers ``view`` requests with
+the dashboard frame it would draw for the requester's terminal size, after
+applying the keys the requester pressed. A frame shows exactly what that
+user's own dashboard shows - session titles, states and metadata events, never
+screen contents - and it never reaches a log. Both sockets live in the
+user-private runtime directory with mode 0600.
 """
 
 import contextlib
 import json
+import select
 import socket
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
 #: Kept beside the lock file, in the same user-private runtime directory.
 SOCKET_FILENAME = "agent-while-true.control"
+#: The background service's attach socket for interactive dashboards.
+VIEW_SOCKET_FILENAME = "agent-while-true.view"
 
 #: A request is one short JSON line; anything longer is a client bug or an
 #: attempt to stall the supervisor loop, and is dropped.
 _MAX_REQUEST_BYTES = 4096
+#: A rendered dashboard frame with colour codes; far above any real frame.
+MAX_VIEW_REPLY_BYTES = 4 * 1024 * 1024
 
 #: The supervisor polls this socket between scans, so serving a request must
 #: never take a meaningful part of a scan interval.
@@ -43,17 +58,19 @@ _SERVE_TIMEOUT_SECONDS = 0.25
 #: use of a channel whose only clients are the user's own watchers.
 _MAX_CONNECTIONS_PER_POLL = 4
 
-#: Request verbs. ``status`` is read-only; ``yield-input`` gives up the lock.
+#: Request verbs. ``status`` is read-only; ``yield-input`` gives up the lock;
+#: ``view`` (view socket only) applies dashboard keys and returns a frame.
 OP_STATUS = "status"
 OP_YIELD_INPUT = "yield-input"
+OP_VIEW = "view"
 
 
 class ControlError(RuntimeError):
     """The control channel could not be served or reached."""
 
 
-#: Handles one request verb and returns the reply payload.
-Handler = Callable[[str], dict[str, object]]
+#: Handles one request verb with its JSON object and returns the reply payload.
+Handler = Callable[[str, dict[str, object]], dict[str, object]]
 
 
 @dataclass(slots=True)
@@ -69,8 +86,8 @@ class ControlServer:
     _inode: int | None = field(default=None, repr=False)
 
     @classmethod
-    def in_directory(cls, directory: Path) -> ControlServer:
-        return cls(path=directory / SOCKET_FILENAME)
+    def in_directory(cls, directory: Path, filename: str = SOCKET_FILENAME) -> ControlServer:
+        return cls(path=directory / filename)
 
     @property
     def active(self) -> bool:
@@ -126,6 +143,17 @@ class ControlServer:
                     served += 1
         return served
 
+    def wait(self, timeout: float) -> bool:
+        """Sleep up to ``timeout`` seconds, waking early when a client connects."""
+        if self._sock is None:
+            time.sleep(max(0.0, timeout))
+            return False
+        try:
+            ready, _, _ = select.select([self._sock], [], [], max(0.0, timeout))
+        except OSError, ValueError:
+            return False
+        return bool(ready)
+
     def close(self) -> None:
         if self._sock is None:
             return
@@ -156,27 +184,29 @@ def _serve_one(connection: socket.socket, handler: Handler) -> bool:
     try:
         request = json.loads(line)
         op = str(request["op"])
+        if not isinstance(request, dict):
+            raise TypeError
     except ValueError, KeyError, TypeError:
         _send(connection, {"ok": False, "reason": "malformed-request"})
         return False
-    reply = handler(op)
+    reply = handler(op, request)
     _send(connection, reply)
     return bool(reply.get("ok"))
 
 
-def _read_line(connection: socket.socket) -> str:
+def _read_line(connection: socket.socket, limit: int = _MAX_REQUEST_BYTES) -> str:
     chunks: list[bytes] = []
     size = 0
     while True:
-        chunk = connection.recv(1024)
+        chunk = connection.recv(65536 if limit > _MAX_REQUEST_BYTES else 1024)
         if not chunk:
             break
         chunks.append(chunk)
         size += len(chunk)
         if b"\n" in chunk:
             break
-        if size > _MAX_REQUEST_BYTES:
-            raise ControlError("request too long")
+        if size > limit:
+            raise ControlError("message too long")
     return b"".join(chunks).split(b"\n", 1)[0].decode("utf-8", "replace")
 
 
@@ -198,14 +228,22 @@ def _is_listening(path: Path) -> bool:
         return True
 
 
-def request(path: Path, op: str, *, timeout: float = 5.0) -> dict[str, object]:
+def request(
+    path: Path,
+    op: str,
+    *,
+    timeout: float = 5.0,
+    payload: dict[str, object] | None = None,
+    max_reply_bytes: int = _MAX_REQUEST_BYTES,
+) -> dict[str, object]:
     """Send one request to the input controller and return its reply."""
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
         sock.settimeout(timeout)
         try:
             sock.connect(str(path))
-            sock.sendall(json.dumps({"op": op}).encode("utf-8") + b"\n")
-            line = _read_line(sock)
+            message = {**(payload or {}), "op": op}
+            sock.sendall(json.dumps(message).encode("utf-8") + b"\n")
+            line = _read_line(sock, max_reply_bytes)
         except OSError as exc:
             raise ControlError(f"no input controller at {path}: {exc}") from exc
     try:
@@ -214,6 +252,27 @@ def request(path: Path, op: str, *, timeout: float = 5.0) -> dict[str, object]:
         raise ControlError("malformed reply from the input controller") from exc
     if not isinstance(reply, dict):
         raise ControlError("malformed reply from the input controller")
+    return reply
+
+
+def view_available(runtime_dir: Path) -> bool:
+    """Whether a background watcher is serving dashboards to attach to."""
+    return _is_listening(runtime_dir / VIEW_SOCKET_FILENAME)
+
+
+def request_view(
+    runtime_dir: Path, payload: dict[str, object], *, timeout: float = 5.0
+) -> dict[str, object]:
+    """Send keys and a terminal size to the attached watcher; return its frame."""
+    reply = request(
+        runtime_dir / VIEW_SOCKET_FILENAME,
+        OP_VIEW,
+        timeout=timeout,
+        payload=payload,
+        max_reply_bytes=MAX_VIEW_REPLY_BYTES,
+    )
+    if not reply.get("ok") or not isinstance(reply.get("frame"), str):
+        raise ControlError(str(reply.get("reason", "the watcher sent no frame")))
     return reply
 
 

@@ -285,6 +285,7 @@ def test_full_auto_launcher_help_is_safe_and_describes_the_gate() -> None:
     result = subprocess.run([str(FULL_AUTO), "--help"], text=True, capture_output=True, timeout=5)
     assert result.returncode == 0
     assert "complete local release pipeline" in result.stdout
+    assert "attaches the dashboard" in result.stdout
     assert "observe-only dashboard" in result.stdout
     assert "Paid" in result.stdout
 

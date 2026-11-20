@@ -13,6 +13,20 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.76.0] - 2026-11-20
+
+### Added
+
+- An interactive `agent-while-true run` attaches to the running background
+  service instead of starting a second watcher. The service serves a
+  user-private `agent-while-true.view` socket for its whole run; the attached
+  dashboard shows the service's own frame, sends its keys there (`A`, `y`,
+  `w`, `p`, display keys and scrolling act on the service through its gates)
+  and `q` closes only the view. The viewer reads no terminal, quota or log.
+  `--standalone` keeps the separate-watcher behaviour, and `fullAutoMode.sh`
+  attaches when a controller already runs. The headless service now wakes for
+  a viewer's request instead of sleeping through its scan interval.
+
 ## [0.75.0] - 2026-11-20
 
 ### Changed

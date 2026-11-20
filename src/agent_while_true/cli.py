@@ -44,10 +44,14 @@ from agent_while_true.config import (
 )
 from agent_while_true.control import (
     OP_STATUS,
+    OP_VIEW,
     OP_YIELD_INPUT,
+    VIEW_SOCKET_FILENAME,
     ControlError,
     ControlServer,
+    request_view,
     request_yield_input,
+    view_available,
 )
 from agent_while_true.event_display import describe_event, explain_reason, read_activity_history
 from agent_while_true.fsm import (
@@ -97,6 +101,12 @@ HANDOVER_RETRY_SECONDS = 0.05
 #: to outlast the successor's retries, or the instance that just gave input
 #: control away would take it straight back.
 HANDOVER_GRACE_SECONDS = 2.0
+#: Keys one attached-dashboard request may carry; more is not a person typing.
+VIEW_MAX_KEYS = 16
+#: Keys that stay with the attached dashboard: quitting closes the view only.
+VIEW_LOCAL_KEYS = frozenset({"q", "\x03"})
+#: How often an attached dashboard asks for a fresh frame at most.
+VIEW_REFRESH_SECONDS = 1.0
 PREFERENCE_FIELDS_BY_KEY = {
     "t": frozenset({"theme"}),
     "e": frozenset({"show_events"}),
@@ -155,6 +165,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-fzf", action="store_true", help="never use fzf even when it is installed"
     )
     run_parser.add_argument("--no-color", action="store_true", help="disable dashboard colors")
+    run_parser.add_argument(
+        "--standalone",
+        action="store_true",
+        help="start a separate watcher even when the background service is running",
+    )
 
     subparsers.add_parser("status", help="list Konsole sessions and how they classify")
     subparsers.add_parser("quota", help="show provider availability, errors and reset times")
@@ -278,6 +293,18 @@ def command_run(
 ) -> int:
     if not _check_privileges(config, stream):
         return EXIT_ERROR
+    if (
+        not args.once
+        and not args.standalone
+        and hasattr(stream, "isatty")
+        and stream.isatty()
+        and sys.stdin.isatty()
+    ):
+        # One watcher is enough: a dashboard opened beside the background
+        # service shows and steers that service (maintainer request 2026-11-20).
+        attached = _attach(config, args, stream)
+        if attached is not None:
+            return attached
 
     supervisor = _build_supervisor(config, args, stream, reader)
     display_accounts = bool(
@@ -420,7 +447,7 @@ class _InputControl:
         elif not self.lock.held and self.server.active:
             self.server.close()
 
-    def _handle(self, op: str) -> dict[str, object]:
+    def _handle(self, op: str, request: dict[str, object]) -> dict[str, object]:
         if op == OP_STATUS:
             return {
                 "ok": True,
@@ -581,6 +608,7 @@ def _crack_whip(
     color: bool = False,
     theme: str = "plain",
     sleep: Callable[[float], None] = time.sleep,
+    animate: bool = True,
 ) -> str:
     """Crack the whip once: animate, then offer one reminder to every session.
 
@@ -595,17 +623,9 @@ def _crack_whip(
             f"whip cooling down for {remaining}s: "
             f"{whip.CRACKS_PER_WINDOW} cracks a minute is the limit"
         )
-    size = shutil.get_terminal_size((168, 24))
-    # The crack is painted in the dashboard's own theme, or left plain ASCII
-    # exactly where the dashboard is (plain theme, --no-color, NO_COLOR).
-    whip.animate(
-        stream,
-        size.columns,
-        max(1, size.lines - 1),
-        clear=CLEAR_SCREEN,
-        paint=lambda rows: paint_whip_frame(rows, color=color, theme=theme),
-        sleep=sleep,
-    )
+    if animate:
+        # An attached dashboard plays the crack on its own terminal instead.
+        _animate_whip(stream, color=color, theme=theme, sleep=sleep)
     if paused:
         # Pause promises no terminal or quota polling, so nothing is read or typed.
         supervisor.log.info("whip_cracked", delivered=0, reason="paused")
@@ -663,6 +683,92 @@ def _crack_whip(
             f'e.g. "{whip.PHRASES[used[0]]}"'
         )
     return summary
+
+
+def _animate_whip(
+    stream: TextIO, *, color: bool, theme: str, sleep: Callable[[float], None] = time.sleep
+) -> None:
+    size = shutil.get_terminal_size((168, 24))
+    # The crack is painted in the dashboard's own theme, or left plain ASCII
+    # exactly where the dashboard is (plain theme, --no-color, NO_COLOR).
+    whip.animate(
+        stream,
+        size.columns,
+        max(1, size.lines - 1),
+        clear=CLEAR_SCREEN,
+        paint=lambda rows: paint_whip_frame(rows, color=color, theme=theme),
+        sleep=sleep,
+    )
+
+
+def _bounded_int(value: object, default: int, low: int, high: int) -> int:
+    """A client-supplied size, clamped; anything that is not an int is the default."""
+    if type(value) is not int:
+        return default
+    return max(low, min(high, value))
+
+
+def _attach(config: Config, args: argparse.Namespace, stream: TextIO) -> int | None:
+    """Show the background watcher's dashboard instead of starting a second one.
+
+    Returns None when there is nothing to attach to, so the caller starts a
+    watcher of its own. Keys go to the background watcher and act there,
+    through its gates; q closes only this view. This process reads no terminal
+    session, no quota and no log, and never sends input anywhere itself.
+    """
+    runtime_dir = config.resolved_runtime_dir()
+    if not view_available(runtime_dir):
+        return None
+    keys = TerminalKeys(True)
+    color = not args.no_color and "NO_COLOR" not in os.environ
+    pending: list[str] = []
+    attached = False
+    stream.write(HIDE_CURSOR)
+    try:
+        while True:
+            size = shutil.get_terminal_size((168, 24))
+            payload: dict[str, object] = {
+                "keys": pending,
+                "width": size.columns,
+                "height": max(1, size.lines - 2),
+                "color": color,
+            }
+            try:
+                reply = request_view(runtime_dir, payload)
+            except ControlError as exc:
+                if not attached:
+                    return None
+                stream.write(
+                    f"{CLEAR_SCREEN}The background watcher stopped answering ({exc}); "
+                    "this view closed. Run agent-while-true again to reattach.\n"
+                )
+                return EXIT_ERROR
+            attached = True
+            pending = []
+            banner = (
+                f"attached to the background watcher (PID {reply.get('pid')}, "
+                f"v{reply.get('version')}): keys act there; q closes this view only"
+            )
+            stream.write(f"{CLEAR_SCREEN}{banner[: size.columns]}\n{reply['frame']}\n")
+            stream.flush()
+            refresh = reply.get("refresh")
+            wait = (
+                min(VIEW_REFRESH_SECONDS, float(refresh))
+                if isinstance(refresh, int | float) and refresh > 0
+                else VIEW_REFRESH_SECONDS
+            )
+            key = keys.read(wait)
+            if key.lower() in VIEW_LOCAL_KEYS:
+                return EXIT_OK
+            if key.lower() == "w":
+                _animate_whip(stream, color=color, theme=str(reply.get("theme", "plain")))
+            if key:
+                pending.append(key)
+    except KeyboardInterrupt:
+        return EXIT_OK
+    finally:
+        stream.write(SHOW_CURSOR)
+        stream.flush()
 
 
 def _deliver_queued_whips(
@@ -771,12 +877,175 @@ def _loop(
         stream.write(HIDE_CURSOR)
     # Only an instance that can type has anything to hand over.
     control = _InputControl(supervisor, lock, config, deferred=deferred)
+    # The background service serves its dashboard to interactive instances,
+    # which attach instead of starting a second watcher (maintainer request
+    # 2026-11-20). It holds this socket whatever its mode or input control.
+    view = ControlServer.in_directory(config.resolved_runtime_dir(), VIEW_SOCKET_FILENAME)
+    if not interactive and not args.once:
+        try:
+            view.start()
+        except ControlError as exc:
+            supervisor.log.warning("view_unavailable", reason=str(exc))
+    history_read_at = -math.inf
+
+    def compose(*, width: int, height: int, paint: bool, badge: bool) -> str:
+        """Render the dashboard from cached observations; height 0 = no viewport."""
+        nonlocal focus_section
+        now = datetime.now(UTC)
+        frame = render_status(
+            supervisor.sessions.values(),
+            now=now,
+            config=config,
+            last_event=preferences_warning or last_event,
+            refresh_interval=dashboard.interval,
+            paused=dashboard.paused,
+            input_control=lock.held,
+            show_help=dashboard.help_visible,
+            color=paint,
+            theme=dashboard.theme,
+            width=width,
+            events=event_history,
+            show_events=dashboard.show_events,
+            history_length=dashboard.history_length,
+            show_details=dashboard.details_visible,
+            detail_index=dashboard.detail_index,
+            service_health=health.snapshot(),
+            redact_accounts=dashboard.redact_accounts,
+            whip_badge=whip_counter.badge(time.monotonic()) if badge else "",
+            auto_yes=dashboard.auto_yes,
+            activity=supervisor.activity,
+        )
+        if height:
+            frame_lines = frame.splitlines()
+            if focus_section:
+                for index, line in enumerate(frame_lines):
+                    if focus_section in line:
+                        header_rows = viewport_header_rows(height)
+                        dashboard.scroll_offset = max(0, index - header_rows)
+                        break
+                focus_section = ""
+            dashboard.scroll_offset = clamp_scroll_offset(
+                len(frame_lines), height, dashboard.scroll_offset
+            )
+            frame = render_viewport(frame, height, dashboard.scroll_offset)
+        return frame
+
+    def apply_key(key: str, *, remote: bool = False) -> bool:
+        """Apply one dashboard key, local or from an attached viewer; True quits."""
+        nonlocal config, last_event, before_auto, next_scan, event_history
+        nonlocal focus_section, preferences_warning
+        if dashboard.handle(key):
+            return True
+        if key.lower() == "d" or key in {"[", "]"}:
+            focus_section = "DETAIL " if dashboard.details_visible else ""
+        elif key.lower() in {"h", "?"}:
+            focus_section = "KEYS" if dashboard.help_visible else ""
+        elif key.lower() == "e":
+            focus_section = "HISTORY " if dashboard.show_events else ""
+        if key.lower() == "p":
+            metrics.reset()
+        if key.lower() == "p" or key in {"+", "=", "-", "_"}:
+            next_scan = 0.0
+        preference_fields = PREFERENCE_FIELDS_BY_KEY.get(key.lower(), frozenset())
+        if preference_fields:
+            unsaved_preference_fields.update(preference_fields)
+            saved = save_preferences(
+                preferences_path,
+                dashboard,
+                unsaved_preference_fields,
+            )
+            if saved:
+                unsaved_preference_fields.clear()
+            preferences_warning = (
+                ""
+                if saved
+                else "Display preferences could not be saved; current choices remain active"
+            )
+        if dashboard.consume_whip():
+            last_event = _crack_whip(
+                supervisor,
+                lock,
+                whip_counter,
+                stream,
+                paused=dashboard.paused,
+                color=color,
+                theme=dashboard.theme,
+                animate=not remote,
+            )
+            next_scan = 0.0
+            event_history = read_activity_history(
+                config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
+            )
+        if dashboard.consume_auto_yes_toggle():
+            last_event = _auto_yes_note(supervisor, dashboard.auto_yes, config, lock)
+            next_scan = 0.0
+            event_history = read_activity_history(
+                config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
+            )
+        if dashboard.consume_mode_toggle():
+            previous_config = config
+            config, last_event = _toggle_runtime_mode(supervisor, config, lock, before=before_auto)
+            if config.mode is Mode.AUTO and previous_config.mode is not Mode.AUTO:
+                before_auto = previous_config
+                if (
+                    not dashboard.auto_yes
+                    and not dashboard.auto_yes_chosen
+                    and config.starts_auto_yes
+                ):
+                    dashboard.auto_yes = True
+                    supervisor.log.info("auto_yes_toggled", enabled=True, source="start")
+            elif config.mode is not Mode.AUTO:
+                before_auto = None
+            next_scan = 0.0
+            event_history = read_activity_history(
+                config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
+            )
+        return False
+
+    def serve_view(op: str, request: dict[str, object]) -> dict[str, object]:
+        """Answer an attached dashboard: apply its keys, return its frame.
+
+        Only the background service serves this. Quitting belongs to the
+        viewer, so a forwarded q never stops the service; every other key acts
+        exactly as it would at this watcher's own keyboard, through the same
+        gates. The frame is drawn from cached observations, like a redraw.
+        """
+        nonlocal history_read_at, event_history
+        if op != OP_VIEW:
+            return {"ok": False, "reason": "unknown-op"}
+        keys_pressed = request.get("keys", [])
+        if not isinstance(keys_pressed, list):
+            return {"ok": False, "reason": "malformed-request"}
+        for key in keys_pressed[:VIEW_MAX_KEYS]:
+            if isinstance(key, str) and len(key) <= 8 and key.lower() not in VIEW_LOCAL_KEYS:
+                apply_key(key, remote=True)
+        width = _bounded_int(request.get("width"), 168, 20, 1000)
+        height = _bounded_int(request.get("height"), 24, 1, 1000)
+        # Provider-health workers run only while someone looks at them.
+        health.start()
+        if time.monotonic() - history_read_at >= 1.0:
+            event_history = read_activity_history(
+                config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
+            )
+            history_read_at = time.monotonic()
+        frame = compose(width=width, height=height, paint=request.get("color") is True, badge=True)
+        return {
+            "ok": True,
+            "frame": frame,
+            "pid": os.getpid(),
+            "version": __version__,
+            "mode": config.mode.value,
+            "theme": dashboard.theme,
+            "refresh": dashboard.interval,
+        }
+
     standby = False
     try:
         while not stop["requested"]:
             previously_owned_input = lock.held
             config, control_note = control.tick(config)
             last_event = control_note or last_event
+            view.poll(serve_view)
             if not interactive and not args.once and control.rearm is not None and not lock.held:
                 # A deferred input-capable service is not another observer.
                 # The lock remains authoritative even if its holder has no
@@ -784,7 +1053,7 @@ def _loop(
                 if not standby:
                     metrics.reset()
                 standby = True
-                time.sleep(STANDBY_POLL_SECONDS)
+                view.wait(STANDBY_POLL_SECONDS)
                 continue
             if standby or (lock.held and not previously_owned_input):
                 # _InputControl already reloaded the durable store under the
@@ -836,43 +1105,12 @@ def _loop(
                 if interactive:
                     stream.write(CLEAR_SCREEN)
                 size = shutil.get_terminal_size((168, 24))
-                frame = render_status(
-                    supervisor.sessions.values(),
-                    now=now,
-                    config=config,
-                    last_event=preferences_warning or last_event,
-                    refresh_interval=dashboard.interval,
-                    paused=dashboard.paused,
-                    input_control=lock.held,
-                    show_help=dashboard.help_visible,
-                    color=color,
-                    theme=dashboard.theme,
+                frame = compose(
                     width=size.columns if interactive else max(168, size.columns),
-                    events=event_history,
-                    show_events=dashboard.show_events,
-                    history_length=dashboard.history_length,
-                    show_details=dashboard.details_visible,
-                    detail_index=dashboard.detail_index,
-                    service_health=health.snapshot(),
-                    redact_accounts=dashboard.redact_accounts,
-                    whip_badge=whip_counter.badge(time.monotonic()) if interactive else "",
-                    auto_yes=dashboard.auto_yes,
-                    activity=supervisor.activity,
+                    height=max(1, size.lines - 1) if interactive else 0,
+                    paint=color,
+                    badge=interactive,
                 )
-                if interactive:
-                    height = max(1, size.lines - 1)
-                    frame_lines = frame.splitlines()
-                    if focus_section:
-                        for index, line in enumerate(frame_lines):
-                            if focus_section in line:
-                                header_rows = viewport_header_rows(height)
-                                dashboard.scroll_offset = max(0, index - header_rows)
-                                break
-                        focus_section = ""
-                    dashboard.scroll_offset = clamp_scroll_offset(
-                        len(frame_lines), height, dashboard.scroll_offset
-                    )
-                    frame = render_viewport(frame, height, dashboard.scroll_offset)
                 stream.write(frame + "\n")
             elif args.once:
                 for session in supervisor.sessions.values():
@@ -898,78 +1136,15 @@ def _loop(
                     else max(0.0, next_scan - time.monotonic())
                 )
                 key = keys.read(timeout)
-                if dashboard.handle(key):
+                if apply_key(key):
                     return EXIT_OK
-                if key.lower() == "d" or key in {"[", "]"}:
-                    focus_section = "DETAIL " if dashboard.details_visible else ""
-                elif key.lower() in {"h", "?"}:
-                    focus_section = "KEYS" if dashboard.help_visible else ""
-                elif key.lower() == "e":
-                    focus_section = "HISTORY " if dashboard.show_events else ""
-                if key.lower() == "p":
-                    metrics.reset()
-                if key.lower() == "p" or key in {"+", "=", "-", "_"}:
-                    next_scan = 0.0
-                preference_fields = PREFERENCE_FIELDS_BY_KEY.get(key.lower(), frozenset())
-                if preference_fields:
-                    unsaved_preference_fields.update(preference_fields)
-                    saved = save_preferences(
-                        preferences_path,
-                        dashboard,
-                        unsaved_preference_fields,
-                    )
-                    if saved:
-                        unsaved_preference_fields.clear()
-                    preferences_warning = (
-                        ""
-                        if saved
-                        else "Display preferences could not be saved; current choices remain active"
-                    )
-                if dashboard.consume_whip():
-                    last_event = _crack_whip(
-                        supervisor,
-                        lock,
-                        whip_counter,
-                        stream,
-                        paused=dashboard.paused,
-                        color=color,
-                        theme=dashboard.theme,
-                    )
-                    next_scan = 0.0
-                    event_history = read_activity_history(
-                        config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
-                    )
-                if dashboard.consume_auto_yes_toggle():
-                    last_event = _auto_yes_note(supervisor, dashboard.auto_yes, config, lock)
-                    next_scan = 0.0
-                    event_history = read_activity_history(
-                        config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
-                    )
-                if dashboard.consume_mode_toggle():
-                    previous_config = config
-                    config, last_event = _toggle_runtime_mode(
-                        supervisor, config, lock, before=before_auto
-                    )
-                    if config.mode is Mode.AUTO and previous_config.mode is not Mode.AUTO:
-                        before_auto = previous_config
-                        if (
-                            not dashboard.auto_yes
-                            and not dashboard.auto_yes_chosen
-                            and config.starts_auto_yes
-                        ):
-                            dashboard.auto_yes = True
-                            supervisor.log.info("auto_yes_toggled", enabled=True, source="start")
-                    elif config.mode is not Mode.AUTO:
-                        before_auto = None
-                    next_scan = 0.0
-                    event_history = read_activity_history(
-                        config.resolved_log_file(), limit=MAX_HISTORY_ENTRIES
-                    )
             else:
-                time.sleep(max(0.0, next_scan - time.monotonic()))
+                # A service wakes early for an attached dashboard's request.
+                view.wait(max(0.0, next_scan - time.monotonic()))
         return EXIT_INTERRUPTED
     finally:
         control.close()
+        view.close()
         if interactive and unsaved_preference_fields:
             save_preferences(preferences_path, dashboard, unsaved_preference_fields)
         metrics.reset()

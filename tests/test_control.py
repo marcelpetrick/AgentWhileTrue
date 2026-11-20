@@ -79,7 +79,7 @@ def test_status_answers_with_the_mode_and_nothing_from_the_terminal(runtime: Pat
             server,
             runtime / control.SOCKET_FILENAME,
             control.OP_STATUS,
-            lambda op: {"ok": True, "mode": "auto", "op": op},
+            lambda op, request: {"ok": True, "mode": "auto", "op": op},
         )
     finally:
         server.close()
@@ -113,7 +113,7 @@ def test_a_malformed_request_is_rejected_without_reaching_the_handler(runtime: P
     caller.start()
     deadline = time.monotonic() + 5.0
     while caller.is_alive() and time.monotonic() < deadline:
-        server.poll(lambda op: seen.append(op) or {"ok": True})  # type: ignore[func-returns-value]
+        server.poll(lambda op, request: seen.append(op) or {"ok": True})  # type: ignore[func-returns-value]
         time.sleep(0.01)
     caller.join(timeout=5.0)
     server.close()
@@ -328,7 +328,7 @@ def test_a_malformed_request_is_answered_without_serving(tmp_path: Path, payload
     calls: list[str] = []
     try:
 
-        def handler(op: str) -> dict[str, object]:
+        def handler(op: str, request: dict[str, object]) -> dict[str, object]:
             calls.append(op)
             return {"ok": True}
 
@@ -348,7 +348,7 @@ def test_a_malformed_request_is_answered_without_serving(tmp_path: Path, payload
 
 def test_poll_survives_a_socket_error(tmp_path: Path) -> None:
     server = ControlServer.in_directory(tmp_path)
-    assert server.poll(lambda op: {"ok": True}) == 0
+    assert server.poll(lambda op, request: {"ok": True}) == 0
 
     class Broken:
         def accept(self):
@@ -358,7 +358,7 @@ def test_poll_survives_a_socket_error(tmp_path: Path) -> None:
             pass
 
     server._sock = Broken()  # type: ignore[assignment]
-    assert server.poll(lambda op: {"ok": True}) == 0
+    assert server.poll(lambda op, request: {"ok": True}) == 0
     server.close()
 
 

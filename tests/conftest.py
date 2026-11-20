@@ -9,9 +9,26 @@ real Manjaro/KDE machine, so the classifier tests exercise the shapes that
 actually occur rather than idealised ones.
 """
 
+import time
+
 import pytest
 
+from agent_while_true.control import ControlServer
 from agent_while_true.proc import ProcessIdentity, ProcessInfo
+
+#: The real socket wait, for the tests that exercise it directly.
+REAL_VIEW_WAIT = ControlServer.wait
+
+
+@pytest.fixture(autouse=True)
+def _view_waits_through_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Loop tests drive time through a patched ``time.sleep``; so does the view wait."""
+
+    def wait(self: ControlServer, timeout: float) -> bool:
+        time.sleep(max(0.0, timeout))
+        return False
+
+    monkeypatch.setattr(ControlServer, "wait", wait)
 
 
 def make_info(

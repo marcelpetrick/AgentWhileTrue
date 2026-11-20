@@ -128,8 +128,12 @@ preselected. `fzf` is used when installed (`--no-fzf` disables it). With `--all`
 every eligible agent is watched and newly opened agent tabs are picked up on
 each rediscovery.
 
-Only one input-capable instance may send input at a time. Starting a second one
-does not fail: an interactive dashboard watches read-only; a continuous headless
+Only one input-capable instance may send input at a time. An interactive
+dashboard started while the background service runs attaches to it instead of
+watching on its own (see
+[Opening the dashboard while the service runs](#opening-the-dashboard-while-the-service-runs)).
+Starting a second watcher does not fail: a `--standalone` interactive dashboard
+watches read-only; a continuous headless
 fallback stands by cheaply, checking the input lock once per second instead of
 duplicating terminal/quota scans. It arms as soon as the incumbent lets go,
 reloads durable action state and freshly rediscovers/scans before acting.
@@ -137,7 +141,7 @@ Thus a user service stays startable while a dashboard is open. A watcher
 can also be started read-only outright:
 
 ```bash
-agent-while-true run --observe --all  # press Shift+A to take over full auto
+agent-while-true run --observe --all  # Shift+A arms full auto (with auto-yes)
 ```
 
 `Shift+A` in the dashboard switches to full auto and, pressed again, back to the
@@ -563,8 +567,9 @@ excluded, and waiting without fresh observations is not inferred. Intervals are
 flushed about once per minute and on clean exit, so a crash can lose the
 unflushed tail. Older logs lack interval/refusal evidence, rotation can remove
 events, and multiple observers contribute separate samples — use one watcher for
-a non-overlapping report. A dashboard opened beside the background service is
-such a second observer when both are actually observing. A headless fallback
+a non-overlapping report. An attached dashboard adds no samples; a
+`--standalone` dashboard opened beside the background service is such a second
+observer when both are actually observing. A headless fallback
 waiting to reclaim input no longer scans or contributes duplicate samples (see
 [Opening the dashboard while the service runs](#opening-the-dashboard-while-the-service-runs)).
 Observe watchers never persist action or retry-state cleanup. Their stale
@@ -915,26 +920,44 @@ Python 3.14 installation succeeds.
 
 ### Opening the dashboard while the service runs
 
-There is no attach-only viewer: an explicit observe `run` is a complete watcher
-that scans selected sessions and writes its own log lines. A headless input-
-capable fallback instead stands by while another watcher owns input. With the service running, pick
-one of two ways:
+An interactive `agent-while-true run` **attaches** to a running background
+service instead of starting a second watcher. The service keeps a second
+user-private socket, `agent-while-true.view`, beside its lock for as long as it
+runs, in any mode. The attached dashboard draws the service's own frame, with
+a top row naming the service PID and version, and sends its keys there: `A`,
+`y`, `w`, `p`, `r`, the display keys and scrolling act on the service through
+the service's own gates, exactly as at its keyboard. `q` or `Ctrl+C` closes the
+view only; the service keeps watching. The attached process reads no terminal
+session, quota or log and never types anywhere. Display preferences (`t`, `e`,
+`l`, `d`, `h`) are the service's and are saved by it; a headless service shows
+account labels as `unavailable`. If the service stops, the view says so and
+exits. Mode flags such as `--observe` do not change what an attached view does.
+
+```bash
+agent-while-true run                  # attaches when the service runs
+agent-while-true run --standalone --observe --all   # a separate second watcher
+```
+
+`--standalone` keeps the previous behaviour: a complete watcher that scans
+selected sessions and writes its own log lines. A service too old to serve the
+view socket gets one as well. A standalone watcher has two options:
 
 - **One watcher, one log.** Stop the service, use the dashboard, and start the
   service again when you leave:
 
   ```bash
   systemctl --user stop agent-while-true.service
-  agent-while-true run --auto --all
+  agent-while-true run --standalone --auto --all
   systemctl --user start agent-while-true.service   # after quitting
   ```
 
-- **Keep the service and take input control.** Open a read-only dashboard and
-  press `Shift+A`; the service hands input control over, drops to observe and
-  re-arms when the dashboard exits (see [§3](#3-choose-sessions-and-a-mode)):
+- **Keep the service and take input control.** Open a read-only standalone
+  dashboard and press `Shift+A`; the service hands input control over, drops
+  to observe and re-arms when the dashboard exits (see
+  [§3](#3-choose-sessions-and-a-mode)):
 
   ```bash
-  agent-while-true run --observe --all   # then Shift+A
+  agent-while-true run --standalone --observe --all   # then Shift+A
   ```
 
   An input-capable headless service stops duplicate polling while the dashboard
@@ -956,8 +979,8 @@ requires `doctor` to pass, shows live status and quota, and opens the auto-mode
 dashboard for all eligible sessions. Invoking it explicitly opts Codex into
 composer continuation; paid, upgrade, reset-credit and model-downgrade actions
 remain forbidden. If another input-capable watcher already owns the lock it
-stays in control and the launcher opens an observe-only dashboard instead, where
-`Shift+A` asks that watcher to hand input control over.
+stays in control and the launcher attaches the dashboard to it (see
+[Opening the dashboard while the service runs](#opening-the-dashboard-while-the-service-runs)).
 
 ## 11. Official container image
 

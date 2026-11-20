@@ -259,8 +259,9 @@ existing operator's selections, input lock and automation switches unchanged.
    misclassified as active. Attention heuristics may flag a screen for inspection;
    they must never become permission or resume rules by themselves.
 5. Prefer a bounded read-only observer alongside the existing controller. The
-   supported CLI alternative is `agent-while-true run --observe --all`; it is a
-   complete second watcher, not an attach-only viewer, and contributes duplicate
+   supported CLI alternative is `agent-while-true run --standalone --observe
+   --all`; it is a complete second watcher, not an attached viewer (a plain
+   interactive `run` attaches to the service and steers it), and contributes duplicate
    observations to shared logs and summaries. Never press takeover, auto, auto-yes
    or whip keys just to inspect. Keep individual waits at most 60 seconds and
    check for new user instructions and alerts between waits.

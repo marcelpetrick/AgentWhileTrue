@@ -24,6 +24,9 @@ and the explanation accepts Claude 2.1.329's template families (v0.74.5).
 Refusals now log the failing frame stage (v0.74.6). The bigger cause was that
 the input-owning service ran headless with auto-yes off and no way to turn it
 on; full-auto now starts with auto-yes on (`AUTO_YES_AT_START`, v0.75.0).
+Opening the dashboard beside the service started a second watcher; an
+interactive `run` now attaches to the service's view socket instead and
+steers it, `--standalone` keeps the old behaviour (v0.76.0).
 
 ### Whip everywhere — 2026-11-11
 

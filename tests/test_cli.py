@@ -681,12 +681,12 @@ def test_the_control_side_answers_status_and_unknown_requests(tmp_path: Path) ->
     config = Config(mode=Mode.OBSERVE, state_dir=tmp_path, runtime_dir=tmp_path / "run")
     kit = harness_module.build(tmp_path, config=config)
     side = cli._InputControl(kit.supervisor, SingleInstanceLock.in_directory(tmp_path), config)
-    status = side._handle("status")
+    status = side._handle("status", {})
     assert status["ok"]
     assert status["version"] == __version__
-    assert side._handle("bogus") == {"ok": False, "reason": "unknown-op"}
+    assert side._handle("bogus", {}) == {"ok": False, "reason": "unknown-op"}
     # Without the lock there is nothing to hand over.
-    assert side._handle("yield-input")["reason"] == "no-input-control"
+    assert side._handle("yield-input", {})["reason"] == "no-input-control"
 
 
 def test_a_handover_that_nobody_takes_lapses_and_rearms(tmp_path: Path) -> None:
