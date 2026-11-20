@@ -13,6 +13,17 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.74.6] - 2026-11-20
+
+### Added
+
+- An `unsupported-permission-layout` `approval_status` event now carries
+  `layout=<stage>`, the first Claude permission-frame check the screen failed
+  (`footer`, `last-item`, `middle-item`, `yes-cursor`, `question`, `box-top`
+  or `explanation`). The ~250 recent refusals could not be attributed because
+  the log rightly holds no screen text; the stage name stays text-free and
+  names what to capture next.
+
 ## [0.74.5] - 2026-11-20
 
 ### Fixed

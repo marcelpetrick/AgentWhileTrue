@@ -128,6 +128,34 @@ def test_claude_2_1_329_explanation_families_are_accepted_below_the_dashed_rule(
     assert _recognise(screen).approval_prompt
 
 
+@pytest.mark.parametrize(
+    ("screen", "stage"),
+    [
+        (screens.CLAUDE_APPROVAL_YES_NO, "exact"),
+        (screens.CLAUDE_APPROVAL_TALL_BOX_2_1_329, "exact"),
+        (screens.CLAUDE_APPROVAL_YES_NO[:-1], "footer"),
+        (screens.CLAUDE_APPROVAL_CURSOR_ON_TWO, "middle-item"),
+        (screens.CLAUDE_APPROVAL_CURSOR_ON_THREE, "last-item"),
+        (screens.CLAUDE_APPROVAL_TALL_BOX_NO_RULE_2_1_329[:64], "footer"),
+        (
+            [
+                line.replace("Ask rule Bash(glab api X-X*) overrides", "Someone said it overrides")
+                for line in screens.CLAUDE_APPROVAL_RULE_OVERRIDE_2_1_296
+            ],
+            "explanation",
+        ),
+        (screens.CLAUDE_APPROVAL_TALL_BOX_NO_RULE_2_1_329[65:], "box-top"),
+    ],
+)
+def test_the_failing_frame_stage_is_named_without_screen_text(
+    screen: list[str], stage: str
+) -> None:
+    from agent_while_true.providers.claude import approval_layout
+
+    assert approval_layout(list(screen)) == stage
+    assert _recognise(list(screen)).approval_layout == ("" if stage == "exact" else stage)
+
+
 def test_a_historical_question_between_a_distant_rule_and_the_menu_fails_closed() -> None:
     """A far rule only frames the box when no other question or cursor lies between."""
     screen = list(screens.CLAUDE_APPROVAL_TALL_BOX_2_1_329)

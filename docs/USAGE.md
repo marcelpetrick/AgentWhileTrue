@@ -537,7 +537,12 @@ Each new structured event also includes `controller_pid` and
 `controller_version`: these identify the emitting watcher, which may be an
 observer, not necessarily the input owner. The dashboard emits deduplicated
 `approval_status` changes with session/process identity, pending/exact-menu
-flags, `auto_yes`, mode, pause state, input ownership and a reason. One clearing
+flags, `auto_yes`, mode, pause state, input ownership and a reason. An
+`unsupported-permission-layout` event adds `layout=`, the first Claude frame
+check the screen failed (`footer`, `last-item`, `middle-item`, `yes-cursor`,
+`question`, `box-top` or `explanation`; `unknown` for other providers): a stage
+name only, never screen text, telling you which part of the missed prompt to
+capture for a fixture. One clearing
 event follows a pending prompt; unchanged scans do not spam the log. This is
 diagnostic evidence only and never grants permission.
 

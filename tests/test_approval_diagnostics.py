@@ -98,6 +98,17 @@ def test_unsupported_shape_is_visible_even_when_auto_yes_enabled(tmp_path: Path)
     assert kit.sent == []
 
 
+def test_unsupported_layout_logs_which_frame_check_failed(tmp_path: Path) -> None:
+    """The stage name says what to capture next; the screen itself is never logged."""
+    kit, session = _kit(tmp_path, exact=False)
+    kit.supervisor.report_approval_status(auto_yes=True, paused=False, input_control=True)
+
+    written = (tmp_path / "agent-while-true.log").read_text()
+    assert session.approval_layout == "middle-item"
+    assert "reason=unsupported-permission-layout layout=middle-item" in written
+    assert "Do you want" not in written
+
+
 @pytest.mark.parametrize(
     "warning",
     ["Switch to another model", "Run /usage-credits to continue now"],

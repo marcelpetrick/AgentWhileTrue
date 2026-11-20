@@ -192,6 +192,8 @@ class SupervisedSession:
     approval_exact: bool = False
     #: Fingerprint of that permission box, the one the dashboard showed.
     approval_fingerprint: str = ""
+    #: Which frame check an unsupported permission layout failed; metadata only.
+    approval_layout: str = ""
     #: The last permission box auto-yes answered. The same box is answered
     #: once until a scan sees it gone: a second Enter while Claude redraws
     #: would land in whatever comes next. Only when the identical box is still
@@ -905,6 +907,7 @@ class Supervisor:
         session.matched_ids = tuple(recognition.matched_ids) if recognition else ()
         session.approval_exact = bool(recognition and recognition.approval_prompt)
         session.approval_fingerprint = recognition.approval_fingerprint if recognition else ""
+        session.approval_layout = recognition.approval_layout if recognition else ""
         # The answered box is forgotten only once a real read shows no
         # permission prompt; a failed read or a redraw in progress is not that.
         if (
@@ -1345,6 +1348,7 @@ class Supervisor:
                 paused,
                 input_control,
                 reason,
+                session.approval_layout,
             )
             session.approval_status = reason
             if not pending and not session.approval_context:
@@ -1364,6 +1368,11 @@ class Supervisor:
                 paused=paused,
                 input_control=input_control,
                 reason=reason,
+                **(
+                    {"layout": session.approval_layout or "unknown"}
+                    if reason == "unsupported-permission-layout"
+                    else {}
+                ),
             )
 
     def _approval_status_reason(

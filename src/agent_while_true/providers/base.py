@@ -186,6 +186,10 @@ class Recognition:
     #: Fingerprint of that permission box alone, so an operator's approval
     #: binds to the prompt they saw rather than to a spinner redrawing above.
     approval_fingerprint: str = ""
+    #: The first permission-frame check a screen failed (``footer``,
+    #: ``yes-cursor``, ``box-top``, ...), or empty. A stage name, never screen
+    #: text: it only tells the operator which part of a missed layout to capture.
+    approval_layout: str = ""
     #: Fingerprint of an exact tested model-switch dialog whose cursor sits on
     #: the switch, with "Keep current model" as its next item. Only that item
     #: may be chosen; empty for every other screen.

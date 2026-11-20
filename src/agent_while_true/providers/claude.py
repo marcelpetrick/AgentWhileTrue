@@ -383,7 +383,7 @@ class ClaudeAdapter(ProviderAdapter):
                 match.pattern.kind is PromptKind.SELF_HEALING for match in candidate.matches
             ):
                 result = candidate
-        block = _approval_block(lines)
+        block, layout = _approval_frame(lines)
         composer_empty = _composer_empty(lines)
         headline = _limit_composer_headline(lines, result, composer_empty=composer_empty)
         if headline is not None and block is None:
@@ -402,6 +402,7 @@ class ClaudeAdapter(ProviderAdapter):
             or any(_STOP_AGENTS_HINT.search(line) for line in lines[max(0, end - 8) : end]),
             approval_prompt=block is not None,
             approval_fingerprint=fingerprint(block) if block is not None else "",
+            approval_layout="" if block is not None else layout,
         )
 
     def _recognise_turn(self, lines: list[str], *, now: datetime, live_lines: int) -> Recognition:
@@ -684,7 +685,7 @@ _APPROVAL_EXPLANATION = re.compile(
 _BOX_BORDER = re.compile(r"^\s*\u2502\s?")
 
 
-def _approval_block(lines: list[str]) -> list[str] | None:
+def _approval_frame(lines: list[str]) -> tuple[list[str] | None, str]:
     """The exact tested permission box at the bottom of the screen, or None.
 
     Reading upwards from the last non-blank row it must find, each on rows of
@@ -703,13 +704,13 @@ def _approval_block(lines: list[str]) -> list[str] | None:
     while end and not lines[end - 1].strip():
         end -= 1
     if end < 4 or not _APPROVAL_FOOTER.match(normalise_typography(lines[end - 1])):
-        return None
+        return None, "footer"
     row = end - 2
     while row >= 0 and not lines[row].strip():
         row -= 1
     last = _APPROVAL_NO.match(lines[row]) if row >= 0 else None
     if last is None:
-        return None
+        return None, "last-item"
     row -= 1
     for expected in range(int(last.group("number")) - 1, 1, -1):
         # Each middle item is "Yes, and ...". Its text may wrap, but no blank,
@@ -718,21 +719,21 @@ def _approval_block(lines: list[str]) -> list[str] | None:
             middle = _APPROVAL_YES_AND.match(lines[row])
             if middle is not None:
                 if int(middle.group("number")) != expected or _COMPOSER_GLYPH in lines[row]:
-                    return None
+                    return None, "middle-item"
                 row -= 1
                 break
             if _APPROVAL_ITEM.match(lines[row]) or _COMPOSER_GLYPH in lines[row]:
-                return None
+                return None, "middle-item"
             if not lines[row].strip() or end - row > APPROVAL_MENU_ROWS + 2:
-                return None
+                return None, "middle-item"
             row -= 1
         else:
-            return None
+            return None, "middle-item"
     if row < 1 or not _APPROVAL_YES.match(lines[row]):
-        return None
+        return None, "yes-cursor"
     question = row - 1
     if not _APPROVAL_QUESTION.match(normalise_typography(lines[question])):
-        return None
+        return None, "question"
     for top in range(question - 1, -1, -1):
         if _RULE_ROW.match(lines[top]):
             if question - top > APPROVAL_BOX_ROWS and any(
@@ -742,8 +743,8 @@ def _approval_block(lines: list[str]) -> list[str] | None:
                 # A tall preview may push the box's own rule beyond the usual
                 # bound. That far rule frames this box only while nothing that
                 # looks like another menu or question lies in between.
-                return None
-            return lines[top:end]
+                return None, "box-top"
+            return lines[top:end], "exact"
     # A full-height command preview can scroll the solid rule away. Current
     # Claude leaves its dashed separator followed by up to four permission
     # explanation rows before the question. Bind every visible row from that
@@ -753,16 +754,31 @@ def _approval_block(lines: list[str]) -> list[str] | None:
         if _DASHED_ROW.match(lines[top]):
             between = lines[top + 1 : question]
             if any(_APPROVAL_ITEM.match(line) or _COMPOSER_GLYPH in line for line in between):
-                return None
+                return None, "explanation"
             explanation = " ".join(
                 _BOX_BORDER.sub("", line).strip() for line in between if line.strip()
             )
             if explanation and not _APPROVAL_EXPLANATION.fullmatch(
                 normalise_typography(explanation)
             ):
-                return None
+                return None, "explanation"
             # This separator closes the command or file preview. Bind the
             # visible preview itself as well as the reason and menu so a
             # changed command cannot inherit an approval from the prior scan.
-            return lines[max(0, top - APPROVAL_BOX_ROWS) : end]
-    return None
+            return lines[max(0, top - APPROVAL_BOX_ROWS) : end], "exact"
+    return None, "box-top"
+
+
+def _approval_block(lines: list[str]) -> list[str] | None:
+    """The exact tested permission box at the bottom of the screen, or None."""
+    return _approval_frame(lines)[0]
+
+
+def approval_layout(lines: list[str]) -> str:
+    """Name the first permission-frame check a screen fails, or ``exact``.
+
+    A stage name - ``footer``, ``last-item``, ``middle-item``, ``yes-cursor``,
+    ``question``, ``box-top`` or ``explanation`` - carries no screen text, so
+    it may be logged to show which part of an unsupported layout to capture.
+    """
+    return _approval_frame(lines)[1]
