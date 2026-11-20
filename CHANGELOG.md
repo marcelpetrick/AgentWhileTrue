@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.76.4] - 2026-11-20
+
+### Changed
+
+- Prepare the public release with more Claude auto-yes coverage (tall
+  subagent boxes, explanation templates, logged layout stage), auto-yes on at
+  full-auto start including the background service, and dashboards that attach
+  to the running service; align the tagged installation command with this
+  release.
+
 ## [0.76.3] - 2026-11-20
 
 ### Changed
