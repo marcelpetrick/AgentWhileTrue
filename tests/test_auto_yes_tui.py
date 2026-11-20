@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""The y key: an auto-yes toggle that is visible, off at start, and gated like input."""
+"""The y key: an auto-yes toggle that is visible, on in full auto by default, and gated."""
 
 import io
 import os
@@ -29,8 +29,9 @@ class InteractiveOutput(io.StringIO):
         return True
 
 
-def _kit(tmp_path: Path, mode: Mode, screen: list[str]):
-    kit = harness_module.build(tmp_path, mode=mode)
+def _kit(tmp_path: Path, mode: Mode, screen: list[str], *, at_start: bool = False):
+    # Most cases exercise the y key itself, so they start with the switch off.
+    kit = harness_module.build(tmp_path, config=Config(mode=mode, auto_yes_at_start=at_start))
     info = kit.inspector.add_claude(4101)
     ref = kit.terminal.add(CLAUDE, shell_pid=100, foreground_pid=4101, screen=list(screen))
     kit.supervisor.select(ref, info.identity, "claude", "api : claude")
@@ -194,6 +195,53 @@ def test_without_the_key_nothing_is_approved(tmp_path: Path, monkeypatch) -> Non
     assert "auto_yes=false mode=auto paused=false input_control=true reason=auto-yes-off" in log
 
 
+def test_full_auto_starts_with_auto_yes_on_and_answers_once(tmp_path: Path, monkeypatch) -> None:
+    kit = _kit(tmp_path, Mode.AUTO, screens.CLAUDE_APPROVAL_YES_NO, at_start=True)
+
+    output = _run(tmp_path, monkeypatch, kit, ["", "q"], hold_lock=True)
+
+    assert kit.sent == [(CLAUDE, "\r")]
+    assert "auto-yes on permission prompts: ON" in output
+    log = (tmp_path / "agent-while-true.log").read_text()
+    assert "event=auto_yes_toggled enabled=true source=start" in log
+
+
+def test_y_switches_the_start_default_off_for_this_run(tmp_path: Path, monkeypatch) -> None:
+    kit = _kit(tmp_path, Mode.AUTO, screens.CLAUDE_IDLE_COMPOSER, at_start=True)
+    pressed = iter(["y", "prompt", "", "q"])
+
+    def press(self, timeout: float) -> str:
+        key = next(pressed)
+        if key == "prompt":
+            kit.terminal.set_screen(CLAUDE, list(screens.CLAUDE_APPROVAL_YES_NO))
+            return ""
+        return key
+
+    monkeypatch.setattr(cli.TerminalKeys, "read", press)
+    output = _run(tmp_path, monkeypatch, kit, [], hold_lock=True, read_patched=True)
+
+    assert kit.sent == []
+    assert "auto-yes off: permission prompts wait for you" in output
+
+
+@pytest.mark.parametrize("mode", [Mode.OBSERVE, Mode.ASK])
+def test_observe_and_ask_never_start_with_auto_yes(tmp_path: Path, monkeypatch, mode: Mode) -> None:
+    kit = _kit(tmp_path, mode, screens.CLAUDE_APPROVAL_YES_NO, at_start=True)
+
+    output = _run(tmp_path, monkeypatch, kit, ["", "q"], hold_lock=mode is Mode.ASK)
+
+    assert kit.sent == []
+    assert "auto-yes on permission prompts: OFF" in output
+    assert "source=start" not in (tmp_path / "agent-while-true.log").read_text()
+
+
+def test_auto_yes_at_start_is_a_config_key() -> None:
+    from agent_while_true.config import _apply
+
+    assert Config().auto_yes_at_start is True
+    assert not _apply(Config(), {"AUTO_YES_AT_START": "false"}, "test").auto_yes_at_start
+
+
 def test_pausing_updates_approval_diagnostics_without_scanning(tmp_path: Path, monkeypatch) -> None:
     kit = _kit(tmp_path, Mode.AUTO, screens.CLAUDE_APPROVAL_YES_NO)
     _run(tmp_path, monkeypatch, kit, ["p", "y", "d", "q"], hold_lock=True)
@@ -256,3 +304,30 @@ def test_the_real_dashboard_toggles_auto_yes_with_y(tmp_path: Path) -> None:
         )
     )
     assert dashboard.quit() == 0
+
+
+def test_shift_a_starts_full_auto_with_auto_yes_on(tmp_path: Path) -> None:
+    """Arming full auto in the real dashboard also arms auto-yes, both shown in the header."""
+    dashboard = Dashboard(tmp_path)
+    dashboard.read_until(lambda text: "auto-yes on permission prompts: OFF" in text)
+
+    start = len(dashboard.text)
+    dashboard.press("A")
+    dashboard.read_until(
+        lambda text: (
+            "[A] auto-resume on limit: ON (Claude + Codex)" in text[start:]
+            and "auto-yes on permission prompts: ON - approves any tool use asked" in text[start:]
+        )
+    )
+    assert dashboard.quit() == 0
+
+
+def test_shift_a_keeps_auto_yes_off_once_y_switched_it(tmp_path: Path, monkeypatch) -> None:
+    kit = _kit(tmp_path, Mode.OBSERVE, screens.CLAUDE_APPROVAL_YES_NO, at_start=True)
+
+    output = _run(tmp_path, monkeypatch, kit, ["y", "y", "A", "", "q"], hold_lock=False)
+
+    last_frame = output.split(cli.CLEAR_SCREEN)[-1]
+    assert kit.sent == []
+    assert "[A] auto-resume on limit: ON" in last_frame
+    assert "auto-yes on permission prompts: OFF" in last_frame

@@ -786,7 +786,7 @@ def render_status(
                         "w       crack the whip: one reminder to every Claude/Codex tab; busy "
                         "tabs get it once their input box is free; five cracks a minute",
                         "y       toggle auto-yes: answer the selected one-turn item on exact "
-                        "Claude/Codex prompts; approves tool use; off at start, never saved",
+                        "Claude/Codex prompts; approves tool use; on in full auto, not saved",
                         "j / k   scroll down/up; g / G jump to top/end",
                         "h / ?   close this help",
                         "q       quit cleanly",

@@ -98,8 +98,9 @@ is reproducible with `scripts/record_demo.py --still`.*
   every other input. Full-window command previews and both background-agent
   footer states are covered. The same switch covers Codex 0.162.1's exact
   one-turn command, edit, terminal-input, network and permission overlays.
-  It approves whatever tool use is asked, so it starts off on every run and the
-  header always shows it. [Details](docs/USAGE.md#permission-prompts).
+  It approves whatever tool use is asked; it starts on in full-auto (the
+  background service included) unless `AUTO_YES_AT_START=false`, `y` turns it
+  off for the running watcher, and the header always shows it. [Details](docs/USAGE.md#permission-prompts).
 - **Explanations, not surprises** — a detail panel shows the latest decision,
   quota freshness, blocking windows and the next scheduled check.
 - **See what this watch achieved** — live counts of permission answers,
@@ -289,8 +290,8 @@ Ask and auto mode need Konsole's input D-Bus API enabled once
 dashboard, `Shift+A` switches to full-auto and back to observe or ask, `d`
 explains the selected session, `w` cracks the whip (a reminder to every idle
 agent, through the same revalidation), `y` toggles auto-yes for exact Claude Code and
-Codex CLI permission prompts (off at every start; it approves whatever tool use is
-asked, see [docs/USAGE.md](docs/USAGE.md#permission-prompts)), and `h` lists
+Codex CLI permission prompts (on at start in full-auto unless
+`AUTO_YES_AT_START=false`; it approves whatever tool use is asked, see [docs/USAGE.md](docs/USAGE.md#permission-prompts)), and `h` lists
 every key.
 
 | Mode | Command | Sends input? |

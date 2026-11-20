@@ -186,7 +186,7 @@ observe mode.
 | `j` / `k` | Scroll down / up through the dashboard |
 | `g` / `G` | Jump to the top / end of the dashboard |
 | `w` | Crack the whip: send one reminder to every Claude/Codex tab, busy tabs once their input box is free (see [The whip](#the-whip)) |
-| `y` | Toggle auto-yes: answer the selected one-turn item on exact Claude Code or Codex CLI permission prompts (see [Permission prompts](#permission-prompts)); off at every start, never saved |
+| `y` | Toggle auto-yes: answer the selected one-turn item on exact Claude Code or Codex CLI permission prompts (see [Permission prompts](#permission-prompts)); on at start in full-auto unless `AUTO_YES_AT_START=false`; the key's choice is never saved |
 | `q` | Quit and restore the terminal |
 
 The header shows both automation switches side by side with their keys:
@@ -411,6 +411,7 @@ environment < command line. Durations accept `ms`, `s`, `m`, `h`.
 | `AUTO_ACCEPT_MODEL_DOWNGRADE`, `AUTO_USE_PAID_CREDITS`, `AUTO_BUY_CREDITS`, `AUTO_CONSUME_RESET_CREDIT` | `false` | Human-only actions: setting any to `true` is a configuration error |
 | `LOG_FILE`, `STATE_DIR`, `RUNTIME_DIR` | XDG defaults | Paths |
 | `ALLOW_ROOT`, `USE_FZF` | `false`, `true` | Diagnostics-only root; optional fzf picker |
+| `AUTO_YES_AT_START` | `true` | Full-auto starts with auto-yes on (service included); `false` starts it off |
 
 ### How quickly will a session continue?
 
@@ -777,9 +778,12 @@ wait for approval. While it is on, every scan answers each exact permission
 menu with Enter on the visibly selected one-turn first choice. **That approves
 whatever tool use the agent asked for** - including an
 edit to its own `.claude/settings*.json`, which a Bash command could make just
-as well - so it starts off on every run, is never saved, and
-exists only in the interactive dashboard - the headless service cannot enable
-it. Each answer is gated like any other input:
+as well. At the maintainer's request it starts **on** in full-auto, including
+the headless `--auto` service, and when `Shift+A` arms full-auto in a dashboard
+where `y` was not pressed yet; it starts off in observe and ask mode. Set
+`AUTO_YES_AT_START=false` to start every watcher with it off. The `y` key's
+choice lasts until that watcher exits and is never saved. Each answer is gated
+like any other input:
 
 - it answers only in full-auto: ask mode keeps its promise to confirm every
   action, and observe mode, a paused dashboard or a watcher without input

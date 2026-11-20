@@ -1491,6 +1491,36 @@ def scenario_auto_yes_answers_once(directory: Path) -> Result:
     )
 
 
+def scenario_auto_yes_on_at_start(directory: Path) -> Result:
+    world = _world(directory / "auto", screen=CURRENT_APPROVAL_SCREEN)
+    starts = world.supervisor.config.starts_auto_yes
+    if starts:
+        world.approve("full auto started; auto-yes is on by default")
+    observer = _world(directory / "observe", mode=Mode.OBSERVE, screen=CURRENT_APPROVAL_SCREEN)
+    observer.approve("an observe watcher never starts with auto-yes and sends nothing")
+    world.steps.extend(observer.steps)
+    opted_out = replace(world.supervisor.config, auto_yes_at_start=False).starts_auto_yes
+    ask = replace(world.supervisor.config, mode=Mode.ASK).starts_auto_yes
+    world.steps.append(
+        Step(
+            label="AUTO_YES_AT_START=false and ask mode start with auto-yes off",
+            decision_reason=f"opted-out={opted_out} ask={ask}",
+            sent=len(world.terminal.sent),
+        )
+    )
+    return _result(
+        "auto-yes-on-at-start",
+        "A full-auto watcher starts; Claude Code asks for permission.",
+        "full auto answers the exact menu once by default; observe, ask and opt-out do not",
+        world,
+        passed=starts
+        and world.terminal.sent == [(SESSION, "\r")]
+        and observer.terminal.sent == []
+        and not opted_out
+        and not ask,
+    )
+
+
 def scenario_codex_auto_yes_answers_once(directory: Path) -> Result:
     world = _world(directory, provider="codex", screen=CODEX_APPROVAL_SCREEN)
     world.approve("exact Codex one-turn command permission, auto-yes on")
@@ -1580,6 +1610,7 @@ SCENARIOS: dict[str, ScenarioFn] = {
     "approval-context-conflict": scenario_approval_context_conflict,
     "human-only-policy": scenario_human_only_policy,
     "auto-yes-answers-once": scenario_auto_yes_answers_once,
+    "auto-yes-on-at-start": scenario_auto_yes_on_at_start,
     "codex-auto-yes-answers-once": scenario_codex_auto_yes_answers_once,
     "auto-yes-resends-once": scenario_auto_yes_resends_once,
 }

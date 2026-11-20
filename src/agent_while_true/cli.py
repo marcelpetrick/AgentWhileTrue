@@ -744,6 +744,9 @@ def _loop(
     preferences_path = config.resolved_state_dir() / "preferences.json"
     if interactive:
         load_preferences(preferences_path, dashboard)
+    if (deferred or config).starts_auto_yes:
+        dashboard.auto_yes = True
+        supervisor.log.info("auto_yes_toggled", enabled=True, source="start")
     keys = TerminalKeys(interactive)
     color = interactive and not args.no_color and "NO_COLOR" not in os.environ
     last_event = ""
@@ -949,6 +952,13 @@ def _loop(
                     )
                     if config.mode is Mode.AUTO and previous_config.mode is not Mode.AUTO:
                         before_auto = previous_config
+                        if (
+                            not dashboard.auto_yes
+                            and not dashboard.auto_yes_chosen
+                            and config.starts_auto_yes
+                        ):
+                            dashboard.auto_yes = True
+                            supervisor.log.info("auto_yes_toggled", enabled=True, source="start")
                     elif config.mode is not Mode.AUTO:
                         before_auto = None
                     next_scan = 0.0

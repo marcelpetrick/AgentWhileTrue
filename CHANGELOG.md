@@ -13,6 +13,21 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.75.0] - 2026-11-20
+
+### Changed
+
+- Full-auto starts with auto-yes on, at the maintainer's request: the headless
+  `--auto` service now answers exact Claude Code and Codex CLI permission
+  prompts too, and `Shift+A` arms auto-yes along with full-auto unless `y` was
+  already pressed in that dashboard. Previously the input-owning service could
+  never enable auto-yes, so `claude-dmo` sessions waited on every prompt while
+  an observing dashboard ran beside it. The new `AUTO_YES_AT_START` setting
+  (default `true`) restores the old off-at-start behaviour; the `y` key's
+  runtime choice is still never saved. Observe and ask mode never start with
+  it on, and every answer keeps the exact-menu and revalidation gate. New
+  `auto-yes-on-at-start` safety scenario.
+
 ## [0.74.6] - 2026-11-20
 
 ### Added

@@ -153,6 +153,11 @@ class Config:
     runtime_dir: Path | None = None
     allow_root: bool = False
     use_fzf: bool = True
+    #: Full auto starts with the auto-yes switch on (maintainer request
+    #: 2026-11-20), so a background service answers exact permission prompts
+    #: without a dashboard. The y key still turns it off for the running
+    #: watcher; false here starts every watcher with it off.
+    auto_yes_at_start: bool = True
     policy: Policy = Policy()
 
     def __post_init__(self) -> None:
@@ -179,6 +184,11 @@ class Config:
             or not 1 <= self.service_status_interval <= 86400
         ):
             raise ConfigError("SERVICE_STATUS_INTERVAL needs a period between 1s and 24h")
+
+    @property
+    def starts_auto_yes(self) -> bool:
+        """Whether this configuration begins with auto-yes on: full auto, by config."""
+        return self.mode is Mode.AUTO and self.auto_yes_at_start
 
     def resolved_state_dir(self) -> Path:
         return self.state_dir or default_state_dir()
@@ -215,6 +225,7 @@ _KEYS: dict[str, tuple[str, str]] = {
     "RUNTIME_DIR": ("runtime_dir", "path"),
     "ALLOW_ROOT": ("allow_root", "bool"),
     "USE_FZF": ("use_fzf", "bool"),
+    "AUTO_YES_AT_START": ("auto_yes_at_start", "bool"),
     "RESUME_AFTER_RESET": ("policy.resume_after_reset", "bool"),
     "AUTO_ACCEPT_MODEL_DOWNGRADE": ("policy.auto_accept_model_downgrade", "bool"),
     "AUTO_USE_PAID_CREDITS": ("policy.auto_use_paid_credits", "bool"),

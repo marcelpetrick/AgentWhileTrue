@@ -39,8 +39,11 @@ class DashboardState:
     redact_accounts: bool = False
     whip_requested: bool = False
     #: Answer exact provider permission prompts with the selected one-turn item.
-    #: Off at every start and never saved: it approves whatever tool use is asked.
+    #: Starts on in full auto unless AUTO_YES_AT_START is false; the key's
+    #: runtime choice is never saved, so a restart returns to that default.
     auto_yes: bool = False
+    #: The operator pressed y during this run; entering full auto keeps that choice.
+    auto_yes_chosen: bool = False
     auto_yes_toggled: bool = False
 
     @classmethod
@@ -106,6 +109,7 @@ class DashboardState:
         elif lowered == "y":
             self.auto_yes = not self.auto_yes
             self.auto_yes_toggled = True
+            self.auto_yes_chosen = True
         return False
 
     def consume_mode_toggle(self) -> bool:

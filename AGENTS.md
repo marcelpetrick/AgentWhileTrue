@@ -99,8 +99,10 @@ when recognizer behavior changes.
   replaces it. A Claude tab visibly running background agents gets the request
   to pass it on. Five cracks per rolling minute.
 - Claude Code and Codex CLI permission prompts are never resume prompts. Only the operator's
-  dashboard auto-yes switch (`y`) answers one: off at every start, never
-  persisted, only in full-auto - never in ask or observe mode, while paused or
+  auto-yes switch (`y`) answers one: on at start in full-auto, including the
+  headless service (`AUTO_YES_AT_START`, default on, maintainer request
+  2026-11-20), off at start otherwise; the `y` key's runtime choice is never
+  persisted; only in full-auto - never in ask or observe mode, while paused or
   without input control;
   for Claude, only an exact tested permission menu - a whole-row "Do you want to ...?",
   the cursor on `1. Yes`, zero to two consecutive `Yes, and ...` choices, and
@@ -280,7 +282,7 @@ existing operator's selections, input lock and automation switches unchanged.
    neither proves uninterrupted progress or that every possible prompt is covered.
 9. End with the observation interval, findings, regression/release results,
    remaining manual blockers and exact running versions. Do not silently restart
-   an operator dashboard: auto-yes intentionally resets to off. For a requested
+   an operator dashboard: auto-yes resets to its `AUTO_YES_AT_START` default. For a requested
    deployment, restart the service after installation and tell the operator when
    the dashboard needs restarting and its intended `A`/`y` switches re-enabling.
 

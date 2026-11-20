@@ -52,6 +52,7 @@ TALKATIVE = {
     "claude-wait-agent-panel": [(simulate.SESSION, "\x1b[B\r")],
     # Auto-yes switched on by the operator answers one exact permission menu.
     "auto-yes-answers-once": [(simulate.SESSION, "\r")],
+    "auto-yes-on-at-start": [(simulate.SESSION, "\r")],
     "codex-auto-yes-answers-once": [(simulate.SESSION, "\r")],
     "codex-capacity-recovery": [(simulate.SESSION, "\x1b[200~continue\x1b[201~\r")],
     "codex-transient-recovery": [
