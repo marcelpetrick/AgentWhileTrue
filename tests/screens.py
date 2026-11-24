@@ -302,6 +302,27 @@ CODEX_ACTIVE = [
     "› ",
 ]
 
+# Transcribed read-only on 2026-11-24 from a live Codex 0.172.0 tab whose
+# idle composer refused every whip for 20 minutes as "composer-not-empty".
+# The status line no longer fits one row: Codex wraps it at a separator with a
+# two-space indent, and the ordinary footer follows as a third row. Project,
+# branch, path and session ID are redacted; the layout is verbatim.
+CODEX_0_172_WRAPPED_STATUS = [
+    "• Ran cargo test",
+    "",
+    "› Ask a follow-up question",
+    "",
+    "  GPT-6.2-Sol medium · Context 62% left · ~/repos/project · GPT-6.2-Sol · project"
+    " · user/branch · Context 38% used · 5h 90% left ·",
+    "  weekly 98% left · 0.172.0 · 475K window · 363K used · 10.1M in · 36.5K out"
+    " · 0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d · Standard",
+    "  tab to queue message",
+]
+CODEX_0_172_WRAPPED_STATUS_SHORTCUTS = [
+    *CODEX_0_172_WRAPPED_STATUS[:-1],
+    "  ← for agents · ? for shortcuts" + " " * 60 + "⚠ 9 warnings · f2 to view",
+]
+
 # Redacted from the 2026-10-16 16:14 screenshot: repeated failed continuations
 # retained the exact same 12:45 banner, with a brief Working redraw between
 # retries. The account/project/model status is omitted; the limit and composer

@@ -13,6 +13,15 @@ evidence and remaining evidence-dependent work are in [OPEN_ISSUES.md](OPEN_ISSU
 
 ## Current status
 
+### Codex 0.172.0 wraps its status line — 2026-11-24
+
+Whip logs showed one Codex tab refusing every crack as `composer-not-empty` for
+20 minutes. Read-only inspection found an idle composer: 0.172.0's full status
+line wraps onto a second row, so three rows followed the composer where two
+known rows are allowed. The exact observed line, on one row or wrapped once at
+a separator, now counts as one status row; every other variation still reads
+as a draft. Fixture: `CODEX_0_172_WRAPPED_STATUS`.
+
 ### Konsole reads over one session-bus connection — 2026-11-24
 
 Profiling the live service showed qdbus process launches as 65% of its CPU

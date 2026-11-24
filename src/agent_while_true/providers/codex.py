@@ -125,6 +125,36 @@ _CONTEXT_STATUS_FOOTER = re.compile(
     r"(?:\s+·\s+[\w./-]+\s+·\s+Context \d{1,3}% used)?\s*$",
     re.IGNORECASE,
 )
+#: 0.172.0's full status line, observed live on 2026-11-24. It is too long for
+#: one row on an ordinary terminal, so Codex wraps it after a separator onto a
+#: second row with a two-space indent; :func:`_join_wrapped_status` rejoins
+#: exactly that case. Every field is the observed one; anything else (another
+#: service tier, a missing field, extra text) does not match.
+_FULL_STATUS_FOOTER = re.compile(
+    r"^\s*(?:GPT|codex|o\d)[\w.-]+\s+(?:default|low|medium|high|xhigh|max|ultra)"
+    r" · Context \d{1,3}% left · (?:~|/)\S+ · (?:GPT|codex|o\d)[\w.-]+"
+    r" · [\w.-]+ · [\w./-]+ · Context \d{1,3}% used · 5h \d{1,3}% left"
+    r" · weekly \d{1,3}% left · \d+\.\d+\.\d+ · \d+(?:\.\d+)?[KM]? window"
+    r" · \d+(?:\.\d+)?[KM]? used · \d+(?:\.\d+)?[KM]? in · \d+(?:\.\d+)?[KM]? out"
+    r" · [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12} · Standard\s*$",
+    re.IGNORECASE,
+)
+
+
+def _join_wrapped_status(rows: list[str]) -> list[str]:
+    """Rejoin a full status line that Codex wrapped onto two rows.
+
+    Only a first row ending in a separator, followed by an indented second row,
+    that together form :data:`_FULL_STATUS_FOOTER` count as one row; every
+    other pair is left as two rows and judged (and refused) separately.
+    """
+    if len(rows) >= 2 and rows[0].rstrip().endswith(" ·") and rows[1].startswith("  "):
+        joined = f"{rows[0].rstrip()} {rows[1].strip()}"
+        if _FULL_STATUS_FOOTER.fullmatch(joined):
+            return [joined, *rows[2:]]
+    return rows
+
+
 #: What an empty composer shows: nothing, or one of Codex's placeholders. 0.158
 #: added "Ask a follow-up question" beside "Ask Codex to do anything"; without
 #: it an idle composer read as a draft and the whip skipped it.
@@ -497,7 +527,11 @@ class CodexAdapter(ProviderAdapter):
         # A multi-line draft begun with Shift+Enter leaves the composer row
         # empty and continues below it. For typing a fresh message, only the
         # footer may follow; the resume path keeps its tested ``input_ready``.
-        trailing = [line for line in live[composer + 1 :] if line.strip()] if empty else []
+        trailing = (
+            _join_wrapped_status([line for line in live[composer + 1 :] if line.strip()])
+            if empty
+            else []
+        )
         original_live = original_lines[-live_lines:]
         ambiguous_particles = any(_BRAILLE_PARTICLES.search(line) for line in original_live)
         status_rows = [
@@ -506,6 +540,7 @@ class CodexAdapter(ProviderAdapter):
                 or _LEGACY_STATUS_FOOTER.fullmatch(line)
                 or _CONTEXT_STATUS_FOOTER.fullmatch(line)
                 or _CAPACITY_STATUS_FOOTER.fullmatch(line)
+                or _FULL_STATUS_FOOTER.fullmatch(line)
             )
             for line in trailing
         ]
@@ -519,6 +554,7 @@ class CodexAdapter(ProviderAdapter):
                 or _CODEX_STATUS_FOOTER.fullmatch(line)
                 or _CONTEXT_STATUS_FOOTER.fullmatch(line)
                 or _CAPACITY_STATUS_FOOTER.fullmatch(line)
+                or _FULL_STATUS_FOOTER.fullmatch(line)
                 for line in trailing
             )
         )

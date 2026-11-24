@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.77.3] - 2026-11-24
+
+### Fixed
+
+- An idle Codex 0.172.0 composer no longer reads as a draft when its long
+  status line wraps onto a second row; whips and other empty-composer checks
+  reach it again. Only the exact observed status line is accepted, on one row
+  or wrapped once; every variation still fails closed.
+
 ## [0.77.2] - 2026-11-24
 
 ### Changed
