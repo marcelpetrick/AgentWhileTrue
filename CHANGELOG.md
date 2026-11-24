@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.76.8] - 2026-11-24
+
+### Changed
+
+- Prepare the public release with attached dashboards that survive a slow or
+  restarting background service and the current container base image; align
+  the tagged installation command with this release.
+
 ## [0.76.7] - 2026-11-24
 
 ### Changed
