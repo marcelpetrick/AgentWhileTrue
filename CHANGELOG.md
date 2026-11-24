@@ -13,6 +13,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.76.6] - 2026-11-24
+
+### Fixed
+
+- While the attached view waits for a busy service it keeps the last frame on
+  screen under the waiting notice instead of blanking the dashboard.
+
 ## [0.76.5] - 2026-11-24
 
 ### Fixed

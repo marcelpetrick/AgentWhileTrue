@@ -928,21 +928,23 @@ Python 3.14 installation succeeds.
 An interactive `agent-while-true run` **attaches** to a running background
 service instead of starting a second watcher. The service keeps a second
 user-private socket, `agent-while-true.view`, beside its lock for as long as it
-runs, in any mode. The attached dashboard draws the service's own frame, with
-a top row naming the service PID and version, and sends its keys there: `A`,
-`y`, `w`, `p`, `r`, the display keys and scrolling act on the service through
-the service's own gates, exactly as at its keyboard. `q` or `Ctrl+C` closes the
-view only; the service keeps watching. The attached process reads no terminal
+runs, in any mode. The attached dashboard draws the service's own frame, with a
+top row naming the service PID and version, and sends its keys there: `A`, `y`,
+`w`, `p`, `r`, the display keys and scrolling act on the service through the
+service's own gates, exactly as at its keyboard. `q` or `Ctrl+C` closes the view
+only; the service keeps watching. The attached process reads no terminal
 session, quota or log and never types anywhere. Display preferences (`t`, `e`,
 `l`, `d`, `h`) are the service's and are saved by it; a headless service shows
 account labels as `unavailable`. A busy or restarting service (a scan of many
-tabs, a stalled D-Bus call, a `systemctl --user restart`) shows `waiting for
-the background watcher` for up to 30 seconds and the view reattaches when it
-answers; keys pressed while waiting are dropped, and a key whose request timed
-out is never resent, so a toggle cannot flip back. The service answers
-attached views between the per-session steps of a scan too, and holds keys
-that arrive mid-scan until the scan ends. Only a service silent for 30 seconds
-closes the view with `stopped answering`. Mode flags such as `--observe` do not change what an attached view does.
+tabs, a stalled D-Bus call, a `systemctl --user restart`) shows `waiting for the
+background watcher` for up to 30 seconds and the view reattaches when it
+answers, with the last frame kept on screen under that notice; keys pressed
+while waiting are dropped, and a key whose request timed out is never resent, so
+a toggle cannot flip back. The service answers attached views between the
+per-session steps of a scan too, and holds keys that arrive mid-scan until the
+scan ends. Only a service silent for 30 seconds closes the view with `stopped
+answering`. Mode flags such as `--observe` do not change what an attached view
+does.
 
 ```bash
 agent-while-true run                  # attaches when the service runs

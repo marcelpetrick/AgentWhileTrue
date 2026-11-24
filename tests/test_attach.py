@@ -261,6 +261,9 @@ def test_a_slow_reply_keeps_the_view_and_never_resends_keys(
     assert sent == [[], ["y"], [], []]
     output = stream.getvalue()
     assert "waiting for the background watcher" in output
+    # The outage keeps the last frame on screen under the waiting notice.
+    waiting = output.split("waiting for the background watcher", 1)[1]
+    assert waiting.split(cli.CLEAR_SCREEN, 1)[0].count("FRAME1") == 1
     assert "FRAME4" in output
     assert "stopped answering" not in output
 

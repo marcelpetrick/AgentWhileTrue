@@ -730,6 +730,7 @@ def _attach(config: Config, args: argparse.Namespace, stream: TextIO) -> int | N
     attached = False
     #: Monotonic time of the first unanswered request in the current outage.
     silent_since: float | None = None
+    last_frame = ""
     stream.write(HIDE_CURSOR)
     try:
         while True:
@@ -756,11 +757,12 @@ def _attach(config: Config, args: argparse.Namespace, stream: TextIO) -> int | N
                         "this view closed. Run agent-while-true again to reattach.\n"
                     )
                     return EXIT_ERROR
-                stream.write(
-                    f"{CLEAR_SCREEN}waiting for the background watcher "
-                    f"({now - silent_since:.0f}s; it is busy or restarting): "
-                    "keys pause; q closes this view only\n"
+                notice = (
+                    f"waiting for the background watcher ({now - silent_since:.0f}s; "
+                    "it is busy or restarting): keys pause; q closes this view only"
                 )
+                # The last frame stays readable; only its banner row changes.
+                stream.write(f"{CLEAR_SCREEN}{notice[: size.columns]}\n{last_frame}\n")
                 stream.flush()
                 if keys.read(VIEW_REFRESH_SECONDS).lower() in VIEW_LOCAL_KEYS:
                     return EXIT_OK
@@ -771,7 +773,8 @@ def _attach(config: Config, args: argparse.Namespace, stream: TextIO) -> int | N
                 f"attached to the background watcher (PID {reply.get('pid')}, "
                 f"v{reply.get('version')}): keys act there; q closes this view only"
             )
-            stream.write(f"{CLEAR_SCREEN}{banner[: size.columns]}\n{reply['frame']}\n")
+            last_frame = str(reply["frame"])
+            stream.write(f"{CLEAR_SCREEN}{banner[: size.columns]}\n{last_frame}\n")
             stream.flush()
             refresh = reply.get("refresh")
             wait = (
