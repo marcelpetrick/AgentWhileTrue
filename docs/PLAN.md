@@ -13,6 +13,16 @@ evidence and remaining evidence-dependent work are in [OPEN_ISSUES.md](OPEN_ISSU
 
 ## Current status
 
+### An attached dashboard survives a slow scan — 2026-11-24
+
+The attached dashboard closed three times in a day with `stopped answering
+(... timed out)`. Read-only probing of the live service measured view replies
+up to 6.2 s against the viewer's 5 s timeout: the service answered only between
+scans, and a 14-tab scan with rediscovery lists Konsole sessions twice at about
+2.2 s each (one qdbus subprocess per D-Bus call). The service now answers views
+between per-session steps with keys held until the scan ends, and the viewer
+rides out 30 s of silence without resending keys.
+
 ### More auto-yes coverage and an attaching dashboard — 2026-11-20
 
 About 250 Claude permission prompts since late October were refused as

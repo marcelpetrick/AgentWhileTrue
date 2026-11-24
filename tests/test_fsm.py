@@ -622,3 +622,19 @@ def test_every_unsupported_environment_reads_unsupported(
     kit.supervisor.tick()
     assert _session_state(kit) is SessionState.UNSUPPORTED
     assert kit.sent == []
+
+
+def test_the_step_hook_runs_after_each_session_step_never_inside_one(tmp_path: Path) -> None:
+    """A slow scan yields between whole steps so the service can serve viewers."""
+    kit, _ = _claude_session(tmp_path)
+    steps: list[int] = []
+    kit.supervisor.step_hook = lambda: steps.append(len(kit.sent))
+
+    kit.supervisor.tick()
+    kit.supervisor.prune_and_rebind()
+
+    # Quota warm-up, the session's whole step (its send included), the prune.
+    assert kit.sent == [(SESSION, "\r")]
+    assert steps == [0, 1, 1]
+    kit.supervisor.step_hook = None
+    kit.supervisor.between_steps()  # without a hook it is a no-op

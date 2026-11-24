@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.76.5] - 2026-11-24
+
+### Fixed
+
+- An attached dashboard no longer closes when one service reply is slow: the
+  background service answers attached views between the per-session steps of
+  a long scan (keys wait until the scan ends), and the view retries a busy or
+  restarting service for 30 seconds without resending keys before it reports
+  `stopped answering`.
+
 ## [0.76.4] - 2026-11-20
 
 ### Changed

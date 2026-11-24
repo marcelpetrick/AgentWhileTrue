@@ -28,6 +28,7 @@ from agent_while_true.control import (
     request_view,
     view_available,
 )
+from agent_while_true.fsm import Supervisor
 from agent_while_true.lock import SingleInstanceLock
 from tests import harness
 from tests.conftest import REAL_VIEW_WAIT
@@ -213,7 +214,8 @@ def test_a_vanished_service_closes_the_view_with_an_error(
 ) -> None:
     runtime = tmp_path / "run"
     thread, received = _fake_service(runtime, frames=1)
-    _keys(monkeypatch, [""])
+    monkeypatch.setattr(cli, "VIEW_GIVE_UP_SECONDS", 0.3)
+    monkeypatch.setattr(cli.TerminalKeys, "read", lambda self, timeout: time.sleep(0.05) or "")
     stream = Interactive()
 
     code = cli._attach(Config(runtime_dir=runtime), cli.build_parser().parse_args(["run"]), stream)
@@ -221,7 +223,103 @@ def test_a_vanished_service_closes_the_view_with_an_error(
 
     assert code == cli.EXIT_ERROR
     assert received == [[]]
+    # It retried for the grace period before giving up.
+    assert "waiting for the background watcher" in stream.getvalue()
     assert "stopped answering" in stream.getvalue()
+
+
+def _flaky_view(monkeypatch: pytest.MonkeyPatch, failures: set[int]) -> list[list[str]]:
+    """Replace the view request; the listed request numbers time out."""
+    sent: list[list[str]] = []
+
+    def fake(runtime: Path, payload: dict[str, object]) -> dict[str, object]:
+        sent.append(list(payload["keys"]))  # type: ignore[call-overload]
+        if len(sent) in failures:
+            raise ControlError("timed out")
+        return {"ok": True, "frame": f"FRAME{len(sent)}", "pid": 7, "version": "9.9"}
+
+    monkeypatch.setattr(cli, "view_available", lambda runtime_dir: True)
+    monkeypatch.setattr(cli, "request_view", fake)
+    return sent
+
+
+def test_a_slow_reply_keeps_the_view_and_never_resends_keys(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """One reply slower than the timeout is a busy service, not a gone one."""
+    sent = _flaky_view(monkeypatch, failures={2})
+    # y goes out with request 2, which times out; the outage notice reads one
+    # key ("" here), then the view recovers and quits on q.
+    _keys(monkeypatch, ["y", "", "", "q"])
+    stream = Interactive()
+
+    code = cli._attach(Config(runtime_dir=tmp_path), cli.build_parser().parse_args(["run"]), stream)
+
+    assert code == cli.EXIT_OK
+    # The service may have applied the y of the timed-out request: it is
+    # never sent again, so a toggle cannot flip back.
+    assert sent == [[], ["y"], [], []]
+    output = stream.getvalue()
+    assert "waiting for the background watcher" in output
+    assert "FRAME4" in output
+    assert "stopped answering" not in output
+
+
+def test_q_closes_a_view_that_waits_for_a_silent_service(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _flaky_view(monkeypatch, failures={2, 3, 4})
+    _keys(monkeypatch, ["", "", "q"])
+    stream = Interactive()
+
+    code = cli._attach(Config(runtime_dir=tmp_path), cli.build_parser().parse_args(["run"]), stream)
+
+    assert code == cli.EXIT_OK
+    assert "stopped answering" not in stream.getvalue()
+
+
+def test_a_long_scan_serves_frames_and_holds_keys_until_it_ends(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A scan longer than the viewer's timeout still answers it between sessions.
+
+    Keys that arrive mid-scan wait for the scan to end, so no switch changes
+    between a session's revalidation and its send.
+    """
+    during: list[dict[str, object]] = []
+    auto_yes_during: list[str] = []
+    original_tick = Supervisor.tick
+
+    def slow_tick(self: Supervisor) -> list:
+        if not during:
+            runtime = self.config.resolved_runtime_dir()
+            client = threading.Thread(
+                target=lambda: during.append(
+                    request_view(runtime, {"keys": ["y"], "width": 168, "height": 60})
+                )
+            )
+            client.start()
+            deadline = time.monotonic() + 5
+            while client.is_alive() and time.monotonic() < deadline:
+                self.between_steps()  # a per-session step of a long scan
+                time.sleep(0.01)
+            client.join(1)
+            log = (tmp_path / "agent-while-true.log").read_text()
+            auto_yes_during.append("enabled=false" if "enabled=false" in log else "unchanged")
+        return original_tick(self)
+
+    monkeypatch.setattr(Supervisor, "tick", slow_tick)
+
+    def client(runtime: Path) -> None:
+        # By the first idle wait the held y has been applied after the scan.
+        during.append(request_view(runtime, {"keys": [], "width": 168, "height": 60}))
+
+    _service(tmp_path, monkeypatch, client)
+
+    first, after = during[0], during[-1]
+    assert "auto-yes on permission prompts: ON" in str(first["frame"])
+    assert auto_yes_during == ["unchanged"]
+    assert "auto-yes on permission prompts: OFF" in str(after["frame"])
 
 
 def test_a_socket_that_never_answers_leaves_starting_a_watcher(
@@ -329,6 +427,20 @@ def test_a_real_dashboard_attaches_to_a_real_service(tmp_path: Path) -> None:
         start = len(dashboard.text)
         dashboard.press("y")
         dashboard.read_until(lambda text: "auto-yes on permission prompts: OFF" in text[start:])
+        # A frozen service (a long scan, a stalled D-Bus call) is not a gone
+        # one: the view waits, then carries on once the service answers.
+        service.send_signal(signal.SIGSTOP)
+        start = len(dashboard.text)
+        dashboard.read_until(
+            lambda text: "waiting for the background watcher" in text[start:], timeout=20
+        )
+        service.send_signal(signal.SIGCONT)
+        start = len(dashboard.text)
+        dashboard.read_until(
+            lambda text: f"attached to the background watcher (PID {service.pid}" in text[start:],
+            timeout=20,
+        )
+        assert "stopped answering" not in dashboard.text
         assert dashboard.quit() == 0
         # The viewer is gone; the one watcher keeps running.
         assert service.poll() is None
@@ -339,6 +451,7 @@ def test_a_real_dashboard_attaches_to_a_real_service(tmp_path: Path) -> None:
         assert "attached to the background watcher" not in standalone.text
         assert standalone.quit() == 0
     finally:
+        service.send_signal(signal.SIGCONT)
         service.send_signal(signal.SIGTERM)
         assert service.wait(20) == cli.EXIT_INTERRUPTED
         shutil.rmtree(short, ignore_errors=True)

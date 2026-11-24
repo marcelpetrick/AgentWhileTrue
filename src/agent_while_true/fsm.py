@@ -251,6 +251,11 @@ class Supervisor:
     now_fn: Callable[[], datetime] = lambda: datetime.now(UTC)
     monotonic_fn: Callable[[], float] = time.monotonic
     verify_delay: float = DEFAULT_VERIFY_DELAY_SECONDS
+    #: Called between whole per-session steps of a scan, never between a
+    #: session's revalidation and its send. The background service answers
+    #: attached dashboards here so a slow scan cannot starve them; the hook
+    #: must not change policy, mode or selections.
+    step_hook: Callable[[], None] | None = None
 
     sessions: dict[str, SupervisedSession] = field(default_factory=dict)
     activity: RunActivity = field(default_factory=RunActivity)
@@ -452,7 +457,13 @@ class Supervisor:
                 )
             session.reported_refusal = refusal
             decisions.append(decision)
+            self.between_steps()
         return decisions
+
+    def between_steps(self) -> None:
+        """Give the step hook a turn; a scan is otherwise uninterruptible."""
+        if self.step_hook is not None:
+            self.step_hook()
 
     def _warm_quota_sources(self) -> None:
         """Observe every selected account before any session decision is made."""
@@ -464,6 +475,7 @@ class Supervisor:
             # foreground PID is independently re-read by observe() before any
             # decision, and again immediately before an action.
             source.snapshot(pid=session.identity.pid)
+            self.between_steps()
 
     def _detect_time_jump(self, now: datetime) -> bool:
         monotonic = self.monotonic_fn()
@@ -1292,6 +1304,8 @@ class Supervisor:
         now = self.monotonic_fn()
         outcomes: dict[str, str] = {}
         for key, session in list(self.sessions.items()):
+            if outcomes:
+                self.between_steps()
             if not (
                 session.approval_exact
                 and session.approval_fingerprint
@@ -1755,6 +1769,7 @@ class Supervisor:
         except TerminalError:
             self.log.warning("rediscovery_failed", adapter=self.terminal.name)
             return
+        self.between_steps()
         # Observers can hold an older snapshot than the input controller.
         # Pruning saves the entire store, so even housekeeping could erase
         # another watcher's durable action intent and spent retry budget.

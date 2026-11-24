@@ -109,6 +109,9 @@ VIEW_LOCAL_KEYS = frozenset({"q", "\x03"})
 VIEW_REFRESH_SECONDS = 1.0
 #: How long after the last attached request the service stops health polling.
 VIEW_IDLE_SECONDS = 60.0
+#: How long an attached view keeps retrying a busy, restarting or silent
+#: service before it closes. One slow reply is normal; a gone service is not.
+VIEW_GIVE_UP_SECONDS = 30.0
 PREFERENCE_FIELDS_BY_KEY = {
     "t": frozenset({"theme"}),
     "e": frozenset({"show_events"}),
@@ -725,6 +728,8 @@ def _attach(config: Config, args: argparse.Namespace, stream: TextIO) -> int | N
     color = not args.no_color and "NO_COLOR" not in os.environ
     pending: list[str] = []
     attached = False
+    #: Monotonic time of the first unanswered request in the current outage.
+    silent_since: float | None = None
     stream.write(HIDE_CURSOR)
     try:
         while True:
@@ -735,18 +740,33 @@ def _attach(config: Config, args: argparse.Namespace, stream: TextIO) -> int | N
                 "height": max(1, size.lines - 2),
                 "color": color,
             }
+            # A request that timed out may still have reached the service, so
+            # its keys are never sent twice: a toggle must not flip back.
+            pending = []
             try:
                 reply = request_view(runtime_dir, payload)
             except ControlError as exc:
                 if not attached:
                     return None
+                now = time.monotonic()
+                silent_since = now if silent_since is None else silent_since
+                if now - silent_since >= VIEW_GIVE_UP_SECONDS:
+                    stream.write(
+                        f"{CLEAR_SCREEN}The background watcher stopped answering ({exc}); "
+                        "this view closed. Run agent-while-true again to reattach.\n"
+                    )
+                    return EXIT_ERROR
                 stream.write(
-                    f"{CLEAR_SCREEN}The background watcher stopped answering ({exc}); "
-                    "this view closed. Run agent-while-true again to reattach.\n"
+                    f"{CLEAR_SCREEN}waiting for the background watcher "
+                    f"({now - silent_since:.0f}s; it is busy or restarting): "
+                    "keys pause; q closes this view only\n"
                 )
-                return EXIT_ERROR
+                stream.flush()
+                if keys.read(VIEW_REFRESH_SECONDS).lower() in VIEW_LOCAL_KEYS:
+                    return EXIT_OK
+                continue
             attached = True
-            pending = []
+            silent_since = None
             banner = (
                 f"attached to the background watcher (PID {reply.get('pid')}, "
                 f"v{reply.get('version')}): keys act there; q closes this view only"
@@ -891,6 +911,11 @@ def _loop(
     history_read_at = -math.inf
     #: When an attached dashboard last asked; health polling stops when idle.
     viewed_at: float | None = None
+    #: True while a scan serves attached dashboards between its per-session
+    #: steps; their keys then wait in ``deferred_keys`` until the scan ends,
+    #: so no key changes policy, mode or selection in the middle of a scan.
+    scanning = False
+    deferred_keys: list[str] = []
 
     def compose(*, width: int, height: int, paint: bool, badge: bool) -> str:
         """Render the dashboard from cached observations; height 0 = no viewport."""
@@ -1022,7 +1047,11 @@ def _loop(
             return {"ok": False, "reason": "malformed-request"}
         for key in keys_pressed[:VIEW_MAX_KEYS]:
             if isinstance(key, str) and len(key) <= 8 and key.lower() not in VIEW_LOCAL_KEYS:
-                apply_key(key, remote=True)
+                if scanning:
+                    if len(deferred_keys) < VIEW_MAX_KEYS:
+                        deferred_keys.append(key)
+                else:
+                    apply_key(key, remote=True)
         width = _bounded_int(request.get("width"), 168, 20, 1000)
         height = _bounded_int(request.get("height"), 24, 1, 1000)
         # Provider-health workers run only while someone looks at them.
@@ -1044,12 +1073,34 @@ def _loop(
             "refresh": dashboard.interval,
         }
 
+    def serve_during_scan() -> None:
+        """Answer attached dashboards between a scan's per-session steps.
+
+        A scan of many tabs can outlast the viewer's reply timeout (each D-Bus
+        read is a qdbus subprocess). Only frames are served here; keys wait
+        for the end of the scan. A presentation failure never aborts a scan.
+        """
+        nonlocal scanning
+        scanning = True
+        try:
+            view.poll(serve_view)
+        except Exception as exc:
+            supervisor.log.warning("view_failed", reason=type(exc).__name__)
+        finally:
+            scanning = False
+
+    if not interactive and not args.once:
+        supervisor.step_hook = serve_during_scan
+
     standby = False
     try:
         while not stop["requested"]:
             previously_owned_input = lock.held
             config, control_note = control.tick(config)
             last_event = control_note or last_event
+            # Keys held during the last scan go first, ahead of newer ones.
+            while deferred_keys:
+                apply_key(deferred_keys.pop(0), remote=True)
             view.poll(serve_view)
             if viewed_at is not None and time.monotonic() - viewed_at > VIEW_IDLE_SECONDS:
                 # Nobody is looking any more: no public status requests for nobody.
@@ -1185,6 +1236,7 @@ def _sync_all_sessions(supervisor: Supervisor, *, show_accounts: bool = False) -
     for candidate in discover(
         supervisor.terminal, supervisor.inspector, include_titles=show_accounts
     ):
+        supervisor.between_steps()
         if not candidate.eligible or candidate.info is None or candidate.provider is None:
             continue
         current = supervisor.sessions.get(candidate.key)

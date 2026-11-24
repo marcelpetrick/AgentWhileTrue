@@ -423,7 +423,14 @@ socket for its whole run, whatever its mode: an interactive `run` attaches
 there instead of starting a second watcher, sends its keys and terminal size,
 and receives the frame the service renders from cached observations. Keys run
 through `apply_key`, the same path as the service's own keyboard, so every
-gate applies unchanged; a forwarded `q` is ignored. The viewer process does no
+gate applies unchanged; a forwarded `q` is ignored. A scan of many tabs costs
+one qdbus subprocess per D-Bus call and can outlast the viewer's 5-second reply
+timeout, so the service also serves the view through `Supervisor.step_hook`,
+called only between whole per-session steps (quota warm-up, each session's
+advance, each approval, rediscovery), never between a revalidation and its
+send. Keys received there are deferred to the start of the next loop, so no
+switch, mode or selection changes mid-scan. The viewer retries a silent
+service for 30 seconds and never resends a timed-out request's keys. The viewer process does no
 discovery, quota, log or terminal access. D-Bus access, state files, and the service all remain
 within the desktop user account; root execution, SSH, containers, tmux/screen,
 and ambiguous process ancestry are non-automatable.
