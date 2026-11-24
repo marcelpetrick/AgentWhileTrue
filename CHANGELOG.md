@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.78.1] - 2026-11-24
+
+### Fixed
+
+- All-time whip counts that a failed write could not save are added by the
+  next successful one, and a watcher that only reads (an observer or a
+  second dashboard) shows the service's current counts.
+
 ## [0.78.0] - 2026-11-24
 
 ### Added

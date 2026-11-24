@@ -136,8 +136,38 @@ def test_an_unwritable_totals_file_keeps_counting_in_memory(tmp_path: Path) -> N
     blocked.write_text("")
     totals = whip.WhipTotals(path=blocked / whip.TOTALS_FILENAME)
     totals.add(cracks=1, delivered=2)
-    assert (totals.cracks, totals.delivered) == (1, 2)
+    totals.add(cracks=1)
+    assert (totals.cracks, totals.delivered) == (2, 2)
     assert not list(tmp_path.glob(".whip.json.*"))
+
+
+def test_a_failed_write_is_saved_by_the_next_successful_one(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / whip.TOTALS_FILENAME
+    totals = whip.WhipTotals.load(path)
+    totals.add(cracks=1, delivered=1)
+    real = Path.replace
+
+    def failing(self: Path, target: Path) -> Path:
+        raise OSError("disk full")
+
+    monkeypatch.setattr(Path, "replace", failing)
+    totals.add(cracks=1, delivered=3)
+    assert json.loads(path.read_text()) == {"cracks": 1, "delivered": 1, "version": 1}
+    monkeypatch.setattr(Path, "replace", real)
+    totals.add(delivered=1)
+    assert json.loads(path.read_text()) == {"cracks": 2, "delivered": 5, "version": 1}
+
+
+def test_a_reading_watcher_shows_the_writers_new_counts(tmp_path: Path) -> None:
+    path = tmp_path / whip.TOTALS_FILENAME
+    observer = whip.WhipCounter(totals=whip.WhipTotals.load(path))
+    assert observer.badge(0.0) == "whip=0 sent=0"
+    whip.WhipTotals.load(path).add(cracks=3, delivered=8)
+    assert observer.badge(0.0) == "whip=0 sent=0 all-time 3/8"
+    path.unlink()  # a vanished file keeps the last counts on screen
+    assert observer.badge(0.0) == "whip=0 sent=0 all-time 3/8"
 
 
 def test_the_summary_reports_the_all_time_counts(tmp_path: Path) -> None:

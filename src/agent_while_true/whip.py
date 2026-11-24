@@ -131,6 +131,10 @@ class WhipTotals:
     path: Path
     cracks: int = 0
     delivered: int = 0
+    #: Additions a failed write could not save yet; the next write adds them.
+    _unsaved: tuple[int, int] = (0, 0)
+    #: The file's modification time at the last read, for cheap refreshes.
+    _seen: int | None = None
 
     @classmethod
     def load(cls, path: Path) -> WhipTotals:
@@ -138,8 +142,18 @@ class WhipTotals:
         totals._reload()
         return totals
 
+    def refresh(self) -> None:
+        """Re-read the file if another watcher changed it since the last read."""
+        try:
+            changed = self.path.stat().st_mtime_ns != self._seen
+        except OSError:
+            return
+        if changed:
+            self._reload()
+
     def _reload(self) -> None:
         try:
+            self._seen = self.path.stat().st_mtime_ns
             document = json.loads(self.path.read_text(encoding="utf-8"))
         except OSError, ValueError:
             return
@@ -147,7 +161,9 @@ class WhipTotals:
             return
         cracks, delivered = document.get("cracks"), document.get("delivered")
         if type(cracks) is int and type(delivered) is int and cracks >= 0 and delivered >= 0:
-            self.cracks, self.delivered = cracks, delivered
+            # Additions not yet saved stay counted on top of the file's values.
+            self.cracks = cracks + self._unsaved[0]
+            self.delivered = delivered + self._unsaved[1]
 
     def add(self, *, cracks: int = 0, delivered: int = 0) -> None:
         """Add to the totals and write them atomically, owner-only."""
@@ -156,8 +172,13 @@ class WhipTotals:
         self._reload()
         self.cracks += max(0, cracks)
         self.delivered += max(0, delivered)
+        self._unsaved = (
+            self._unsaved[0] + max(0, cracks),
+            self._unsaved[1] + max(0, delivered),
+        )
         document = {"version": _TOTALS_VERSION, "cracks": self.cracks, "delivered": self.delivered}
-        # A failed write keeps the in-memory totals; the next addition retries.
+        # A failed write keeps the additions in ``_unsaved``; the next write
+        # adds them to whatever the file holds by then.
         with contextlib.suppress(OSError):
             self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
             descriptor, name = tempfile.mkstemp(dir=self.path.parent, prefix=f".{self.path.name}.")
@@ -169,6 +190,8 @@ class WhipTotals:
                     os.fsync(handle.fileno())
                 temporary.chmod(0o600)
                 temporary.replace(self.path)
+                self._unsaved = (0, 0)
+                self._seen = self.path.stat().st_mtime_ns
             finally:
                 temporary.unlink(missing_ok=True)
 
@@ -237,6 +260,9 @@ class WhipCounter:
     def badge(self, now: float) -> str:
         """The dashboard's one-line counter."""
         text = f"whip={self.cracks} sent={self.delivered}"
+        if self.totals is not None:
+            # A watcher that does not write still shows the service's counts.
+            self.totals.refresh()
         if self.totals is not None and (self.totals.cracks or self.totals.delivered):
             text += f" all-time {self.totals.cracks}/{self.totals.delivered}"
         remaining = self.cooldown_remaining(now)
