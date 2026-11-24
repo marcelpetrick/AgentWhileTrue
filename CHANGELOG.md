@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.78.2] - 2026-11-24
+
+### Changed
+
+- Prepare the public release with all-time whip counts at the service level
+  and Codex 0.172.0's wrapped status line read as one row, so idle Codex
+  tabs receive whips again; align the tagged installation command with this
+  release.
+
 ## [0.78.1] - 2026-11-24
 
 ### Fixed
