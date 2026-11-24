@@ -431,6 +431,7 @@ def test_a_misaligned_read_past_the_end_is_truncated() -> None:
     [
         ("unix:path=/run/user/1000/bus", "/run/user/1000/bus"),
         ("unix:abstract=/tmp/dbus-x,guid=1", "\0/tmp/dbus-x"),
+        ("unix:path=/run/my%20bus", "/run/my bus"),
         ("tcp:host=localhost,port=1;unix:path=/b", "/b"),
         ("tcp:host=localhost,port=1", None),
         ("unix:guid=1", None),

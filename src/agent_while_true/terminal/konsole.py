@@ -36,6 +36,7 @@ ADAPTER_NAME = "konsole"
 
 _SERVICE_RE = re.compile(r"^org\.kde\.konsole(?:-\d+)?$")
 _SESSION_PATH_RE = re.compile(r"^/Sessions/\d+$")
+_INT_ARGUMENT_RE = re.compile(r"-?[0-9]{1,10}")
 
 #: Preferred first; ``qdbus6`` is the Qt6 name shipped by current KDE, ``qdbus``
 #: the traditional one. Either is acceptable.
@@ -149,7 +150,7 @@ class KonsoleAdapter(TerminalAdapter):
         for code, text in zip(signature, rest, strict=True):
             if code == "b" and text in {"true", "false"}:
                 converted.append(text == "true")
-            elif code == "i" and text.lstrip("-").isdecimal():
+            elif code == "i" and _INT_ARGUMENT_RE.fullmatch(text):
                 converted.append(int(text))
             else:
                 return None

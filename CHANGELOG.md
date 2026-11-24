@@ -13,6 +13,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.77.1] - 2026-11-24
+
+### Fixed
+
+- The session-bus client unescapes percent-encoded bus addresses and passes
+  only plain integer arguments over the bus.
+
 ## [0.77.0] - 2026-11-24
 
 ### Changed

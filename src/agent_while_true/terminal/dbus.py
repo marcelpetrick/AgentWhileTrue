@@ -19,6 +19,7 @@ Standard library only; no D-Bus binding is a dependency.
 import os
 import socket
 import struct
+import urllib.parse
 from dataclasses import dataclass, field
 
 #: Wire-protocol message types.
@@ -72,10 +73,11 @@ def session_bus_path(address: str | None) -> str | None:
         if transport != "unix":
             continue
         pairs = dict(item.partition("=")[::2] for item in options.split(",") if item)
+        # Address values may percent-escape any byte.
         if pairs.get("path"):
-            return pairs["path"]
+            return urllib.parse.unquote(pairs["path"])
         if pairs.get("abstract"):
-            return "\0" + pairs["abstract"]
+            return "\0" + urllib.parse.unquote(pairs["abstract"])
     return None
 
 

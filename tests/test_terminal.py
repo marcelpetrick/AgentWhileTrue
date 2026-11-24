@@ -278,6 +278,7 @@ def test_typing_never_goes_over_the_bus_connection(tmp_path) -> None:
     assert adapter.bus.calls == []  # type: ignore[union-attr]
     # Unknown methods and unconvertible arguments also stay with qdbus.
     assert adapter._call("s", "/p", "org.kde.konsole.Session.title", "x").startswith("qdbus:")
+    assert adapter._call("s", "/p", "org.kde.konsole.Session.title", "--1").startswith("qdbus:")
     assert adapter._call("s", "/p", "org.kde.konsole.Session.title").startswith("qdbus:")
     assert adapter._call("s", "/p", "org.kde.Other.processId").startswith("qdbus:")
     flag = "org.kde.konsole.Session.getAllDisplayedTextList"
