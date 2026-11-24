@@ -13,12 +13,17 @@ actually be typed anywhere is decided by :meth:`Supervisor.whip
 any other input.
 """
 
+import contextlib
+import json
 import math
+import os
 import random
+import tempfile
 import time
 from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Final, TextIO
 
 from agent_while_true.version import __version__
@@ -108,6 +113,66 @@ def message(index: int) -> str:
 RECENT_PHRASES: Final = len(PHRASES) // 2
 
 
+#: The lifetime totals file, beside the durable state; counts only, no text.
+TOTALS_FILENAME: Final = "whip.json"
+_TOTALS_VERSION: Final = 1
+
+
+@dataclass(slots=True)
+class WhipTotals:
+    """All-time whip counts at the service level, kept across restarts.
+
+    Only the watcher holding input control adds to them, so there is one
+    writer at a time; each addition re-reads the file first, so a handover
+    between watchers loses nothing. A missing or malformed file counts as
+    zero: these are statistics, and nothing is ever authorized by them.
+    """
+
+    path: Path
+    cracks: int = 0
+    delivered: int = 0
+
+    @classmethod
+    def load(cls, path: Path) -> WhipTotals:
+        totals = cls(path=path)
+        totals._reload()
+        return totals
+
+    def _reload(self) -> None:
+        try:
+            document = json.loads(self.path.read_text(encoding="utf-8"))
+        except OSError, ValueError:
+            return
+        if not isinstance(document, dict) or document.get("version") != _TOTALS_VERSION:
+            return
+        cracks, delivered = document.get("cracks"), document.get("delivered")
+        if type(cracks) is int and type(delivered) is int and cracks >= 0 and delivered >= 0:
+            self.cracks, self.delivered = cracks, delivered
+
+    def add(self, *, cracks: int = 0, delivered: int = 0) -> None:
+        """Add to the totals and write them atomically, owner-only."""
+        if cracks <= 0 and delivered <= 0:
+            return
+        self._reload()
+        self.cracks += max(0, cracks)
+        self.delivered += max(0, delivered)
+        document = {"version": _TOTALS_VERSION, "cracks": self.cracks, "delivered": self.delivered}
+        # A failed write keeps the in-memory totals; the next addition retries.
+        with contextlib.suppress(OSError):
+            self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            descriptor, name = tempfile.mkstemp(dir=self.path.parent, prefix=f".{self.path.name}.")
+            temporary = Path(name)
+            try:
+                with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                    json.dump(document, handle, sort_keys=True)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                temporary.chmod(0o600)
+                temporary.replace(self.path)
+            finally:
+                temporary.unlink(missing_ok=True)
+
+
 @dataclass(slots=True)
 class WhipCounter:
     """Counts cracks in this run, enforces the cooldown and keeps phrases fresh.
@@ -120,6 +185,8 @@ class WhipCounter:
     rng: random.Random = field(default_factory=random.Random)
     cracks: int = 0
     delivered: int = 0
+    #: The service-level all-time counts, when this watcher keeps them.
+    totals: WhipTotals | None = None
     _recent: deque[float] = field(default_factory=deque)
     #: Delivered phrase indices, least recently used first.
     _used: deque[int] = field(default_factory=deque)
@@ -151,9 +218,15 @@ class WhipCounter:
         self.cracks += 1
         return fresh + recent
 
-    def record_delivery(self, phrases: list[int]) -> None:
-        """Count the delivered phrases and move them to the back of the queue."""
+    def record_delivery(self, phrases: list[int], *, crack: bool = False) -> None:
+        """Count the delivered phrases and move them to the back of the queue.
+
+        ``crack`` marks a crack that reached the delivery gate (input control,
+        not paused); it and the deliveries also go into the all-time totals.
+        """
         self.delivered += len(phrases)
+        if self.totals is not None:
+            self.totals.add(cracks=int(crack), delivered=len(phrases))
         for phrase in phrases:
             if phrase in self._used:
                 self._used.remove(phrase)
@@ -164,6 +237,8 @@ class WhipCounter:
     def badge(self, now: float) -> str:
         """The dashboard's one-line counter."""
         text = f"whip={self.cracks} sent={self.delivered}"
+        if self.totals is not None and (self.totals.cracks or self.totals.delivered):
+            text += f" all-time {self.totals.cracks}/{self.totals.delivered}"
         remaining = self.cooldown_remaining(now)
         if remaining > 0:
             text += f" cooldown {math.ceil(remaining)}s"

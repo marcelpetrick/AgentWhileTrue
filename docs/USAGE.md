@@ -332,7 +332,14 @@ of the transcript which release the crack came from and where to find it; the re
 title bar counts this run's cracks and deliveries. At most five cracks fit in
 any rolling 60 seconds: a sixth is refused, without the animation, until the
 oldest of the five is a minute old, and the title bar counts that cooldown down.
-The counter is never saved.
+The service also keeps all-time counts in `whip.json` beside its state
+(`~/.local/state/agent-while-true/`), shown after the run counts as
+`whip=2 sent=5 all-time 74/163` and in `summary` as `Whip all time: cracks=C
+reminders=R`. Only the watcher holding input control adds to them: a crack
+counts once it reaches the delivery gate (not while paused or observing), and
+a reminder once it is typed, including after waiting for a busy tab. The file
+holds two numbers and a version, never phrases or tab names; a damaged file
+counts as zero. Reminders themselves are never saved.
 
 A crack is an input action and passes the same kind of gate as a resume,
 revalidated per session immediately before `sendText`:
@@ -538,7 +545,11 @@ operator's behalf:
 ```text
 Auto-yes: approved=4 resent=0 refused=0 sessions=2
 Whip: cracks=4 reminders=2
+Whip all time: cracks=74 reminders=163
 ```
+
+The `Whip:` line counts the retained logs' window; `Whip all time` comes from
+`whip.json` and survives log rotation and restarts.
 
 Each new structured event also includes `controller_pid` and
 `controller_version`: these identify the emitting watcher, which may be an

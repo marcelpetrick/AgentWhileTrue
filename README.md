@@ -207,7 +207,8 @@ the release that sent it -
 agent's transcript can find the whip's source and version. It closes with *no
 reply needed, just keep working*, because the kindest encouragement is the kind
 that does not cost another round of tokens. The title bar keeps score
-(`whip=5 sent=25`). The
+(`whip=5 sent=25 all-time 74/163`), and the background service keeps the
+all-time count across restarts. The
 whip allows five cracks in any rolling minute; a sixth waits until the oldest
 crack is a minute old, and the title counts that breather down. Even
 motivation has a rate limit.

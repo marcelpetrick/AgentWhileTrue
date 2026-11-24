@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.78.0] - 2026-11-24
+
+### Added
+
+- The service keeps all-time whip counts across restarts in `whip.json`
+  beside its state: cracks that reached the delivery gate and reminders
+  typed, including after waiting. The dashboard title shows them after the
+  run counts (`all-time C/R`) and `summary` adds `Whip all time`. Only
+  the input controller writes them; the file holds counts only.
+
 ## [0.77.3] - 2026-11-24
 
 ### Fixed

@@ -477,6 +477,8 @@ presentation activity feed. Automation policy and pre-send checks are unchanged.
 - Route every operator-initiated input, such as the dashboard's whip crack,
   through the supervisor's revalidation; it types only into a plain working
   screen whose own composer is visibly empty, and is never persisted or retried.
+  Only its counts are durable: the input controller adds cracks and deliveries
+  to `whip.json` (two integers, re-read before each addition).
 - Answer a Claude Code or Codex CLI permission prompt only while the operator's
   auto-yes switch is on (`Supervisor.approve_pending`), only on that provider's
   exact complete menu with its cursor on the one-turn first choice and the

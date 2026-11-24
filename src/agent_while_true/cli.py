@@ -654,7 +654,7 @@ def _crack_whip(
         for outcome in outcomes.values()
         if outcome.delivered and outcome.phrase is not None
     ]
-    counter.record_delivery(used)
+    counter.record_delivery(used, crack=True)
     waiting = collections.Counter(
         outcome.reason.removeprefix("queued:") for outcome in outcomes.values() if outcome.queued
     )
@@ -890,7 +890,11 @@ def _loop(
     before_auto: Config | None = None
     metrics = ObservationMetrics(supervisor.log)
     #: Cracks and deliveries of this run only; deliberately never persisted.
-    whip_counter = whip.WhipCounter()
+    # All-time counts live beside the durable state; only the input
+    # controller adds to them (see _crack_whip and _deliver_queued_whips).
+    whip_counter = whip.WhipCounter(
+        totals=whip.WhipTotals.load(config.resolved_state_dir() / whip.TOTALS_FILENAME)
+    )
     health = HealthMonitor(interval=config.service_status_interval)
     # command_run() discovered sessions unless a headless --all start deferred.
     next_rediscovery = time.monotonic() + REDISCOVERY_INTERVAL_SECONDS
@@ -1470,7 +1474,13 @@ def main(
         return command_logs(config, args, out)
     if args.command == "summary":
         out.write(
-            render_summary(config.resolved_log_file(), now=datetime.now(UTC), days=args.days) + "\n"
+            render_summary(
+                config.resolved_log_file(),
+                now=datetime.now(UTC),
+                days=args.days,
+                whip_totals=config.resolved_state_dir() / whip.TOTALS_FILENAME,
+            )
+            + "\n"
         )
         return EXIT_OK
     parser.print_help(out)  # pragma: no cover - argparse covers the known set

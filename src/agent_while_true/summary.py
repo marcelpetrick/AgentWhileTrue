@@ -18,6 +18,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from agent_while_true.logging_setup import LOG_BACKUPS
+from agent_while_true.whip import WhipTotals
 
 MAX_LINE_BYTES = 16 * 1024
 MAX_INTERVAL_SECONDS = 180.0
@@ -148,7 +149,7 @@ def _interval_measure(
     return seconds if item.fields["blocked"] == "true" else 0.0, seconds
 
 
-def render_summary(path: Path, *, now: datetime, days: int) -> str:
+def render_summary(path: Path, *, now: datetime, days: int, whip_totals: Path | None = None) -> str:
     """Render aggregate counts and bounded supervision-time evidence."""
     retention_days = max(1, int(days))
     window_start = now - timedelta(days=retention_days)
@@ -204,6 +205,9 @@ def render_summary(path: Path, *, now: datetime, days: int) -> str:
         f"refused={counts['approval_refused']} sessions={len(approved_sessions)}"
     )
     lines.append(f"Whip: cracks={counts['cracks']} reminders={counts['reminders']}")
+    if whip_totals is not None:
+        totals = WhipTotals.load(whip_totals)
+        lines.append(f"Whip all time: cracks={totals.cracks} reminders={totals.delivered}")
     if not interval_count:
         lines.append("Measured blocked session-time: unavailable (no interval evidence)")
         lines.append("Measured observed session-time: unavailable (no interval evidence)")
