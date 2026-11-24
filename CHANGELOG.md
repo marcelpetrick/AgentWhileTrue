@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.77.2] - 2026-11-24
+
+### Changed
+
+- Prepare the public release with Konsole reads over one persistent
+  session-bus connection (about 78% less scan time and no qdbus launches for
+  reads on the measured desktop); align the tagged installation command with
+  this release.
+
 ## [0.77.1] - 2026-11-24
 
 ### Fixed
