@@ -13,6 +13,13 @@ evidence and remaining evidence-dependent work are in [OPEN_ISSUES.md](OPEN_ISSU
 
 ## Current status
 
+### Konsole reads over one session-bus connection — 2026-11-24
+
+Profiling the live service showed qdbus process launches as 65% of its CPU
+(12.9% of one core in total). Read-only calls now use a standard-library
+D-Bus client on one persistent connection; `sendText` keeps qdbus. Evidence
+and hypotheses are in [PERFORMANCE.md](PERFORMANCE.md).
+
 ### An attached dashboard survives a slow scan — 2026-11-24
 
 The attached dashboard closed three times in a day with `stopped answering

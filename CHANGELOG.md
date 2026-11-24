@@ -13,6 +13,18 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.77.0] - 2026-11-24
+
+### Changed
+
+- Konsole reads (listing, process IDs, titles, screen text) use one persistent
+  standard-library session-bus connection instead of launching `qdbus6` for
+  every call. On this desktop a warm five-agent scan fell from 77.5 ms to
+  17.4 ms, a Konsole listing from 233 ms to 4.8 ms and child-process CPU per
+  scan from 62 ms to 0. `sendText` still uses `qdbus6`; a transport failure
+  falls back to it per call. The live benchmark reports the transport, child
+  CPU and listing time.
+
 ## [0.76.8] - 2026-11-24
 
 ### Changed

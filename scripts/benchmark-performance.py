@@ -13,6 +13,7 @@ files are invented; live screens remain in memory and are immediately discarded.
 
 import argparse
 import json
+import resource
 import statistics
 import tempfile
 import time
@@ -113,20 +114,37 @@ def live_scan_benchmark(rounds: int) -> dict[str, object]:
                     title="",
                 )
         durations = []
+        children_before = _children_cpu_seconds()
         for _ in range(rounds + 1):
             start = time.perf_counter()
             supervisor._warm_quota_sources()
             for session in supervisor.sessions.values():
                 supervisor.observe(session.ref)
             durations.append((time.perf_counter() - start) * 1000)
+        children_cpu = _children_cpu_seconds() - children_before
+        listings = []
+        for _ in range(rounds):
+            start = time.perf_counter()
+            terminal.list_sessions_brief()
+            listings.append((time.perf_counter() - start) * 1000)
         return {
             "sessions": len(supervisor.sessions),
             "rounds": rounds,
+            # Whether reads used the persistent session-bus connection or qdbus.
+            "transport": "session-bus" if getattr(terminal, "bus", None) else "qdbus",
             "cold_ms": round(durations[0], 3),
             "warm_median_ms": round(statistics.median(durations[1:]), 3),
             "warm_min_ms": round(min(durations[1:]), 3),
             "warm_max_ms": round(max(durations[1:]), 3),
+            # CPU spent in child processes (qdbus launches) during the scans.
+            "child_cpu_ms_per_scan": round(children_cpu * 1000 / (rounds + 1), 3),
+            "listing_median_ms": round(statistics.median(listings), 3) if listings else 0.0,
         }
+
+
+def _children_cpu_seconds() -> float:
+    usage = resource.getrusage(resource.RUSAGE_CHILDREN)
+    return usage.ru_utime + usage.ru_stime
 
 
 def main() -> None:

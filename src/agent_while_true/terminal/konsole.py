@@ -12,12 +12,16 @@ Manjaro/KDE Plasma with ``XDG_SESSION_TYPE=wayland``:
 ``org.kde.konsole.Session``
     ``processId``, ``foregroundProcessId``, ``getDisplayedTextList``,
     ``getAllDisplayedTextList``, ``sendText``, ``title``.
+
+Reads go over one persistent session-bus connection (``terminal/dbus.py``),
+rendered exactly as qdbus prints them; ``sendText`` always launches qdbus.
 """
 
 import re
 import shutil
 import subprocess
-from dataclasses import dataclass
+import xml.etree.ElementTree as ET
+from dataclasses import dataclass, field
 
 from agent_while_true.terminal.base import (
     DEFAULT_VISIBLE_LINES,
@@ -26,6 +30,7 @@ from agent_while_true.terminal.base import (
     TerminalSession,
     TerminalUnavailableError,
 )
+from agent_while_true.terminal.dbus import BusCallError, BusError, SessionBus
 
 ADAPTER_NAME = "konsole"
 
@@ -39,6 +44,16 @@ _QDBUS_CANDIDATES = ("qdbus6", "qdbus", "qdbus-qt6", "qdbus-qt5")
 #: Each call also launches qdbus; measured healthy end-to-end calls take several
 #: milliseconds. Anything near this bound means the session should be skipped.
 _CALL_TIMEOUT_SECONDS = 5.0
+
+#: The read-only calls answered on the persistent bus connection, by method:
+#: argument signature, and how qdbus would have spelled each argument. Every
+#: other call - above all ``sendText``, the one that types - keeps using qdbus.
+_NATIVE_SESSION_METHODS = {
+    "processId": "",
+    "foregroundProcessId": "",
+    "title": "i",
+    "getAllDisplayedTextList": "b",
+}
 
 #: Konsole's Session.title() takes a role; 1 is the display/tab title.
 _TITLE_ROLE_DISPLAY = 1
@@ -64,22 +79,85 @@ class KonsoleAdapter(TerminalAdapter):
 
     qdbus: str | None = AUTODETECT
     name: str = ADAPTER_NAME
+    #: The persistent session-bus connection for read-only calls; ``None``
+    #: (no usable address, as in the test suite) means qdbus for everything.
+    bus: SessionBus | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         if self.qdbus == AUTODETECT:
             self.qdbus = find_qdbus()
+            # Only the autodetecting production adapter talks to the real bus;
+            # an explicitly given qdbus (tests, doctor) is used for every call.
+            if self.bus is None and self.qdbus is not None:
+                self.bus = SessionBus.from_environment(timeout=_CALL_TIMEOUT_SECONDS)
 
     # -- plumbing ---------------------------------------------------------
 
     def _call(self, *args: str) -> str | None:
-        """Run one qdbus call. Returns ``None`` when the call failed.
+        """Run one call, rendered as qdbus prints it. ``None`` when it failed.
 
         Failure is routine - a tab can close between enumeration and use - so it
         is reported as ``None`` rather than raised, and the caller drops that
-        session from the current scan.
+        session from the current scan. Read-only calls go over the persistent
+        bus connection when there is one; a transport failure there falls back
+        to qdbus for that call, while a D-Bus error reply is the call's answer.
         """
         if self.qdbus is None:
             raise TerminalUnavailableError("no qdbus executable found")
+        if self.bus is not None:
+            try:
+                native = self._native_call(args)
+            except BusCallError:
+                return None
+            except BusError:
+                native = None
+            if native is not None:
+                return native
+        return self._qdbus_call(args)
+
+    def _native_call(self, args: tuple[str, ...]) -> str | None:
+        """The bus-connection version of a qdbus call, or ``None`` if not one."""
+        assert self.bus is not None
+        if not args:
+            _, values = self.bus.call(
+                "org.freedesktop.DBus",
+                "/org/freedesktop/DBus",
+                "org.freedesktop.DBus",
+                "ListNames",
+            )
+            return _qdbus_text(values)
+        if len(args) == 1:
+            # qdbus SERVICE lists object paths; only the sessions are wanted.
+            _, values = self.bus.call(
+                args[0], "/Sessions", "org.freedesktop.DBus.Introspectable", "Introspect"
+            )
+            if len(values) != 1 or not isinstance(values[0], str):
+                raise BusError("unexpected introspection reply")
+            try:
+                nodes = ET.fromstring(values[0]).findall("node")
+            except ET.ParseError as exc:
+                raise BusError("malformed introspection data") from exc
+            return "".join(f"/Sessions/{node.get('name', '')}\n" for node in nodes)
+        service, path, method, *rest = args
+        interface, _, member = method.rpartition(".")
+        signature = _NATIVE_SESSION_METHODS.get(member)
+        if interface != "org.kde.konsole.Session" or signature is None:
+            return None
+        if len(rest) != len(signature):
+            return None
+        converted: list[object] = []
+        for code, text in zip(signature, rest, strict=True):
+            if code == "b" and text in {"true", "false"}:
+                converted.append(text == "true")
+            elif code == "i" and text.lstrip("-").isdecimal():
+                converted.append(int(text))
+            else:
+                return None
+        _, values = self.bus.call(service, path, interface, member, signature, tuple(converted))
+        return _qdbus_text(values)
+
+    def _qdbus_call(self, args: tuple[str, ...]) -> str | None:
+        assert self.qdbus is not None
         try:
             # Fixed executable, fixed argument vector, no shell: nothing is
             # interpolated into a command line.
@@ -108,9 +186,14 @@ class KonsoleAdapter(TerminalAdapter):
         raw = self._call()
         if raw is None:
             raise TerminalUnavailableError("cannot list D-Bus services")
-        return [
+        names = {
             stripped for line in raw.splitlines() if _SERVICE_RE.match(stripped := line.strip())
-        ]
+        }
+        # Oldest Konsole process first, whichever transport listed the names:
+        # dashboard rows follow discovery order and must not reshuffle.
+        return sorted(
+            names, key=lambda name: int(name.removeprefix("org.kde.konsole").lstrip("-") or 0)
+        )
 
     def _session_paths(self, service: str) -> list[str]:
         raw = self._call(service)
@@ -192,3 +275,18 @@ class KonsoleAdapter(TerminalAdapter):
         result = self._call(ref.service, ref.session_id, "org.kde.konsole.Session.sendText", text)
         if result is None:
             raise TerminalUnavailableError(f"sendText failed for {ref.key()}")
+
+
+def _qdbus_text(values: list[object]) -> str:
+    """Print reply values the way qdbus does: one line per value or element."""
+    lines: list[str] = []
+    for value in values:
+        items = value if isinstance(value, list) else [value]
+        for item in items:
+            if isinstance(item, bool):
+                lines.append("true" if item else "false")
+            elif isinstance(item, int | str):
+                lines.append(str(item))
+            else:
+                raise BusError("unexpected reply type")
+    return "".join(f"{line}\n" for line in lines)

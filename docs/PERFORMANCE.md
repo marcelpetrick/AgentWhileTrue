@@ -5,6 +5,46 @@ SPDX-License-Identifier: GPL-3.0-or-later
 
 # Performance evaluation
 
+## Session-bus transport — 2026-11-24
+
+Hypotheses, checked read-only on the live desktop. No input was sent to any
+provider session; the comparison ran the same script with the same
+interpreter against the installed v0.76.8 and against the new source, five
+watched agents, seven warm rounds.
+
+| Hypothesis | Check | Result |
+| --- | --- | --- |
+| H1: qdbus subprocess launches dominate the service's cost | cProfile of 15 scans plus one rediscovery (30 s of service work) | **Confirmed**: 344 launches, 65% of all CPU and 71% of wall time |
+| H2: rediscovery lists Konsole twice (prune, then discover) | Call trace | Confirmed, but after H1's fix one listing costs about 5 ms: left unchanged |
+| H3: the per-service object-path call is the slow call type | Per-call timing | Partly: 14 ms against 7 ms for the other calls; all of them are qdbus startup |
+| H4: steady service CPU comes from these launches | 60 s of `/proc` CPU, service plus children | 12.9% of one core before; the launches were most of it |
+| H5: Python-side work (recognition, `/proc`, quota) matters | cProfile | About 0.4 s per 30 s, mostly Codex rollout discovery; kept, because it is quota freshness |
+
+| Workload | v0.76.8 (qdbus) | New (session bus) | Change |
+| --- | ---: | ---: | ---: |
+| Warm scan, five agents (median) | 77.5 ms | 17.4 ms | −78% |
+| Child-process CPU per scan | 62.1 ms | 0.0 ms | −100% |
+| One Konsole listing (median) | 233.0 ms | 4.8 ms | −98% |
+| 30 s of service work: wall time | 2.1–2.5 s | 0.49–0.52 s | about −78% |
+| 30 s of service work: total CPU | 1.9–2.2 s | 0.42–0.46 s | about −79% |
+| qdbus launches per 30 s of service work | 200–230 | 0 | −100% |
+
+All live calls were compared between the two transports on every open tab:
+41 calls on 8 Konsole services, no differing answer, and an identical session
+list. `sendText` still launches qdbus. The numbers are this desktop's
+samples with its tab count, not a promise for other machines.
+
+### Reproduce safely
+
+```bash
+~/.local/share/pipx/venvs/agent-while-true/bin/python scripts/benchmark-performance.py --rounds 7 --live-scans
+PYTHONPATH=src python3 scripts/benchmark-performance.py --rounds 7 --live-scans
+```
+
+The first line measures the installed release, the second this checkout. The
+`live_scans` report names the `transport`, the child-process CPU per scan and
+the listing median.
+
 ## Current polling optimization — 2026-10-21
 
 Compared v0.71.0 (`76ffb3c`) with the v0.71.1 development source using the
@@ -144,8 +184,8 @@ fresh identity, process, prompt, quota, and policy checks.
 
 The after result averages about 25 milliseconds of CPU time per wall-clock
 second and approximately 34.5 MiB peak resident memory. The remaining external
-process work is primarily the conservative `qdbus` inspection of selected
-Konsole sessions.
+process work was primarily the conservative `qdbus` inspection of selected
+Konsole sessions; the session-bus transport above has since removed it.
 
 ## Provider-health traffic
 

@@ -31,6 +31,13 @@ def _view_waits_through_sleep(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(ControlServer, "wait", wait)
 
 
+@pytest.fixture(autouse=True)
+def _no_real_session_bus(request: pytest.FixtureRequest, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Only the opt-in live tests may reach the desktop's real session bus."""
+    if request.node.get_closest_marker("konsole") is None:
+        monkeypatch.delenv("DBUS_SESSION_BUS_ADDRESS", raising=False)
+
+
 def make_info(
     *,
     pid: int = 1000,

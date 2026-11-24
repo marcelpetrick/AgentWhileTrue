@@ -184,6 +184,18 @@ Headless discovery and selection pruning use title-free enumeration: all session
 and foreground-process reads remain fresh; only optional display-title RPCs are
 omitted. Existing terminal adapters inherit a compatible full-enumeration fallback.
 
+The Konsole adapter answers its read-only calls (`ListNames`, the `/Sessions`
+introspection, `processId`, `foregroundProcessId`, `title` and
+`getAllDisplayedTextList`) over one persistent session-bus connection,
+`terminal/dbus.py`: a standard-library client for EXTERNAL authentication,
+method calls, replies and errors, with only the types those calls use. It
+renders each reply as qdbus prints it, so every parser is unchanged. Nothing is
+cached: every read is a fresh bus call. `sendText`, the only call that types,
+always launches qdbus. A D-Bus error reply (a tab that closed) is the call's
+answer; a transport or protocol failure (a timeout, a malformed or oversized
+message, an unsupported type) closes the connection and that call falls back
+to qdbus. The next call reconnects.
+
 Claude's status-line bridge hashes the stable Claude session identifier and
 writes one owner-only quota document per session. The document also carries the
 Claude PID and kernel process start time captured from the status-line parent;
@@ -424,7 +436,7 @@ there instead of starting a second watcher, sends its keys and terminal size,
 and receives the frame the service renders from cached observations. Keys run
 through `apply_key`, the same path as the service's own keyboard, so every
 gate applies unchanged; a forwarded `q` is ignored. A scan of many tabs costs
-one qdbus subprocess per D-Bus call and can outlast the viewer's 5-second reply
+several D-Bus calls per tab and can outlast the viewer's 5-second reply
 timeout, so the service also serves the view through `Supervisor.step_hook`,
 called only between whole per-session steps (quota warm-up, each session's
 advance, each approval, rediscovery), never between a revalidation and its

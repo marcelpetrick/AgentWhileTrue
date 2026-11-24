@@ -66,4 +66,7 @@ def test_live_benchmark_only_observes_and_never_ticks_or_sends(monkeypatch) -> N
     report = namespace["live_scan_benchmark"](2)
     assert report["sessions"] == 1
     assert report["rounds"] == 2
+    assert report["transport"] == "qdbus"
+    assert report["child_cpu_ms_per_scan"] >= 0
+    assert report["listing_median_ms"] >= 0
     assert not terminal.sent
