@@ -13,6 +13,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.76.7] - 2026-11-24
+
+### Changed
+
+- Move the container base image to the current `python:3.14-slim` digest;
+  every Python and GitHub Actions pin is already the latest stable release.
+
 ## [0.76.6] - 2026-11-24
 
 ### Fixed
