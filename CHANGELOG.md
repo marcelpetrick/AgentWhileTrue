@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.78.3] - 2026-11-28
+
+### Changed
+
+- Update the dev pin `cyclonedx-python-lib` 11.12.0 -> 11.13.0 and the
+  `python:3.14-slim` container base image digest to the latest stable
+  releases; every other pin was already current.
+
 ## [0.78.2] - 2026-11-24
 
 ### Changed
