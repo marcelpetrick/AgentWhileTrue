@@ -160,6 +160,10 @@ flowchart LR
     health["service_health.py<br/>Strict component health cache"]
     policy["policy.py<br/>Authorization decision"]
     store["state_store.py + logging_setup.py<br/>Idempotency and redacted history"]
+    control["lock.py + control.py<br/>Single input owner, handover and view socket"]
+    codexq["codex_rpc.py + codex_daemon_quota.py<br/>Read-only Codex quota proxy"]
+    prefs["preferences.py<br/>Saved presentation choices"]
+    doctor["doctor.py<br/>Environment support report"]
 
     command --> picker
     command --> tui
@@ -175,6 +179,10 @@ flowchart LR
     health --> tui
     quota --> tui
     store --> tui
+    command --> control
+    command --> doctor
+    command --> prefs
+    quota --> codexq
 ```
 
 The abstractions in `terminal/base.py` and `providers/base.py` keep terminal
@@ -221,7 +229,7 @@ flowchart TD
     process_type -- no --> refuse
     process_type -- yes --> prompt{"Exact current prompt<br/>recognized without veto?"}
     prompt -- no --> refuse
-    prompt -- yes --> quota{"Provider confirmation or opted-in<br/>bounded Codex timed-trial gate?"}
+    prompt -- yes --> quota{"Provider confirmation or bounded<br/>timed-trial gate (opted-in Codex,<br/>Claude window limit)?"}
     quota -- no or unknown --> refuse
     quota -- yes --> mode{"Mode and policy permit<br/>the exact action?"}
     mode -- no --> refuse
@@ -340,8 +348,8 @@ nothing but its placeholder and only exact footer chrome follows, including
 the anchored current `model reasoning · directory` status row when no context
 percentage is shown; Claude's empty cursor row must sit directly on its input
 box's closing rule, so a multi-line draft begun with Shift+Enter is skipped
-too. The background-agent panel Claude Code
-2.1.292 draws under its status lines while subagents run (a `main` row, then
+too. The background-agent panel Claude
+draws under its status lines while subagents run (a `main` row, then
 one row per agent) is cut as chrome first; any other row there fails closed.
 For prompt recognition, the panel-trimmed candidate is accepted only when it
 contains a recognized self-healing wait and proposes no action. All actionable
@@ -468,8 +476,9 @@ presentation activity feed. Automation policy and pre-send checks are unchanged.
   Provider-internal model remapping is outside AWT's input-control boundary.
 - Bind selection to immutable process evidence, not a tab number or project path.
 - Revalidate every safety input immediately before terminal input.
-- Prefer refusal over inference; allow only the documented, explicitly opted-in
-  bounded Codex trial when availability cannot refresh while blocked.
+- Prefer refusal over inference; allow only the documented bounded timed trial
+  (Codex with its explicit opt-in, Claude's window-limit composer with
+  `ALLOW_CLAUDE_TIMED_RESUME`) when availability cannot refresh while blocked.
 - Keep runtime dependencies empty and external traffic limited to compressed,
   bounded, conditional reads of public status endpoints.
 - Persist the action intent before sending so crashes cannot silently duplicate

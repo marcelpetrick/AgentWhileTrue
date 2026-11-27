@@ -386,7 +386,8 @@ state directory in `preferences.json` (normally
 `~/.local/state/agent-while-true/preferences.json`). Changes apply immediately
 and survive restart. Invalid files fall back to defaults; save errors appear in
 the dashboard. Mode, permissions, selections, pause, scan timing, account
-redaction and the whip counter are deliberately never saved. Field-level locked
+redaction and the per-run whip counter are deliberately never saved; the
+all-time whip totals live separately in `whip.json`. Field-level locked
 updates stop a second observe dashboard from overwriting unrelated choices; a
 failed write is retried during clean shutdown.
 
@@ -434,8 +435,10 @@ during scans and immediately before an action, not on `USAGE_POLL_INTERVAL`.
 Cached service health is redrawn with the dashboard, not on
 `STATUS_POLL_INTERVAL`.
 
-Opted-in Codex timed retries first become eligible one second after an anchored
-reset, subject to quota, prompt and identity revalidation. The persisted 11-attempt budget is finite; exhausted retries require operator attention, not
+Timed retries (opted-in Codex, and Claude's window-limit composer with
+`ALLOW_CLAUDE_TIMED_RESUME`, on by default) first become eligible one minute
+after the anchored reset, the first `RETRY_SCHEDULE` step, subject to quota,
+prompt and identity revalidation. The persisted 11-attempt budget is finite; exhausted retries require operator attention, not
 an endless stream of `continue` messages. Claude's exact automatic-wait menu
 hands waiting back to Claude; other Claude continuations still need provider
 confirmation. Neither a reset clock nor this supervisor guarantees that the
@@ -820,8 +823,8 @@ like any other input:
   scan saw - a different command, an edit, a replaced process or another
   foreground program cancels it;
 - one Enter per appearance: the same box is answered again only after a scan
-  has seen it leave the screen - with one exception. Seen live on 2026-09-30
-  with 2.1.285, an answered box stayed on screen unchanged; the likely cause is
+  has seen it leave the screen - with one exception. Seen live on 2026-09-30,
+  an answered box stayed on screen unchanged; the likely cause is
   an Enter dropped while Claude Code was still setting the dialog up, but the
   log (which holds no screen text) cannot prove it. So the identical box still on
   screen 3 seconds after its answer gets exactly one more Enter, through the

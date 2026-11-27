@@ -13,6 +13,20 @@ evidence and remaining evidence-dependent work are in [OPEN_ISSUES.md](OPEN_ISSU
 
 ## Current status
 
+### Claude Code 2.1.332 permission boxes — 2026-11-28
+
+The MPT company-profile session left about 25 permission prompts to the
+operator in one day while some 1,800 others were answered. Logged stages were
+`explanation`, `last-item`, `footer` and `box-top`, almost all tall subagent
+heredoc commands. Two 2.1.332 changes caused them: a fixed clause ("...; under
+the read block (permissions.blockReadsOutsideWorkingDirectories) a command the
+shell parser cannot analyze asks the person") after the read-block reason, and
+a bare `↑ N more lines` scroll hint written into the blank row above the
+footer, or below it, when the box is taller than the window. Both are now
+accepted exactly (fixtures `CLAUDE_APPROVAL_SCROLL_HINT_2_1_332` and the
+explanation tests); anything else still fails closed. The service keeps all
+all-time whip totals in `whip.json` (v0.78.x).
+
 ### Codex 0.172.0 wraps its status line — 2026-11-24
 
 Whip logs showed one Codex tab refusing every crack as `composer-not-empty` for
@@ -46,7 +60,7 @@ About 250 Claude permission prompts since late October were refused as
 profile. A maintainer screenshot showed the cause for one family: a ~75-row
 subagent box whose top rule lay beyond the 40-row bound and whose explanation
 rows carry the box border. The border is now stripped and the explanation
-accepts Claude 2.1.329's template families (v0.74.5; the rule stays within 40
+accepts Claude's template families (v0.74.5; the rule stays within 40
 rows since v0.76.1).
 Refusals now log the failing frame stage (v0.74.6). The bigger cause was that
 the input-owning service ran headless with auto-yes off and no way to turn it
@@ -133,6 +147,8 @@ answered. Historical logs do not retain the menu itself.
 - [ ] Capture the next actual unsupported menu and add its minimal redacted
   fixture before expanding recognition. The seven historical appearances are
   not proven solved by the transport fix; their rendered layouts were not kept.
+  The 2026-11-20 tall subagent box and the 2026-11-28 scroll-hint box were such
+  captures; each added only its observed rows.
 
 Provider metadata correlates those seven appearances with four safety-check,
 two explicit Ask-rule and one outside-read Bash requests. They were not model
@@ -276,10 +292,11 @@ The implemented baseline includes:
 - Generic and timed Claude automatic-wait confirmations both verify as
   provider-armed waits; current extra-usage, early-reset and lower-priority
   choices are explicit non-automatable vetoes.
-- The single-instance lock permits at most one input-capable watcher; a
-  dashboard started beside it asks the holder over an owner-only local socket
-  to hand input control over (`Shift+A`), and the holder re-arms when the
-  dashboard exits.
+- The single-instance lock permits at most one input-capable watcher. An
+  interactive `run` attaches to the service's view socket and steers it; only
+  a `--standalone` dashboard started beside the holder asks it over an
+  owner-only local socket to hand input control over (`Shift+A`), and the
+  holder re-arms when that dashboard exits.
 - Deterministic simulations, package smoke tests, and a live read-only Konsole
   adapter test are part of the release gate.
 - All 18 cases named in vision section 40 map permanently to registered
@@ -299,15 +316,17 @@ The implemented baseline includes:
 - A non-persistent `x` hotkey masks account e-mails in every dashboard view for
   screenshot-safe sharing without altering provider or supervision data.
 - A `w` whip hotkey cracks an ASCII bullwhip over the dashboard and types a
-  different reminder into each selected session whose fresh observation shows
-  a plain working screen, an empty provider composer and quota that is not
-  exhausted; five cracks per rolling minute, and never any input in observe
-  mode, while paused, or without input control.
+  reminder into every revalidated Claude/Codex tab (watched, or an unwatched
+  agent tab bound at the crack) whose fresh observation shows a plain working
+  screen, an empty provider composer and quota that is not exhausted; a busy
+  tab keeps one in-memory reminder for up to 15 minutes. Five cracks per
+  rolling minute, and never any input in observe mode, while paused, or
+  without input control.
 - Provider tool-permission prompts are the `APPROVAL_PENDING` state, and a
   non-persistent `y` auto-yes switch answers only the selected one-turn first
   item of exact tested Claude or Codex menus, once per appearance, after full
   revalidation; only in full-auto, never in ask or observe mode, while paused
-  or without input control. Claude Code 2.1.300's full-window company-policy
+  or without input control. Claude's full-window company-policy
   explanations are exact-matched and their visible previews fingerprinted.
   Codex 0.162.1 command, patch, terminal-input, one-time-network and
   turn-permission overlays are covered but never re-sent; persistent choices,
@@ -346,7 +365,7 @@ This gate must not be forced with a paid choice, model downgrade, fabricated
 provider state, or input to an unrelated live session. Simulated reset tests
 remain the deterministic regression mechanism.
 
-## Active follow-up: exact approvals, renewal and fixed-model policy
+## Completed follow-up: exact approvals, renewal and fixed-model policy
 
 Baseline: `b224585` (2026-10-20). Work on the current branch, use atomic green
 commits, and review all follow-up changes against that baseline before delivery.

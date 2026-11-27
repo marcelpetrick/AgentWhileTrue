@@ -68,6 +68,33 @@ Actions runs on Python 3.14. It checks, in order:
    removed, exercising `--version`, `doctor`, `status`, `quota`, `summary` and
    `simulate --all`.
 
+### Gate helper scripts
+
+The pipeline calls these; each also runs on its own from the repository root.
+
+- `scripts/quality.sh [--fix] [--no-cov]` - the quality stage above. `--fix`
+  applies Ruff lint and format fixes first; `--no-cov` skips the coverage
+  floor for a faster inner loop. Reads the worktree; writes only tool caches
+  and coverage data. Exit status is the first failing check's.
+- `python3 scripts/check_toolchain.py pyproject.toml` - compares every `dev`
+  pin with the distributions installed for the running interpreter. Prints one
+  `[INFO] toolchain: ...` line per difference; exit 0 means exactly pinned, 1
+  means the pipeline must provision `.venv`. Read-only.
+- `python3 scripts/sbom.py generate --wheel W --sdist S --output-dir D` writes
+  deterministic SPDX 2.3 and CycloneDX 1.6 JSON for the two release artifacts
+  and the runtime dependency graph; `python3 scripts/sbom.py validate --spdx F
+  --cyclonedx F` validates both against their standard schemas and checks
+  that project identity, version and licence agree across the two. Generation
+  refuses inexact runtime requirements. Reads only the given files; writes only
+  under the output directory; build and dev environments are out of scope.
+- `scripts/container-entrypoint.sh` is the image's entrypoint: with no
+  arguments it runs `simulate --all`; it passes only `simulate`, `--version`
+  and `--help` to `scripts/container-simulate.py` and refuses every other
+  command with exit 64. `container-simulate.py` runs the CLI with the
+  container markers cleared so the fake-world scenarios classify their invented
+  processes; it is reachable only through that allowlist and never controls a
+  host terminal.
+
 ### Container gate and publication
 
 `AGENT_WHILE_TRUE_CONTAINER` controls the local image step: `auto` (default)

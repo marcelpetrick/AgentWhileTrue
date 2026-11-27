@@ -13,7 +13,7 @@ with AWT/provider versions and a complete, privacy-redacted prompt;
 `logs --raw` supplies lifecycle identifiers without copying terminal contents.
 Do not buy capacity, switch models or weaken a gate to clear a warning.
 
-F8 and F9 await real evidence; I1 is an unscheduled design idea. Acceptance and
+F8 and F9 await real evidence. Acceptance and
 incident sections are completed evidence, not instructions to run old releases.
 Unsupported questions remain manual.
 
@@ -37,9 +37,11 @@ fixture is a synthetic construction based on an existing real capture, **not**
 a reproduction of all seven historical appearances. Read-only follow-up observed
 180 screens and three ordinary exact menus; it did not catch a missed layout.
 Capture the next actual unsupported menu before adding any new explanation or
-footer rule. The 2026-11-20 capture (a ~75-row Claude Code 2.1.329 subagent
-box with a bordered read-block explanation) was such a capture; its fixture
-added border stripping and Claude's explanation template families. Unknown choices, paid/model choices and company denials remain
+footer rule. The 2026-11-20 capture (a ~75-row subagent box with a bordered
+read-block explanation) was such a capture; its fixture added border stripping
+and Claude's explanation template families. The 2026-11-28 capture added the
+unanalyzable-command clause and the bare scroll hint of a box taller than the
+window. Unknown choices, paid/model choices and company denials remain
 non-automatable; do not change provider policy to conceal this evidence gap.
 
 ## Completed acceptance
@@ -157,7 +159,7 @@ none weakens a safety gate.
 
 | ID | Sev | Where | Defect | Evidence |
 | --- | --- | --- | --- | --- |
-| F8 | LOW | `providers/timeparse.py:69` | `_WEEKDAY_RE` matches the words "sat" and "sun"; fails safe (waits longer). Needs a real fixture before the recognizer changes. | Code reading; no live occurrence. |
+| F8 | LOW | `providers/timeparse.py:77` | `_WEEKDAY_RE` matches the words "sat" and "sun"; fails safe (waits longer). Needs a real fixture before the recognizer changes. | Code reading; no live occurrence. |
 
 ## Possible future work
 
@@ -165,7 +167,7 @@ Not scheduled; recorded so the question has one answer.
 
 | ID | Idea | Why it is open |
 | --- | --- | --- |
-| I1 | An attach-only dashboard that draws a running watcher's state (normally the background service) without scanning or logging itself. | Today every `run` is a full watcher, so a dashboard beside the service doubles every log line and summary sample ([USAGE.md §9](USAGE.md#opening-the-dashboard-while-the-service-runs)). The owner-only control socket carries only mode, PID and version by design; serving session state over it needs its own privacy review (no terminal text, no account data). |
+| — | None recorded. The former I1 (an attach-only dashboard) shipped in v0.76.0: an interactive `run` attaches to the service's view socket; `--standalone` starts a full second watcher ([USAGE.md §9](USAGE.md#opening-the-dashboard-while-the-service-runs)). | — |
 
 ## Known conservative boundaries
 

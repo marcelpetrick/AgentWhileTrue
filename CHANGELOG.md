@@ -13,6 +13,17 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.78.7] - 2026-11-28
+
+### Changed
+
+- Bring the documentation up to date: timed retries start one minute after
+  the reset and cover Claude's window limit, the per-run whip counter is not
+  saved while all-time totals live in `whip.json`, the attach-only dashboard
+  is shipped work, the whip reaches every revalidated agent tab, the gate
+  helper scripts are documented, the component diagram lists every module,
+  and provider version history is removed from current documents.
+
 ## [0.78.6] - 2026-11-28
 
 ### Changed
