@@ -42,7 +42,7 @@ NAME: Final = "claude"
 PATTERNS_VERSION: Final = "claude-2.1.x/13"
 #: The latest release whose screens and strings were read. Only the newest
 #: Claude Code release is supported; older ones are not tracked.
-VERIFIED_VERSIONS: Final = ("2.1.300",)
+VERIFIED_VERSIONS: Final = ("2.1.332",)
 VERIFIED_AGAINST: Final = f"Claude Code {VERIFIED_VERSIONS[-1]}"
 
 

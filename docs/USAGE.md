@@ -777,11 +777,11 @@ prompt: no mode answers it on its own, and the command text is never logged.
 permission prompts on - no bypass mode, no broad allow rules - an agent stops
 at every tool call it cannot pre-approve, and a supervised session sits idle
 until someone comes back to the tab. Auto-yes lets such a limited account keep
-working unattended, within the gates below. It is validated against Claude
-Code 2.1.300, including managed-account Bash rule overrides and its new
-auto-mode-classifier explanation whose full-window command preview hides the
-box's top rule, and against Claude Code 2.1.329's ~75-row subagent box with a
-bordered read-block explanation.
+working unattended, within the gates below. It is validated against the
+current Claude Code release, including managed-account Bash rule overrides,
+auto-mode-classifier and read-block explanations under a full-window command
+preview, tall subagent boxes with a bordered explanation and the scroll hint
+of a box taller than the window.
 
 Codex CLI 0.162.1 uses a different complete overlay. Auto-yes recognizes only
 its exact command, patch, terminal-input, one-time-network and turn-permission

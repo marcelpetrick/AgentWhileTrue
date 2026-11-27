@@ -13,6 +13,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.78.6] - 2026-11-28
+
+### Changed
+
+- Record Claude Code 2.1.332 as the verified release, checked against its
+  live MPT permission screens and binary strings.
+
 ## [0.78.5] - 2026-11-28
 
 ### Fixed
