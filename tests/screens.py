@@ -904,6 +904,36 @@ CLAUDE_APPROVAL_TALL_BOX_2_1_329 = [
 #: rule away: only the dashed separator and the bordered explanation remain.
 CLAUDE_APPROVAL_TALL_BOX_NO_RULE_2_1_329 = CLAUDE_APPROVAL_TALL_BOX_2_1_329[8:]
 
+#: A subagent's heredoc permission box read live from Claude Code 2.1.332 in
+#: the MPT company profile on 2026-11-28. The box is taller than the window, so
+#: Claude writes its warning-coloured scroll hint into the box's lowest free
+#: row, the blank row between the last item and the footer. The command is
+#: replaced by placeholder rows; the separator, bordered explanation, menu,
+#: hint, trailing blanks and footer are verbatim.
+CLAUDE_APPROVAL_SCROLL_HINT_2_1_332 = [
+    *[f" │ command preview row {number}" for number in range(36)],
+    "╌" * 139,
+    " │ grep names a path that is computed at run time, which cannot be checked against the"
+    " read block",
+    " │ (permissions.blockReadsOutsideWorkingDirectories)",
+    "  ",
+    " Do you want to proceed?",
+    " ❯ 1. Yes",
+    "   2. No",
+    " ↑ 39 more lines ",
+    " Esc to cancel · Tab to amend · ctrl+x ctrl+k twice to stop background agents" + " " * 39,
+]
+
+#: The same component's other placement, from Claude Code 2.1.332's renderer:
+#: with no free row inside the box it pads one row below it and draws the hint
+#: there, under the footer. Constructed from the capture above and the binary.
+CLAUDE_APPROVAL_SCROLL_HINT_BELOW_FOOTER_2_1_332 = [
+    *CLAUDE_APPROVAL_SCROLL_HINT_2_1_332[:-2],
+    "",
+    CLAUDE_APPROVAL_SCROLL_HINT_2_1_332[-1],
+    " ↑ 1 more line ",
+]
+
 #: Claude Code 2.1.296 can offer two persistent choices between one-time Yes
 #: and No. Enter on item 1 remains the only permitted answer.
 CLAUDE_APPROVAL_FOUR_OPTIONS_2_1_296 = [

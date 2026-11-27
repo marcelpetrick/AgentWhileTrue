@@ -13,6 +13,17 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.78.5] - 2026-11-28
+
+### Fixed
+
+- Claude Code auto-yes answers permission boxes taller than the window
+  again: Claude now writes a bare "↑ N more lines" scroll hint into the blank
+  row above the footer (or below the footer), which the exact-frame check
+  refused as an unknown layout. Exactly one bare hint is accepted and stays in
+  the fingerprint; a hint with a note, a second hint or a down arrow still
+  fails closed.
+
 ## [0.78.4] - 2026-11-28
 
 ### Fixed

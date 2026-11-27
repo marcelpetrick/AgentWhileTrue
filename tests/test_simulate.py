@@ -43,6 +43,7 @@ def test_daemon_quota_requires_bound_explicit_allowance(tmp_path: Path) -> None:
 TALKATIVE = {
     "claude-approval-capture-boundary": [(simulate.SESSION, "\r")],
     "claude-unanalyzable-command-approval": [(simulate.SESSION, "\r")],
+    "claude-scroll-hint-approval": [(simulate.SESSION, "\r")],
     "run-activity": [(simulate.SESSION, "\r")] * 3,
     "reset-and-resume": [(simulate.SESSION, "\r")],
     "budget-renewal": [(simulate.SESSION, "\r")],

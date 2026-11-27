@@ -435,8 +435,7 @@ Cached service health is redrawn with the dashboard, not on
 `STATUS_POLL_INTERVAL`.
 
 Opted-in Codex timed retries first become eligible one second after an anchored
-reset, subject to quota, prompt and identity revalidation. The persisted
-11-attempt budget is finite; exhausted retries require operator attention, not
+reset, subject to quota, prompt and identity revalidation. The persisted 11-attempt budget is finite; exhausted retries require operator attention, not
 an endless stream of `continue` messages. Claude's exact automatic-wait menu
 hands waiting back to Claude; other Claude continuations still need provider
 confirmation. Neither a reset clock nor this supervisor guarantees that the
@@ -748,9 +747,14 @@ the prompt is an exact tested permission menu, at the bottom of the screen:
    2. Yes, and <a session or settings choice>       (optional)
    3. Yes, and <another session or mode choice>     (optional)
    2|3|4. No[, and tell Claude what to do differently]
-
+[ ↑ N more lines ]                                  (or below the footer)
  Esc to cancel · Tab to amend[ · <keys> twice|again to stop background agents]
 ```
+
+A box taller than the window carries Claude's bare scroll hint once, in place
+of the blank row above the footer or as the row below it; a hint with any
+other text, a second hint or a down arrow fails closed. The hint stays in the
+fingerprint.
 
 with the box's solid top rule above the question, or the visible command/file
 preview, dashed separator and bounded permission explanation when a full-height

@@ -644,6 +644,11 @@ _APPROVAL_FOOTER = re.compile(
     r" (?:twice|again) to stop background agents)?\s*$",
     re.IGNORECASE,
 )
+#: A permission box taller than the window gets Claude's warning-coloured
+#: scroll hint, " \u2191 N more line(s) ", in its lowest free row (the blank row
+#: above the footer) or, with no free row, one row below the footer. Only the
+#: bare hint is accepted; a note, another arrow or a missing count is not.
+_SCROLL_HINT = re.compile(r"^ \u2191 [1-9]\d{0,4} more lines?\s*$")
 _APPROVAL_YES = re.compile(rf"^\s*{_COMPOSER_GLYPH}\s*1\.\s*Yes\s*$")
 _APPROVAL_YES_AND = re.compile(r"^\s*(?P<number>[23])\.\s*Yes, and\s+\S")
 _APPROVAL_NO = re.compile(r"^\s*(?P<number>[2-4])\.\s*No(?:\s*$|,\s)")
@@ -702,16 +707,24 @@ def _approval_frame(lines: list[str]) -> tuple[list[str] | None, str]:
     top rule, or - when a preview fills the window - a nearby dashed rule and
     the visible permission explanation above the question. The cursor anywhere
     else, a fifth item, a reworded item or text below the footer is another
-    shape and yields None.
+    shape and yields None. The one exception is Claude's bare scroll hint for
+    a box taller than the window: exactly once, either in place of the blank
+    row above the footer or as the last row below it. It stays in the
+    fingerprint, so a changed count is a changed box.
     Enter on this shape selects item 1, the one-time "Yes"; a "Yes, and ..."
     item is never reached.
     """
     end = len(lines)
     while end and not lines[end - 1].strip():
         end -= 1
-    if end < 4 or not _APPROVAL_FOOTER.match(normalise_typography(lines[end - 1])):
+    footer = end - 1
+    if end >= 2 and _SCROLL_HINT.match(lines[footer]):
+        footer -= 1
+    if footer < 3 or not _APPROVAL_FOOTER.match(normalise_typography(lines[footer])):
         return None, "footer"
-    row = end - 2
+    row = footer - 1
+    if footer == end - 1 and row >= 0 and _SCROLL_HINT.match(lines[row]):
+        row -= 1
     while row >= 0 and not lines[row].strip():
         row -= 1
     last = _APPROVAL_NO.match(lines[row]) if row >= 0 else None
@@ -730,7 +743,7 @@ def _approval_frame(lines: list[str]) -> tuple[list[str] | None, str]:
                 break
             if _APPROVAL_ITEM.match(lines[row]) or _COMPOSER_GLYPH in lines[row]:
                 return None, "middle-item"
-            if not lines[row].strip() or end - row > APPROVAL_MENU_ROWS + 2:
+            if not lines[row].strip() or footer + 1 - row > APPROVAL_MENU_ROWS + 2:
                 return None, "middle-item"
             row -= 1
         else:

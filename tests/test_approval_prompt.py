@@ -48,6 +48,8 @@ def test_the_live_yes_no_prompt_is_the_exact_tested_shape() -> None:
         screens.CLAUDE_APPROVAL_CLASSIFIER_2_1_300,
         screens.CLAUDE_APPROVAL_TALL_BOX_2_1_329,
         screens.CLAUDE_APPROVAL_TALL_BOX_NO_RULE_2_1_329,
+        screens.CLAUDE_APPROVAL_SCROLL_HINT_2_1_332,
+        screens.CLAUDE_APPROVAL_SCROLL_HINT_BELOW_FOOTER_2_1_332,
     ],
     ids=[
         "dont-ask-again",
@@ -58,6 +60,8 @@ def test_the_live_yes_no_prompt_is_the_exact_tested_shape() -> None:
         "auto-mode-classifier",
         "tall-box-2.1.329",
         "tall-box-rule-scrolled-away-2.1.329",
+        "scroll-hint-above-footer-2.1.332",
+        "scroll-hint-below-footer-2.1.332",
     ],
 )
 def test_current_permission_menus_with_the_cursor_on_yes_are_exact(screen: list[str]) -> None:
@@ -201,6 +205,49 @@ def test_the_failing_frame_stage_is_named_without_screen_text(
 
     assert approval_layout(list(screen)) == stage
     assert _recognise(list(screen)).approval_layout == ("" if stage == "exact" else stage)
+
+
+@pytest.mark.parametrize(
+    "hint",
+    [
+        " ↑ 39 more lines · press y",
+        " ↓ 39 more lines ",
+        " ↑ more lines ",
+        " ↑ 39 more lines ↑ 2 more lines ",
+        "   3. No",
+    ],
+    ids=["note", "down-arrow", "no-count", "doubled", "extra-item"],
+)
+def test_only_the_exact_scroll_hint_may_sit_between_menu_and_footer(hint: str) -> None:
+    screen = list(screens.CLAUDE_APPROVAL_SCROLL_HINT_2_1_332)
+    screen[-2] = hint
+
+    assert not _recognise(screen).approval_prompt
+
+
+def test_the_scroll_hint_below_the_footer_needs_the_footer_right_above_it() -> None:
+    screen = list(screens.CLAUDE_APPROVAL_SCROLL_HINT_BELOW_FOOTER_2_1_332)
+    screen.insert(-1, "")
+
+    assert not _recognise(screen).approval_prompt
+    assert _recognise(screen).approval_layout == "footer"
+
+
+def test_two_scroll_hints_are_never_one_frame() -> None:
+    screen = [
+        *screens.CLAUDE_APPROVAL_SCROLL_HINT_2_1_332,
+        " ↑ 1 more line ",
+    ]
+
+    assert not _recognise(screen).approval_prompt
+
+
+def test_a_changed_scroll_count_is_a_changed_box() -> None:
+    first = _recognise(screens.CLAUDE_APPROVAL_SCROLL_HINT_2_1_332).approval_fingerprint
+    screen = list(screens.CLAUDE_APPROVAL_SCROLL_HINT_2_1_332)
+    screen[-2] = " ↑ 40 more lines "
+
+    assert _recognise(screen).approval_fingerprint not in ("", first)
 
 
 def test_a_rule_beyond_the_box_bound_never_excuses_an_unknown_explanation() -> None:

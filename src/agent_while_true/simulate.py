@@ -202,6 +202,13 @@ UNANALYZABLE_APPROVAL_SCREEN = [
     "",
     " Esc to cancel · Tab to amend",
 ]
+#: A box taller than the window: Claude Code 2.1.332 writes its bare scroll
+#: hint into the blank row between the last item and the footer.
+SCROLL_HINT_APPROVAL_SCREEN = [
+    *UNANALYZABLE_APPROVAL_SCREEN[:-2],
+    " ↑ 39 more lines ",
+    UNANALYZABLE_APPROVAL_SCREEN[-1],
+]
 APPROVAL_CURSOR_MOVED_SCREEN = [
     *APPROVAL_SCREEN[:9],
     "   1. Yes",
@@ -1527,6 +1534,25 @@ def scenario_claude_unanalyzable_command_approval(directory: Path) -> Result:
     )
 
 
+def scenario_claude_scroll_hint_approval(directory: Path) -> Result:
+    noted = [
+        " ↑ 39 more lines · press y" if line.startswith(" ↑") else line
+        for line in SCROLL_HINT_APPROVAL_SCREEN
+    ]
+    world = _world(directory, screen=noted)
+    world.approve("a scroll hint carrying extra text is not the tested hint")
+    world.screen(SCROLL_HINT_APPROVAL_SCREEN)
+    world.approve("the bare scroll hint of a box taller than the window")
+    world.approve("the same box, Claude has not redrawn yet")
+    return _result(
+        "claude-scroll-hint-approval",
+        "A permission box taller than the window shows Claude's scroll hint.",
+        "only the bare hint keeps the frame exact; it gets one Enter",
+        world,
+        passed=world.terminal.sent == [(SESSION, "\r")] and world.steps[0].sent == 0,
+    )
+
+
 def scenario_auto_yes_on_at_start(directory: Path) -> Result:
     world = _world(directory / "auto", screen=CURRENT_APPROVAL_SCREEN)
     starts = world.supervisor.config.starts_auto_yes
@@ -1605,6 +1631,7 @@ def scenario_auto_yes_resends_once(directory: Path) -> Result:
 SCENARIOS: dict[str, ScenarioFn] = {
     "claude-approval-capture-boundary": scenario_claude_approval_capture_boundary,
     "claude-unanalyzable-command-approval": scenario_claude_unanalyzable_command_approval,
+    "claude-scroll-hint-approval": scenario_claude_scroll_hint_approval,
     "quota-cache-invalidation": scenario_quota_cache_invalidation,
     "standby-reclaim-identity": scenario_standby_reclaim_identity,
     "run-activity": scenario_run_activity,
