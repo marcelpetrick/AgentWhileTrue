@@ -13,6 +13,15 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.78.8] - 2026-11-28
+
+### Fixed
+
+- A permission box showing Claude's scroll hint is accepted only through its
+  dashed separator and template explanation: the hint proves the box's top
+  rule is off screen, so a solid rule inside the preview can no longer stand
+  in for it and skip the explanation check.
+
 ## [0.78.7] - 2026-11-28
 
 ### Changed

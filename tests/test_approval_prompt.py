@@ -242,6 +242,20 @@ def test_two_scroll_hints_are_never_one_frame() -> None:
     assert not _recognise(screen).approval_prompt
 
 
+def test_a_scrolled_box_never_takes_a_preview_rule_for_its_top() -> None:
+    """With the hint on screen, a solid rule in the preview cannot skip the explanation."""
+    screen = list(screens.CLAUDE_APPROVAL_SCROLL_HINT_2_1_332)
+    dashed = next(i for i, line in enumerate(screen) if line.startswith("╌"))
+    screen[dashed] = "─" * 139
+    screen[dashed + 1] = " │ An unrelated assistant status row happens to be here."
+    screen[dashed + 2] = ""
+
+    assert not _recognise(screen).approval_prompt
+    without_hint = [line for line in screen if not line.startswith(" ↑")]
+    without_hint.insert(-1, "")
+    assert _recognise(without_hint).approval_prompt
+
+
 def test_a_changed_scroll_count_is_a_changed_box() -> None:
     first = _recognise(screens.CLAUDE_APPROVAL_SCROLL_HINT_2_1_332).approval_fingerprint
     screen = list(screens.CLAUDE_APPROVAL_SCROLL_HINT_2_1_332)

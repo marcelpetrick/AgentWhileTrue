@@ -185,7 +185,6 @@ CURRENT_APPROVAL_SCREEN = [
     "",
     " Esc to cancel · Tab to amend",
 ]
-#: The three-option box with the operator's cursor moved onto item 2.
 #: A full-window heredoc command whose top rule has scrolled away. Claude Code
 #: 2.1.332 explains it with a read-block reason plus its fixed clause for a
 #: command the shell parser cannot analyze (template text from its binary).
@@ -209,6 +208,7 @@ SCROLL_HINT_APPROVAL_SCREEN = [
     " ↑ 39 more lines ",
     UNANALYZABLE_APPROVAL_SCREEN[-1],
 ]
+#: The three-option box with the operator's cursor moved onto item 2.
 APPROVAL_CURSOR_MOVED_SCREEN = [
     *APPROVAL_SCREEN[:9],
     "   1. Yes",

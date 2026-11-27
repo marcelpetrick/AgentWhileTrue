@@ -718,12 +718,14 @@ def _approval_frame(lines: list[str]) -> tuple[list[str] | None, str]:
     while end and not lines[end - 1].strip():
         end -= 1
     footer = end - 1
-    if end >= 2 and _SCROLL_HINT.match(lines[footer]):
+    scrolled = end >= 2 and bool(_SCROLL_HINT.match(lines[footer]))
+    if scrolled:
         footer -= 1
     if footer < 3 or not _APPROVAL_FOOTER.match(normalise_typography(lines[footer])):
         return None, "footer"
     row = footer - 1
-    if footer == end - 1 and row >= 0 and _SCROLL_HINT.match(lines[row]):
+    if not scrolled and row >= 0 and _SCROLL_HINT.match(lines[row]):
+        scrolled = True
         row -= 1
     while row >= 0 and not lines[row].strip():
         row -= 1
@@ -753,8 +755,10 @@ def _approval_frame(lines: list[str]) -> tuple[list[str] | None, str]:
     question = row - 1
     if not _APPROVAL_QUESTION.match(normalise_typography(lines[question])):
         return None, "question"
+    # The scroll hint proves the box's own top rule is off screen, so a solid
+    # rule above the question would be preview text, never the box top.
     for top in range(question - 1, max(-1, question - 1 - APPROVAL_BOX_ROWS), -1):
-        if _RULE_ROW.match(lines[top]):
+        if not scrolled and _RULE_ROW.match(lines[top]):
             return lines[top:end], "exact"
     # A full-height command preview can scroll the solid rule away. Current
     # Claude leaves its dashed separator followed by up to four permission
