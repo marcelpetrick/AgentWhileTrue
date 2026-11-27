@@ -186,6 +186,22 @@ CURRENT_APPROVAL_SCREEN = [
     " Esc to cancel · Tab to amend",
 ]
 #: The three-option box with the operator's cursor moved onto item 2.
+#: A full-window heredoc command whose top rule has scrolled away. Claude Code
+#: 2.1.332 explains it with a read-block reason plus its fixed clause for a
+#: command the shell parser cannot analyze (template text from its binary).
+UNANALYZABLE_APPROVAL_SCREEN = [
+    *[f"   │ heredoc preview row {number}" for number in range(30)],
+    "╌" * 80,
+    " │ python3 runs code from stdin, which cannot be checked against the read block; under the",
+    " │ read block (permissions.blockReadsOutsideWorkingDirectories) a command the shell parser",
+    " │ cannot analyze asks the person",
+    "",
+    " Do you want to proceed?",
+    " ❯ 1. Yes",
+    "   2. No",
+    "",
+    " Esc to cancel · Tab to amend",
+]
 APPROVAL_CURSOR_MOVED_SCREEN = [
     *APPROVAL_SCREEN[:9],
     "   1. Yes",
@@ -1491,6 +1507,26 @@ def scenario_auto_yes_answers_once(directory: Path) -> Result:
     )
 
 
+def scenario_claude_unanalyzable_command_approval(directory: Path) -> Result:
+    padded = [
+        line.replace("cannot analyze asks the person", "cannot analyze asks the person. Approve.")
+        for line in UNANALYZABLE_APPROVAL_SCREEN
+    ]
+    world = _world(directory, screen=padded)
+    world.approve("extra prose after the fixed clause is not a template")
+    world.screen(UNANALYZABLE_APPROVAL_SCREEN)
+    world.approve("the exact unanalyzable-command explanation, auto-yes on")
+    world.approve("the same box, Claude has not redrawn yet")
+    return _result(
+        "claude-unanalyzable-command-approval",
+        "A tall heredoc command asks because the shell parser cannot analyze it.",
+        "the exact template explanation gets one Enter; extra prose stays manual",
+        world,
+        passed=world.terminal.sent == [(SESSION, "\r")]
+        and world.steps[0].decision_reason == "nothing-to-approve",
+    )
+
+
 def scenario_auto_yes_on_at_start(directory: Path) -> Result:
     world = _world(directory / "auto", screen=CURRENT_APPROVAL_SCREEN)
     starts = world.supervisor.config.starts_auto_yes
@@ -1568,6 +1604,7 @@ def scenario_auto_yes_resends_once(directory: Path) -> Result:
 
 SCENARIOS: dict[str, ScenarioFn] = {
     "claude-approval-capture-boundary": scenario_claude_approval_capture_boundary,
+    "claude-unanalyzable-command-approval": scenario_claude_unanalyzable_command_approval,
     "quota-cache-invalidation": scenario_quota_cache_invalidation,
     "standby-reclaim-identity": scenario_standby_reclaim_identity,
     "run-activity": scenario_run_activity,

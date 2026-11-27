@@ -13,6 +13,16 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.78.4] - 2026-11-28
+
+### Fixed
+
+- Claude Code auto-yes answers tall heredoc, stdin and subshell commands
+  again: Claude now appends a fixed "under the read block ... a command the
+  shell parser cannot analyze asks the person" clause to their read-block
+  explanation, which the exact-frame check refused as an unknown layout. The
+  clause is accepted only after a bounded reason and with nothing after it.
+
 ## [0.78.3] - 2026-11-28
 
 ### Changed

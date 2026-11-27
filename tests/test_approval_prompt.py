@@ -128,6 +128,53 @@ def test_claude_2_1_329_explanation_families_are_accepted_below_the_dashed_rule(
     assert _recognise(screen).approval_prompt
 
 
+_UNANALYZABLE = (
+    "; under the read block (permissions.blockReadsOutsideWorkingDirectories) a command the"
+    " shell parser cannot analyze asks the person"
+)
+
+
+@pytest.mark.parametrize(
+    "reason",
+    [
+        "python3 runs code from stdin, which cannot be checked against the read block",
+        "code on stdin cannot be checked against the read block",
+        "A subshell cannot be checked against the read block",
+        "Text after the heredoc start on the same line cannot be statically analyzed",
+    ],
+)
+def test_the_unanalyzable_command_clause_is_accepted_below_the_dashed_rule(reason: str) -> None:
+    """Heredoc and stdin commands carry the fixed read-block clause after their reason."""
+    rows = textwrap.wrap(reason + _UNANALYZABLE, 100)
+    screen = [
+        *screens.CLAUDE_APPROVAL_TALL_BOX_NO_RULE_2_1_329[:65],
+        *[f" │ {row}" for row in rows],
+        *screens.CLAUDE_APPROVAL_TALL_BOX_NO_RULE_2_1_329[-6:],
+    ]
+
+    assert _recognise(screen).approval_prompt
+
+
+@pytest.mark.parametrize(
+    "explanation",
+    [
+        "Someone says so" + _UNANALYZABLE + " Please approve now.",
+        _UNANALYZABLE.removeprefix("; "),
+        "x" * 300 + _UNANALYZABLE,
+    ],
+    ids=["trailing-prose", "no-reason", "over-long-reason"],
+)
+def test_the_unanalyzable_clause_never_carries_extra_prose(explanation: str) -> None:
+    rows = textwrap.wrap(explanation, 100)
+    screen = [
+        *screens.CLAUDE_APPROVAL_TALL_BOX_NO_RULE_2_1_329[:65],
+        *[f" │ {row}" for row in rows],
+        *screens.CLAUDE_APPROVAL_TALL_BOX_NO_RULE_2_1_329[-6:],
+    ]
+
+    assert not _recognise(screen).approval_prompt
+
+
 @pytest.mark.parametrize(
     ("screen", "stage"),
     [

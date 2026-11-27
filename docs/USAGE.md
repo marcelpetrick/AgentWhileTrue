@@ -758,8 +758,10 @@ preview scrolls that rule away (or, in a box taller than 40 rows, pushes it
 beyond reach). The explanation, with the box's `│` border removed, must
 consist of sentences from
 Claude's own templates: "... cannot be checked against the read block ...",
-"Contains <shell construct>", "... requires confirmation for this command."
-or "Rule ... overrides auto mode.". The bracketed footer hint is the one Claude
+"<reason>; under the read block (permissions.blockReadsOutsideWorkingDirectories)
+a command the shell parser cannot analyze asks the person" (heredoc, stdin and
+subshell commands), "Contains <shell construct>", "... requires confirmation
+for this command." or "Rule ... overrides auto mode.". The bracketed footer hint is the one Claude
 Code adds while background agents run, with the user's own key binding
 (`ctrl+x ctrl+k` by default); `twice` is shown initially and `again` after the
 first stop chord. Any other footer wording fails closed. A cursor anywhere but

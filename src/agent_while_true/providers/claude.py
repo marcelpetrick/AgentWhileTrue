@@ -654,8 +654,8 @@ _APPROVAL_QUESTION = re.compile(r"^\s*Do you want to \S.{0,200}\?\s*$")
 #: The dashed rule Claude draws between a file preview and the question.
 _DASHED_ROW = re.compile(r"^\s*[\u254c\u2504\u2508]{8,}\s*$")
 #: Explanation families Claude composes between a full-window command preview
-#: and its permission question. Each sentence comes from one of Claude Code
-#: 2.1.329's fixed templates (read from its binary and live screens); only the
+#: and its permission question. Each sentence comes from one of Claude Code's
+#: current fixed templates (read from its binary and live screens); only the
 #: inserted path, command, rule or classifier name varies. Joining the bounded
 #: rows removes soft wrapping without accepting unrelated assistant prose in
 #: the fallback frame: every sentence must match a template.
@@ -666,6 +666,12 @@ _EXPLANATION_SENTENCE = (
     r"\S.{0,240}?cannot be checked against the read block"
     r"(?: \(permissions\.blockReadsOutsideWorkingDirectories\))?"
     r"(?: or the Read deny rules\. Spell the path without the glob\.)?"
+    # Claude appends one fixed clause to every read-block ask it
+    # raises for a command its shell parser cannot analyze (stdin code,
+    # heredocs, subshells, parser refusals); the reason before it loses its
+    # final period.
+    r"|\S.{0,240}?; under the read block \(permissions\.blockReadsOutsideWorkingDirectories\)"
+    r" a command the shell parser cannot analyze asks the person"
     # Shell constructs the safety parser refuses to reason about.
     r"|Contains (?:[a-z]+(?:_[a-z]+)+|brace with quote character \(expansion obfuscation\)"
     r"|zsh (?:~\[ dynamic directory syntax|=cmd equals expansion|<N-M> numeric-range glob)"
