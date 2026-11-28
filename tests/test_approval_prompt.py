@@ -50,6 +50,7 @@ def test_the_live_yes_no_prompt_is_the_exact_tested_shape() -> None:
         screens.CLAUDE_APPROVAL_TALL_BOX_NO_RULE_2_1_329,
         screens.CLAUDE_APPROVAL_SCROLL_HINT_2_1_332,
         screens.CLAUDE_APPROVAL_SCROLL_HINT_BELOW_FOOTER_2_1_332,
+        screens.CLAUDE_APPROVAL_NO_RULE_MATCH_2_1_332,
     ],
     ids=[
         "dont-ask-again",
@@ -62,6 +63,7 @@ def test_the_live_yes_no_prompt_is_the_exact_tested_shape() -> None:
         "tall-box-rule-scrolled-away-2.1.329",
         "scroll-hint-above-footer-2.1.332",
         "scroll-hint-below-footer-2.1.332",
+        "no-rule-match-2.1.332",
     ],
 )
 def test_current_permission_menus_with_the_cursor_on_yes_are_exact(screen: list[str]) -> None:
@@ -116,6 +118,7 @@ def test_unrecognised_full_window_permission_explanation_fails_closed() -> None:
         "Contains simple_expansion",
         "Classifier bash-safety requires confirmation for this command.",
         "Rule Bash(git push*) overrides auto mode.",
+        "This command requires approval",
     ],
 )
 def test_claude_2_1_329_explanation_families_are_accepted_below_the_dashed_rule(

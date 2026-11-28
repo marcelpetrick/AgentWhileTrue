@@ -924,6 +924,23 @@ CLAUDE_APPROVAL_SCROLL_HINT_2_1_332 = [
     " Esc to cancel · Tab to amend · ctrl+x ctrl+k twice to stop background agents" + " " * 39,
 ]
 
+#: A subagent's tall heredoc box read live from Claude Code 2.1.332 in the MPT
+#: company profile on 2026-11-28: no allow rule matched, so the explanation
+#: below the dashed separator is Claude's plain no-rule-match reason. The
+#: command is replaced by placeholder rows; the separator, explanation, menu
+#: and spacing are verbatim, the footer as on every other 2.1.332 box.
+CLAUDE_APPROVAL_NO_RULE_MATCH_2_1_332 = [
+    *[f" │ command preview row {number}" for number in range(38)],
+    "╌" * 139,
+    " This command requires approval",
+    "",
+    " Do you want to proceed?",
+    " ❯ 1. Yes",
+    "   2. No",
+    "  ",
+    " Esc to cancel · Tab to amend · ctrl+x ctrl+k twice to stop background agents",
+]
+
 #: The same component's other placement, from Claude Code 2.1.332's renderer:
 #: with no free row inside the box it pads one row below it and draws the hint
 #: there, under the footer. Constructed from the capture above and the binary.

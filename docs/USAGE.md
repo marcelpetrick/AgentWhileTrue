@@ -767,7 +767,8 @@ consist of sentences from
 Claude's own templates: "... cannot be checked against the read block ...",
 "<reason>; under the read block (permissions.blockReadsOutsideWorkingDirectories)
 a command the shell parser cannot analyze asks the person" (heredoc, stdin and
-subshell commands), "Contains <shell construct>", "... requires confirmation
+subshell commands), "This command requires approval" (no allow rule
+matched), "Contains <shell construct>", "... requires confirmation
 for this command." or "Rule ... overrides auto mode.". The bracketed footer hint is the one Claude
 Code adds while background agents run, with the user's own key binding
 (`ctrl+x ctrl+k` by default); `twice` is shown initially and `again` after the

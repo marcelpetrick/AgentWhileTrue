@@ -677,6 +677,8 @@ _EXPLANATION_SENTENCE = (
     # final period.
     r"|\S.{0,240}?; under the read block \(permissions\.blockReadsOutsideWorkingDirectories\)"
     r" a command the shell parser cannot analyze asks the person"
+    # The fixed reason for a command no allow rule matches.
+    r"|This command requires approval"
     # Shell constructs the safety parser refuses to reason about.
     r"|Contains (?:[a-z]+(?:_[a-z]+)+|brace with quote character \(expansion obfuscation\)"
     r"|zsh (?:~\[ dynamic directory syntax|=cmd equals expansion|<N-M> numeric-range glob)"

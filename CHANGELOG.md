@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.78.10] - 2026-11-28
+
+### Fixed
+
+- Claude Code auto-yes answers tall permission boxes whose explanation is
+  Claude's plain no-rule-match reason, "This command requires approval",
+  again; the full-window fallback refused it as an unknown explanation.
+
 ## [0.78.9] - 2026-11-28
 
 ### Changed
