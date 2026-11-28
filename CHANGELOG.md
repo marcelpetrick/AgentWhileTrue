@@ -13,6 +13,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 While the major version is `0`, the minor version is bumped for every feature
 increment and the patch version for fixes.
 
+## [0.78.11] - 2026-11-28
+
+### Changed
+
+- Prepare the public release with tall permission boxes carrying Claude's
+  no-rule-match explanation answered again; align the tagged installation
+  command with this release.
+
 ## [0.78.10] - 2026-11-28
 
 ### Fixed
